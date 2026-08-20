@@ -516,6 +516,11 @@ app.post("/create-case", checkAuth, async (req, res) => {
     });
 
     await safeSave();
+    res.redirect("/admin?tab=infractions");
+});
+
+
+    await safeSave();
     res.redirect("/#infractions");
 });
 
