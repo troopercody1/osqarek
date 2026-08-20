@@ -35,11 +35,14 @@ function matchesScamPattern(text) {
 }
 
 // ---- Layer 2: AI-based contextual classification ----
-// unitary/toxic-bert scores multiple categories (toxic, severe_toxic,
-// obscene, threat, insult, identity_hate). Swap the model name for
-// something like facebook/roberta-hate-speech-dynabench-r4-target if you
-// want hate-speech-specific scoring instead.
-const HF_MODEL = "unitary/toxic-bert";
+// facebook/roberta-hate-speech-dynabench-r4-target scores targeted hate
+// speech specifically, rather than toxic-bert's word-association approach
+// (toxic-bert flags any message containing profanity/insult-adjacent words
+// regardless of tone, e.g. "damn" or "this essay is stupid" — see its model
+// card). This model only outputs two labels: "hate" and "nothate", so the
+// scoring below is a single threshold rather than toxic-bert's six-category
+// breakdown.
+const HF_MODEL = "facebook/roberta-hate-speech-dynabench-r4-target";
 // HF retired api-inference.huggingface.co ("Inference API" -> "Inference
 // Providers"); requests now go through router.huggingface.co instead.
 const HF_API_URL = `https://router.huggingface.co/hf-inference/models/${HF_MODEL}`;
@@ -63,7 +66,7 @@ async function classifyToxicity(text) {
   }
 
   const data = await res.json();
-  // Response shape: [[{label, score}, {label, score}, ...]]
+  // Response shape: [[{label: "hate"|"nothate", score}, ...]]
   const scores = data[0] || [];
   return scores.reduce((acc, { label, score }) => {
     acc[label] = score;
@@ -71,20 +74,11 @@ async function classifyToxicity(text) {
   }, {});
 }
 
-// Tune these per-category thresholds to taste. Higher = stricter.
-const THRESHOLDS = {
-  toxic: 0.85,
-  severe_toxic: 0.5,
-  threat: 0.6,
-  identity_hate: 0.6,
-  insult: 0.85,
-  obscene: 0.9,
-};
+// Single threshold for the "hate" label — tune to taste. Higher = stricter.
+const HATE_THRESHOLD = 0.85;
 
 function isFlaggedByScores(scores) {
-  return Object.entries(THRESHOLDS).some(
-    ([category, threshold]) => (scores[category] || 0) >= threshold
-  );
+  return (scores.hate || 0) >= HATE_THRESHOLD;
 }
 
 // ---- Layer 3: self-harm / suicide risk classification ----
