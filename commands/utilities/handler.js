@@ -116,6 +116,7 @@ Warning System (Escalation Ladder):
 
     const response = await hf.chatCompletion({
         model: "Qwen/Qwen3.8-27B",
+        provider: "featherless-ai",
         messages: [
             {
                 role: "system",
@@ -136,6 +137,7 @@ async function summarize({ interaction, createEmbed }) {
 
     const response = await hf.chatCompletion({
         model: "Qwen/Qwen3.8-27B",
+        provider: "featherless-ai",
         messages: [
             { role: "system", content: "Summarize the following chat conversation in 3 bullet points." },
             { role: "user", content: textContent }

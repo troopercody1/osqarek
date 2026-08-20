@@ -2467,6 +2467,7 @@ client.on('interactionCreate', async (interaction) => {
 
                 const response = await hf.chatCompletion({
                     model: "Qwen/Qwen3.8-27B",
+                    provider: "featherless-ai",
                     messages: [
                         { role: "system", content: "Summarize the following chat conversation in 3 bullet points." },
                         { role: "user", content: textContent }
@@ -3416,6 +3417,7 @@ if (commandName === 'warn' && options.getSubcommand() === 'clear') {
 
                 const response = await hf.chatCompletion({
                     model: "Qwen/Qwen3.8-27B",
+                    provider: "featherless-ai",
                     messages: [
                         {
                             role: "system",
@@ -5286,6 +5288,7 @@ async function askAI(prompt, type = "default") {
     try {
         const response = await hf.chatCompletion({
             model: "Qwen/Qwen3.8-27B",
+            provider: "featherless-ai",
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: prompt }
@@ -5372,6 +5375,7 @@ client.on('messageCreate', async (message) => {
 
         const response = await hf.chatCompletion({
             model: "Qwen/Qwen3.8-27B",
+            provider: "featherless-ai",
             messages: [
                 {
                     role: "system",
