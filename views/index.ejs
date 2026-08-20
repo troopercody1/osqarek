@@ -657,110 +657,28 @@
                 </form>
                 <% if (reactionRoles && reactionRoles.length > 0) { %>
                 <table style="margin-top:20px;">
-                    <thead><tr><th>Emoji</th><th>Role ID</th><th>Message ID</th><th>Remove</th></tr></thead>
-                    <tbody>
-                        <% reactionRoles.forEach((rr, i) => { %>
-                        <tr>
-                            <td><%= rr.emoji %></td>
-                            <td style="color:#7dcfff;"><%= rr.roleId %></td>
-                            <td style="color:#565f89;"><%= rr.messageId %></td>
-                            <td>
-                                <form action="/remove-reaction-role/<%= i %>" method="POST">
-                                    <button type="submit" class="btn-submit" style="background:#f7768e; margin-top:0; padding:6px 12px;">✕</button>
-                                </form>
-                            </td>
-                        </tr>
-                        <% }) %>
-                    </tbody>
+                    <thead><tr><th>Emoji</th><th>Role ID</th></tr></thead>
                 </table>
                 <% } %>
             </div>
         </div>
 
-        <!-- ═══════════════ BANNED WORDS ═══════════════ -->
-        <div id="banned-words" class="tab-content">
-            <div class="panel">
-                <h2>🚫 Banned Words</h2>
-                <p style="color:#565f89; font-size:13px; margin-bottom:16px;">Words removed here take effect on the next message scan. Auto-Mod must be enabled for deletions to occur.</p>
-                <div>
-                    <% if (bannedWords && bannedWords.length > 0) { %>
-                        <% bannedWords.forEach(word => { %>
-                        <span class="word-chip">
-                            <%= word %>
-                            <form action="/banned-words/remove" method="POST">
-                                <input type="hidden" name="word" value="<%= word %>">
-                                <button type="submit" title="Remove">✕</button>
-                            </form>
-                        </span>
-                        <% }) %>
-                    <% } else { %>
-                        <p style="color:#565f89;">No banned words configured.</p>
-                    <% } %>
-                </div>
-                <div class="add-word-row">
-                    <form action="/banned-words/add" method="POST" style="display:flex; gap:8px; width:100%;">
-                        <input name="word" placeholder="Add a word or phrase…" style="flex:1;">
-                        <button type="submit" class="btn-submit" style="margin-top:0;">Add</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- ═══════════════ SYSTEM LOGS ═══════════════ -->
-        <div id="terminal" class="tab-content">
-            <div class="panel">
-                <h2>🖥️ Live System Logs</h2>
-                <div class="terminal-box">
-                    <% logs.slice().reverse().forEach(log => { %>
-                    <div class="log">[<%= log.time %>] <%= log.text %></div>
-                    <% }) %>
-                </div>
-            </div>
-            <% if (errors && errors.length > 0) { %>
-            <div class="panel">
-                <h2>❌ Error Log</h2>
-                <div class="terminal-box">
-                    <% errors.slice().reverse().forEach(err => { %>
-                    <div class="err">[<%= err.time %>] <%= err.text %></div>
-                    <% }) %>
-                </div>
-            </div>
-            <% } %>
-        </div>
-
-    </div><!-- /main-content -->
+    </div>
 
     <script>
-    function openTab(evt, tabId) {
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-
-        if (evt && evt.currentTarget) {
-            evt.currentTarget.classList.add('active');
-        } else {
-            const btn = document.querySelector(`.tab-btn[onclick*="${tabId}"]`);
-            if (btn) btn.classList.add('active');
+        function openTab(evt, tabName) {
+            const contents = document.getElementsByClassName("tab-content");
+            for (let c of contents) c.classList.remove("active");
+            const buttons = document.getElementsByClassName("tab-btn");
+            for (let b of buttons) b.classList.remove("active");
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
         }
 
-        window.location.hash = tabId;
-    }
-
-    window.addEventListener('load', () => {
-        const hash = window.location.hash.substring(1);
-
-        if (hash && document.getElementById(hash)) {
-            openTab(null, hash);
-        }
-
-        const activeTab = "<%= activeTab || '' %>";
-
+        const activeTab = "<%= locals.activeTab || '' %>";
         if (activeTab) {
             document.getElementById(activeTab)?.classList.add("active");
-            document.querySelector(`.tab-btn[data-tab="${activeTab}"]`)?.classList.add("active");
         }
-    });
-</script>
-
+    </script>
 </body>
 </html>
