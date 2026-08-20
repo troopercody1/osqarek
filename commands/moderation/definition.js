@@ -1,0 +1,40 @@
+module.exports = [
+    {
+        name: 'mod',
+        description: "OsQarek's Universe Moderation Suite",
+        options: [
+            { name: 'kick', description: 'Remove a member from the server', type: 1, options: [{ name: 'target', description: 'User to kick', type: 6, required: true }, { name: 'evidence', description: 'Evidence screenshot or attachment - required', type: 11, required: true }, { name: 'reason', description: 'Reason for the kick', type: 3, required: false }] },
+            { name: 'ban', description: 'Permanently ban a member', type: 1, options: [{ name: 'target', description: 'User to ban', type: 6, required: true }, { name: 'reason', description: 'Reason for the ban', type: 3, required: false }] },
+            { name: 'unban', description: 'Lift a ban using a User ID', type: 1, options: [{ name: 'id', description: 'The Discord User ID', type: 3, required: true }] },
+            { name: 'mute', description: 'Timeout a member', type: 1, options: [{ name: 'target', description: 'User to mute', type: 6, required: true }, { name: 'minutes', description: 'Duration in minutes', type: 4, required: true }, { name: 'evidence', description: 'Evidence screenshot or attachment - required', type: 11, required: true }] },
+            { name: 'unmute', description: 'Remove a timeout from a member', type: 1, options: [{ name: 'target', description: 'User to unmute', type: 6, required: true }] },
+            { name: 'softban', description: 'Ban and immediately unban to clear messages', type: 1, options: [{ name: 'target', description: 'User to softban', type: 6, required: true }, { name: 'reason', description: 'Reason', type: 3, required: false }] },
+            { name: 'purge', description: 'Mass delete messages from the channel', type: 1, options: [{ name: 'amount', description: 'Number of messages (1-100)', type: 4, required: true }] },
+            { name: 'lockdown', description: 'Toggle server lockdown status', type: 1, options: [{ name: 'status', description: 'True to lock, False to unlock', type: 5, required: true }] },
+            { name: 'dm', description: 'Send an official staff DM to a member', type: 1, options: [{ name: 'target', description: 'User to message', type: 6, required: true }, { name: 'message', description: 'The message content', type: 3, required: true }] },
+        ],
+    },
+    {
+        name: 'warn',
+        description: "OsQarek's Universe Warning Suite",
+        options: [
+            { name: 'add', description: 'Issue a formal warning to a member', type: 1, options: [{ name: 'target', description: 'User to warn', type: 6, required: true }, { name: 'reason', description: 'Reason for the warning', type: 3, required: false }] },
+            { name: 'view', description: 'View warning history for a user', type: 1, options: [{ name: 'target', description: 'The user', type: 6, required: true }] },
+            { name: 'delete', description: 'Remove a single warning from a user', type: 1, options: [{ name: 'target', description: 'The user', type: 6, required: true }] },
+            { name: 'clear', description: 'Clear all warnings for a user', type: 1, options: [{ name: 'target', description: 'The user', type: 6, required: true }] },
+            { name: 'offences', description: "Check a user's offence count", type: 1, options: [{ name: 'target', description: 'The user', type: 6, required: false }] },
+            { name: 'offense', description: 'Manage a user\'s offence count', type: 2, options: [
+                { name: 'clear', description: "Reset a user's offence count to zero (keeps their case history)", type: 1, options: [{ name: 'target', description: 'The user', type: 6, required: true }] },
+            ] },
+        ],
+    },
+    { name: 'slowmode', description: 'Set slowmode', options: [{ name: 'seconds', description: 'Duration', type: 4, required: true }] },
+    { name: 'case', description: 'View case', options: [{ name: 'id', description: 'Case ID', type: 4, required: true }] },
+    { name: 'reason', description: 'Update reason', options: [{ name: 'id', description: 'Case ID', type: 4, required: true }, { name: 'new_reason', description: 'The text', type: 3, required: true }] },
+    { name: 'latest-action', description: 'Last 5 mod actions' },
+    { name: 'role', description: 'Modify roles', options: [{ name: 'action', description: 'Add/remove', type: 3, required: true, choices: [{ name: 'add', value: 'add' }, { name: 'remove', value: 'remove' }] }, { name: 'target', description: 'User', type: 6, required: true }, { name: 'role', description: 'Role', type: 8, required: true }] },
+    { name: 'banlist', description: 'View bans' },
+    { name: 'userignore', description: 'Ignore from AI', options: [{ name: 'target', description: 'User', type: 6, required: true }] },
+    { name: 'reactionrole', description: 'Create role button', options: [{ name: 'text', description: 'Text', type: 3, required: true }, { name: 'role', description: 'Role', type: 8, required: true }, { name: 'channel', description: 'Channel', type: 7, required: true }, { name: 'time', description: 'Expiry', type: 4 }] },
+    { name: 'nickname', description: "Manually change a user's nickname or flag them as unpingable", options: [{ name: 'target', description: 'The user to modify', type: 6, required: true }, { name: 'name', description: 'New nickname (leave blank to reset)', type: 3, required: false }, { name: 'moderate', description: 'Flag as unpingable? Sets name to ModeratedNickname#XXXX', type: 5, required: false }, { name: 'reason', description: 'Reason for the nickname change/moderation', type: 3, required: false }] },
+];

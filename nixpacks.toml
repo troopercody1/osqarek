@@ -1,0 +1,8 @@
+[phases.install]
+cmds = ["npm install"]
+
+[phases.build]
+cmds = ["echo 'no separate build step needed'"]
+
+[start]
+cmd = "node index.js"
