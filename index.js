@@ -5298,6 +5298,9 @@ async function askAI(prompt, type = "default") {
         return response.choices[0].message.content;
     } catch (error) {
         console.error("HF AI Function Error:", error);
+        if (error?.httpResponse?.body) {
+            console.error("HF AI Function Error body:", JSON.stringify(error.httpResponse.body, null, 2));
+        }
         return type === "nerd"
             ? "🤓 Actually, my connection to the Hugging Face API is currently recalibrating."
             : "❌ The connection to the stars was lost.";
