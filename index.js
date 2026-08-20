@@ -125,7 +125,7 @@ function queueSave(delayMs = 5000) {
     if (_saveTimeout) return;
     _saveTimeout = setTimeout(async () => {
         _saveTimeout = null;
-        await safeSave();
+    
     }, delayMs);
 }
 
@@ -496,7 +496,6 @@ app.post('/review-risk/:userId', checkAuth, async (req, res) => { if (!db.review
 app.post('/add-reaction-role', checkAuth, async (req, res) => { if (!db.reactionRoles) db.reactionRoles = []; db.reactionRoles.push({ emoji: req.body.emoji, roleId: req.body.roleId, messageId: req.body.messageId }); await safeSave(); res.redirect('/'); });
 app.post('/banned-words/add', checkAuth, async (req, res) => { if (!db.bannedWords) db.bannedWords = []; if (!db.bannedWords.includes(req.body.word)) { db.bannedWords.push(req.body.word); await safeSave(); } res.redirect('/#banned-words'); });
 app.post('/banned-words/remove', checkAuth, async (req, res) => { if (!db.bannedWords) db.bannedWords = []; db.bannedWords = db.bannedWords.filter(w => w !== req.body.word); await safeSave(); res.redirect('/#banned-words'); });
-
 app.post("/create-case", checkAuth, async (req, res) => {
     const { user, userId, type, reason } = req.body;
 
@@ -518,18 +517,11 @@ app.post("/create-case", checkAuth, async (req, res) => {
     await safeSave();
     res.redirect("/admin?tab=infractions");
 });
-
-
-    await safeSave();
-    res.redirect("/#infractions");
-});
-
-
 app.post('/remove-reaction-role/:index', checkAuth, async (req, res) => {
     const i = parseInt(req.params.index, 10);
     if (!isNaN(i) && db.reactionRoles && db.reactionRoles[i]) {
         db.reactionRoles.splice(i, 1);
-        await safeSave();
+    
     }
     res.redirect('/#roles');
 });
@@ -538,7 +530,7 @@ app.post('/edit-case/:index', checkAuth, async (req, res) => {
     const i = parseInt(req.params.index, 10);
     if (!isNaN(i) && db.cases && db.cases[i]) {
         db.cases[i].reason = req.body.reason || db.cases[i].reason;
-        await safeSave();
+    
     }
     res.redirect('/#infractions');
 });
@@ -600,7 +592,7 @@ app.post('/modules/toggle', checkAuth, async (req, res) => {
     if (!TOGGLEABLE_MODULES.includes(mod)) return res.status(400).send('Unknown module');
     if (db[mod] === undefined) db[mod] = true;
     db[mod] = !db[mod];
-    await safeSave();
+
     res.redirect('/#modules');
 });
 app.post('/settings/toggle-maintenance', async (req, res) => {
