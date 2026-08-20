@@ -511,10 +511,10 @@
         <% } %>
 
         <!-- Pagination -->
-        <% if (totalPages) { %>
+        <% if (typeof totalPages !== 'undefined' && totalPages) { %>
         <div class="pagination">
             <% for (let i = 1; i <= totalPages; i++) { %>
-                <a href="/admin/page/<%= i %>" class="<%= page === i ? 'active-page' : '' %>">
+                <a href="/admin/page/<%= i %>" class="<%= (typeof page !== 'undefined' && page === i) ? 'active-page' : '' %>">
                     <%= i %>
                 </a>
             <% } %>
