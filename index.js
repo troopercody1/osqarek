@@ -427,7 +427,7 @@ app.get('/settings', (req, res) => {
     } else res.status(403).send("<h1>403 Forbidden</h1><p>Access denied.</p>");
 });
 
-app.get("/admin/filter/:type", checkAuth, (req, res) => {
+app.get("/admin/filter/:type", checkAuth, async (req, res) => {
     const type = req.params.type.toUpperCase();
 
     const filtered = (db.cases || []).filter(c => c.type === type);
@@ -450,9 +450,11 @@ app.get("/admin/filter/:type", checkAuth, (req, res) => {
         user: req.session.user,
         logs: global.botLogs,
         errors: global.botErrors,
-        db
+        db,
+        activeTab: "infractions"   // ⭐ tells index.ejs which tab to open
     });
 });
+
 
 
 app.get('/', checkAuth, async (req, res) => {
