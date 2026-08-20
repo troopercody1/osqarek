@@ -78,6 +78,91 @@
             .panel { overflow-x: auto; }
             .module-row { flex-wrap: wrap; }
         }
+        /* Search + Filters */
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.search-bar input {
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #565f89;
+    background: #16161e;
+    color: white;
+}
+
+.filter-buttons a {
+    margin-right: 10px;
+    color: #7aa2f7;
+    text-decoration: none;
+}
+.filter-buttons a:hover {
+    color: #a9b1d6;
+}
+
+/* Case Creation */
+.create-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.create-form input {
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #565f89;
+    background: #16161e;
+    color: white;
+}
+
+/* Delete Button */
+.btn-delete {
+    background-color: #f7768e;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.btn-delete:hover {
+    opacity: 0.8;
+}
+
+/* History Link */
+.history-link {
+    font-size: 0.8rem;
+    color: #7aa2f7;
+    text-decoration: none;
+}
+.history-link:hover {
+    color: #a9b1d6;
+}
+
+/* Color-coded types */
+.type-WARN { color: #e0af68; }
+.type-BAN { color: #f7768e; }
+.type-MUTE { color: #7aa2f7; }
+.type-SOFTBAN { color: #bb9af7; }
+
+/* Pagination */
+.pagination {
+    margin-top: 20px;
+}
+.pagination a {
+    margin-right: 8px;
+    padding: 6px 10px;
+    background: #1a1b26;
+    border: 1px solid #565f89;
+    border-radius: 6px;
+    color: #7aa2f7;
+    text-decoration: none;
+}
+.pagination a.active-page {
+    background: #7aa2f7;
+    color: #1a1b26;
+}
+
     </style>
 </head>
 <body>
@@ -345,34 +430,100 @@
             </div>
         </div>
 
-        <!-- ═══════════════ INFRACTIONS ═══════════════ -->
-        <div id="infractions" class="tab-content">
-            <div class="panel">
-                <h2>⚖️ Infraction Database Registry</h2>
-                <% if (cases.length === 0) { %> 
-                    <p style="color: #565f89;">No records found.</p> 
-                <% } else { %>
-                    <table>
-                        <thead><tr><th>ID</th><th>User</th><th>Type</th><th>Reason</th></tr></thead>
-                        <tbody>
-                            <% cases.forEach((item, index) => { %>
-                            <tr>
-                                <td style="color: #7dcfff;">#<%= item.id %></td>
-                                <td><%= item.user || item.userId %></td>
-                                <td><strong><%= item.type || 'UNKNOWN' %></strong></td>
-                                <td>
-                                    <form action="/edit-case/<%= index %>" method="POST" style="display:flex; gap:8px;">
-                                        <input type="text" name="reason" value="<%= item.reason %>">
-                                        <button type="submit" class="btn-submit" style="margin-top:0;">Update</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            <% }) %>
-                        </tbody>
-                    </table>
-                <% } %>
+<!-- ═══════════════ INFRACTIONS ═══════════════ -->
+<div id="infractions" class="tab-content">
+    <div class="panel">
+        <h2>⚖️ Infraction Database Registry</h2>
+
+        <!-- Search + Filters -->
+        <div class="toolbar">
+            <form action="/admin/search" method="GET" class="search-bar">
+                <input type="text" name="q" placeholder="Search cases...">
+            </form>
+
+            <div class="filter-buttons">
+                <a href="/admin/filter/WARN">WARN</a>
+                <a href="/admin/filter/BAN">BAN</a>
+                <a href="/admin/filter/MUTE">MUTE</a>
+                <a href="/admin/filter/SOFTBAN">SOFTBAN</a>
+                <a href="/admin?tab=infractions">Reset</a>
             </div>
         </div>
+
+        <!-- Case Creation -->
+        <form action="/create-case" method="POST" class="create-form">
+            <input type="text" name="user" placeholder="User" required>
+            <input type="text" name="userId" placeholder="User ID" required>
+            <input type="text" name="type" placeholder="Type (WARN/BAN/MUTE)" required>
+            <input type="text" name="reason" placeholder="Reason" required>
+            <button class="btn-submit">Create Case</button>
+        </form>
+
+        <% if (cases.length === 0) { %>
+            <p style="color: #565f89;">No records found.</p>
+        <% } else { %>
+
+        <!-- Infraction Table -->
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>User</th>
+                    <th>Type</th>
+                    <th>Reason</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <% cases.forEach((item) => { %>
+                <tr>
+                    <td style="color: #7dcfff;">#<%= item.id %></td>
+
+                    <td>
+                        <%= item.user || item.userId %>
+                        <br>
+                        <a href="/admin/user/<%= item.userId %>" class="history-link">View History</a>
+                    </td>
+
+                    <!-- Color-coded type -->
+                    <td class="type-<%= item.type %>">
+                        <strong><%= item.type %></strong>
+                    </td>
+
+                    <td>
+                        <form action="/edit-case/<%= item.id %>" method="POST" style="display:flex; gap:8px;">
+                            <input type="text" name="reason" value="<%= item.reason %>">
+                            <button type="submit" class="btn-submit">Update</button>
+                        </form>
+                    </td>
+
+                    <td>
+                        <form action="/delete-case/<%= item.id %>" method="POST">
+                            <button class="btn-delete">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                <% }) %>
+            </tbody>
+        </table>
+
+        <% } %>
+
+        <!-- Pagination -->
+        <% if (totalPages) { %>
+        <div class="pagination">
+            <% for (let i = 1; i <= totalPages; i++) { %>
+                <a href="/admin/page/<%= i %>" class="<%= page === i ? 'active-page' : '' %>">
+                    <%= i %>
+                </a>
+            <% } %>
+        </div>
+        <% } %>
+
+    </div>
+</div>
+
 
         <!-- ═══════════════ RISK MANAGER ═══════════════ -->
         <div id="risk-manager" class="tab-content">
