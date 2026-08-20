@@ -731,31 +731,36 @@
     </div><!-- /main-content -->
 
     <script>
-        function openTab(evt, tabId) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            if (evt && evt.currentTarget) {
-                evt.currentTarget.classList.add('active');
-            } else {
-                const btn = document.querySelector(`.tab-btn[onclick*="${tabId}"]`);
-                if (btn) btn.classList.add('active');
-            }
-            window.location.hash = tabId;
+    function openTab(evt, tabId) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+
+        if (evt && evt.currentTarget) {
+            evt.currentTarget.classList.add('active');
+        } else {
+            const btn = document.querySelector(`.tab-btn[onclick*="${tabId}"]`);
+            if (btn) btn.classList.add('active');
         }
 
-        window.addEventListener('load', () => {
-            const hash = window.location.hash.substring(1);
-            if (hash && document.getElementById(hash)) {
-                openTab(null, hash);
-            }
-const activeTab = "<%= activeTab || '' %>";
-
-    if (activeTab) {
-        document.getElementById(activeTab)?.classList.add("active");
-        document.querySelector(`.tab-btn[data-tab="${activeTab}"]`)?.classList.add("active");
+        window.location.hash = tabId;
     }
-        });
-    </script>
+
+    window.addEventListener('load', () => {
+        const hash = window.location.hash.substring(1);
+
+        if (hash && document.getElementById(hash)) {
+            openTab(null, hash);
+        }
+
+        const activeTab = "<%= activeTab || '' %>";
+
+        if (activeTab) {
+            document.getElementById(activeTab)?.classList.add("active");
+            document.querySelector(`.tab-btn[data-tab="${activeTab}"]`)?.classList.add("active");
+        }
+    });
+</script>
+
 </body>
 </html>
