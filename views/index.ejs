@@ -749,6 +749,12 @@
             if (hash && document.getElementById(hash)) {
                 openTab(null, hash);
             }
+const activeTab = "<%= activeTab || '' %>";
+
+    if (activeTab) {
+        document.getElementById(activeTab)?.classList.add("active");
+        document.querySelector(`.tab-btn[data-tab="${activeTab}"]`)?.classList.add("active");
+    }
         });
     </script>
 </body>
