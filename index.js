@@ -454,8 +454,38 @@ app.get("/admin/filter/:type", checkAuth, async (req, res) => {
         activeTab: "infractions"   // ⭐ tells index.ejs which tab to open
     });
 });
+app.get("/admin/search", checkAuth, async (req, res) => {
+    const q = (req.query.q || "").toLowerCase();
 
+    const results = (db.cases || []).filter(c =>
+        c.user?.toLowerCase().includes(q) ||
+        c.userId?.toLowerCase().includes(q) ||
+        c.type?.toLowerCase().includes(q) ||
+        c.reason?.toLowerCase().includes(q)
+    );
 
+    res.render("index", {
+        stats: {
+            botName: client?.user?.username || "Dashboard",
+            botStatus: client?.readyAt ? "ONLINE" : "OFFLINE",
+            guildsCount: client?.guilds?.cache.size || 0,
+            totalUsers: client?.users?.cache.size || 0,
+            ping: `${Math.round(client?.ws?.ping || 0)}ms`,
+            uptime: "N/A"
+        },
+        members: [],
+        emojis: [],
+        cases: results,
+        settings: db.settings || {},
+        reactionRoles: db.reactionRoles || [],
+        bannedWords: db.bannedWords || [],
+        user: req.session.user,
+        logs: global.botLogs,
+        errors: global.botErrors,
+        db,
+        activeTab: "infractions"   // ⭐ auto-open the correct tab
+    });
+});
 
 app.get('/', checkAuth, async (req, res) => {
     const guild = client?.guilds?.cache.get(GUILD_ID);
