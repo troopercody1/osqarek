@@ -357,7 +357,7 @@
                         <tbody>
                             <% cases.forEach((item, index) => { %>
                             <tr>
-                                <td style="color: #7dcfff;">#<%= index %></td>
+                                <td style="color: #7dcfff;">#<%= item.id %></td>
                                 <td><%= item.user || item.userId %></td>
                                 <td><strong><%= item.type || 'UNKNOWN' %></strong></td>
                                 <td>
