@@ -37,49 +37,12 @@ const dayjs = require('dayjs');
 const relativeTime = require('dayjs/plugin/relativeTime');
 const play = require('play-dl');
 const { Redis } = require('@upstash/redis');
-const BrevoModule = require('@brevo/brevo');
 const session = require('express-session');
 const axios = require('axios');
 
 // --- INITIALIZATION ---
 const app = express();
 app.set('trust proxy', 1);
-
-// --- RESILIENT BREVO CLIENT INIT ---
-// @getbrevo/brevo has shipped a few different export shapes across versions
-// (v5+ named `BrevoClient` export, older versions expose per-resource API
-// classes like `TransactionalEmailsApi` directly, and Node's CJS-requiring-
-// ESM interop can also nest everything under `.default`). Rather than
-// assume one shape and crash the whole process if it's wrong, resolve
-// whichever shape is actually present and normalize to the same
-// `brevo.transactionalEmails.sendTransacEmail(...)` call site used below.
-let brevo = null;
-(function initBrevo() {
-    const mod = BrevoModule?.default ?? BrevoModule;
-    const apiKey = process.env.BREVO_API_KEY;
-
-    if (typeof mod?.BrevoClient === 'function') {
-        brevo = new mod.BrevoClient({ apiKey });
-        return;
-    }
-
-    if (typeof mod?.TransactionalEmailsApi === 'function') {
-        const api = new mod.TransactionalEmailsApi();
-        if (typeof api.setApiKey === 'function' && mod.TransactionalEmailsApiApiKeys) {
-            api.setApiKey(mod.TransactionalEmailsApiApiKeys.apiKey, apiKey);
-        } else if (api.authentications?.apiKey) {
-            api.authentications.apiKey.apiKey = apiKey;
-        }
-        brevo = { transactionalEmails: { sendTransacEmail: (payload) => api.sendTransacEmail(payload) } };
-        return;
-    }
-
-    console.error(
-        "❌ Could not resolve a Brevo client constructor from '@getbrevo/brevo'. " +
-        `Available top-level exports: ${Object.keys(mod || {}).join(', ') || '(none)'}. ` +
-        'Status-change emails will be skipped until this is fixed.'
-    );
-})();
 
 // Redis Init
 let redis;
@@ -106,35 +69,6 @@ let client;
 
 async function safeSave() {
     try { await db.save(); console.log("💾 Database synced."); } catch (e) { console.error("❌ Sync failed:", e.message); }
-}
-
-async function sendStatusChangeEmail({ subject, title, message }) {
-    if (!process.env.ADMIN_EMAIL || !process.env.BREVO_API_KEY) {
-        console.error("❌ Status email skipped: ADMIN_EMAIL or BREVO_API_KEY is missing.");
-        return false;
-    }
-    if (!brevo) {
-        console.error("❌ Status email skipped: Brevo client failed to initialize (see startup logs).");
-        return false;
-    }
-
-    try {
-        await brevo.transactionalEmails.sendTransacEmail({
-            subject,
-            htmlContent: `
-                <h2>${title}</h2>
-                <p>${message}</p>
-                <p><strong>Time:</strong> ${new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' })}</p>
-            `,
-            sender: { name: "OsQarek Universe", email: "osqarekuniverse@gmail.com" },
-            to: [{ email: process.env.ADMIN_EMAIL }]
-        });
-        console.log("✅ Status change email sent.");
-        return true;
-    } catch (err) {
-        console.error("❌ Status change email failed:", err.message);
-        return false;
-    }
 }
 
 async function sendDiscordWebhook({ title, message, color = 0x5865F2 }) {
