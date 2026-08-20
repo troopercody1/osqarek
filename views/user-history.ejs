@@ -1,0 +1,33 @@
+<div class="panel">
+    <h2>📜 Infraction History for <%= userId %></h2>
+
+    <% if (history.length === 0) { %>
+        <p style="color:#565f89;">No infractions found for this user.</p>
+    <% } else { %>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Reason</th>
+                <th>Timestamp</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <% history.forEach(item => { %>
+            <tr>
+                <td style="color:#7dcfff;">#<%= item.id %></td>
+                <td class="type-<%= item.type %>"><strong><%= item.type %></strong></td>
+                <td><%= item.reason %></td>
+                <td><%= item.timestamp %></td>
+            </tr>
+            <% }) %>
+        </tbody>
+    </table>
+
+    <% } %>
+
+    <a href="/#infractions" class="back-link">← Back to Infractions</a>
+</div>
