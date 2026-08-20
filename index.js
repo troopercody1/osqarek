@@ -37,7 +37,7 @@ const dayjs = require('dayjs');
 const relativeTime = require('dayjs/plugin/relativeTime');
 const play = require('play-dl');
 const { Redis } = require('@upstash/redis');
-const BrevoModule = require('@getbrevo/brevo');
+const BrevoModule = require('@brevo/brevo');
 const session = require('express-session');
 const axios = require('axios');
 
@@ -316,6 +316,20 @@ app.get('/login', (req, res) => {
     if (req.session?.user && req.session.isHeadAdmin) return res.redirect(req.session.user?.id === 'admin' ? '/settings' : '/');
     res.render('login', { error: req.query.error || null, stats: { botName: client?.user?.username || "OsQarek’s Universe" } });
 });
+
+app.get('/admin/user/:userId', checkAuth, (req, res) => {
+    const userId = req.params.userId;
+
+    const history = (db.cases || []).filter(c => c.userId === userId);
+
+    res.render('user-history', {
+        userId,
+        history,
+        user: req.session.user,
+        stats: { botName: client?.user?.username || "OsQarek’s Universe" }
+    });
+});
+
 
 app.get('/logout', (req, res) => {
     req.session.destroy((err) => {
