@@ -115,7 +115,7 @@ Warning System (Escalation Ladder):
 `;
 
     const response = await hf.chatCompletion({
-        model: "meta-llama/Meta-Llama-3-8B-Instruct",
+        model: "Qwen/Qwen3.8-27B",
         messages: [
             {
                 role: "system",
@@ -135,7 +135,7 @@ async function summarize({ interaction, createEmbed }) {
     const textContent = messages.map(m => `${m.author.username}: ${m.content}`).join('\n');
 
     const response = await hf.chatCompletion({
-        model: "meta-llama/Meta-Llama-3-8B-Instruct",
+        model: "Qwen/Qwen3.8-27B",
         messages: [
             { role: "system", content: "Summarize the following chat conversation in 3 bullet points." },
             { role: "user", content: textContent }
