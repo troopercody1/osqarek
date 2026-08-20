@@ -427,6 +427,34 @@ app.get('/settings', (req, res) => {
     } else res.status(403).send("<h1>403 Forbidden</h1><p>Access denied.</p>");
 });
 
+app.get("/admin/filter/:type", checkAuth, (req, res) => {
+    const type = req.params.type.toUpperCase();
+
+    const filtered = (db.cases || []).filter(c => c.type === type);
+
+    res.render("index", {
+        stats: {
+            botName: client?.user?.username || "Dashboard",
+            botStatus: client?.readyAt ? "ONLINE" : "OFFLINE",
+            guildsCount: client?.guilds?.cache.size || 0,
+            totalUsers: client?.users?.cache.size || 0,
+            ping: `${Math.round(client?.ws?.ping || 0)}ms`,
+            uptime: "N/A"
+        },
+        members: [],
+        emojis: [],
+        cases: filtered,
+        settings: db.settings || {},
+        reactionRoles: db.reactionRoles || [],
+        bannedWords: db.bannedWords || [],
+        user: req.session.user,
+        logs: global.botLogs,
+        errors: global.botErrors,
+        db
+    });
+});
+
+
 app.get('/', checkAuth, async (req, res) => {
     const guild = client?.guilds?.cache.get(GUILD_ID);
     let members = [], emojis = [];
@@ -466,6 +494,29 @@ app.post('/review-risk/:userId', checkAuth, async (req, res) => { if (!db.review
 app.post('/add-reaction-role', checkAuth, async (req, res) => { if (!db.reactionRoles) db.reactionRoles = []; db.reactionRoles.push({ emoji: req.body.emoji, roleId: req.body.roleId, messageId: req.body.messageId }); await safeSave(); res.redirect('/'); });
 app.post('/banned-words/add', checkAuth, async (req, res) => { if (!db.bannedWords) db.bannedWords = []; if (!db.bannedWords.includes(req.body.word)) { db.bannedWords.push(req.body.word); await safeSave(); } res.redirect('/#banned-words'); });
 app.post('/banned-words/remove', checkAuth, async (req, res) => { if (!db.bannedWords) db.bannedWords = []; db.bannedWords = db.bannedWords.filter(w => w !== req.body.word); await safeSave(); res.redirect('/#banned-words'); });
+
+app.post("/create-case", checkAuth, async (req, res) => {
+    const { user, userId, type, reason } = req.body;
+
+    if (!db.cases) db.cases = [];
+
+    const nextId = db.cases.length > 0
+        ? Math.max(...db.cases.map(c => c.id)) + 1
+        : 1;
+
+    db.cases.push({
+        id: nextId,
+        user,
+        userId,
+        type: type.toUpperCase(),
+        reason: reason || "No reason given",
+        timestamp: new Date().toLocaleString("en-GB", { timeZone: "Europe/London" })
+    });
+
+    await safeSave();
+    res.redirect("/#infractions");
+});
+
 
 app.post('/remove-reaction-role/:index', checkAuth, async (req, res) => {
     const i = parseInt(req.params.index, 10);
