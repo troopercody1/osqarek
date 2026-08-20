@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Authentication</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background-color: #16161e; 
+            color: #a9b1d6; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0;
+            padding: 20px; 
+        }
+        .login-card { 
+            background-color: #1a1b26; 
+            padding: 40px; 
+            border-radius: 12px; 
+            border: 1px solid #2f3549; 
+            text-align: center; 
+            width: 100%; 
+            max-width: 350px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        h2 { color: #7aa2f7; margin-bottom: 20px; margin-top: 0; }
+        
+        .error-msg { background-color: rgba(247, 118, 142, 0.1); color: #f7768e; border: 1px solid #f7768e; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-size: 0.9rem; }
+        .success-msg { background-color: rgba(158, 206, 106, 0.1); color: #9ece6a; border: 1px solid #9ece6a; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-size: 0.9rem; }
+
+        .btn-success { 
+            background-color: #9ece6a; 
+            color: #1a1b26; 
+            padding: 12px; 
+            border: none; 
+            border-radius: 6px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            width: 100%;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+        .btn-success:hover { opacity: 0.9; }
+
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #565f89;
+            background: #16161e;
+            color: white;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+        input[type="password"]:focus { outline: none; border-color: #7aa2f7; }
+
+        .back-link { color: #565f89; font-size: 0.85rem; text-decoration: none; display: inline-block; margin-top: 20px; transition: color 0.2s; }
+        .back-link:hover { color: #a9b1d6; }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <h2>Admin Authentication</h2>
+        
+        <% if (error) { %> <div class="error-msg"><%= error %></div> <% } %>
+        <% if (msg) { %> <div class="success-msg"><%= msg %></div> <% } %>
+
+        <form action="/auth/verify-admin" method="POST">
+            <input type="password" name="password" placeholder="Enter admin code" required autocomplete="off">
+            <button type="submit" class="btn-success">Verify & Login</button>
+        </form>
+        
+        <a href="/login" class="back-link">← Back to Main Login</a>
+    </div>
+
+</body>
+</html>

@@ -31,6 +31,7 @@ if (typeof dns.setDefaultResultOrder === 'function') {
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const express = require('express');
 const dayjs = require('dayjs');
 const relativeTime = require('dayjs/plugin/relativeTime');
@@ -88,7 +89,7 @@ if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) 
 }
 
 // Global Variables
-global.otpStore = {};
+
 global.botErrors = global.botErrors || [];
 global.botLogs = global.botLogs || [];
 global.db = global.db || { settings: {}, reviewedUsers: [], reactionRoles: [], bannedWords: [], cases: [], dmThreads: {}, aiEnabled: true, musicEnabled: true, modmailEnabled: true, automodEnabled: true, welcomeEnabled: true, remindersEnabled: true, moderationEnabled: true, utilitiesEnabled: true, funEnabled: true, quizEnabled: true, staffToolsEnabled: true };
@@ -263,8 +264,7 @@ app.use((req, res, next) => {
         '/auth/discord',
         '/auth/callback',
         '/auth/admin',
-        '/auth/send-otp',
-        '/auth/verify-otp',
+        '/auth/verify-admin',
         '/verify',
         '/verify/login',
         '/verify/callback',
@@ -348,7 +348,7 @@ app.get('/auth/callback', async (req, res) => {
     }
 });
 
-app.get('/auth/admin', (req, res) => res.render('otp', { error: req.query.error || null, msg: req.query.msg || null }));
+app.get('/auth/admin', (req, res) => res.render('admin', { error: req.query.error || null, msg: req.query.msg || null }));
 
 // --- PUBLIC VERIFICATION GATE ---
 // Lets ordinary members verify via Discord OAuth + CAPTCHA + a rules-agreement
@@ -455,23 +455,22 @@ app.post('/verify/submit', async (req, res) => {
     }
 });
 
-app.post('/auth/send-otp', async (req, res) => {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    global.otpStore['admin_login'] = { otp, expires: Date.now() + 300000 };
-    try {
-        await brevo.transactionalEmails.sendTransacEmail({ subject: "Dashboard Security Code", htmlContent: `<p>Your code is: <strong>${otp}</strong>.</p>`, sender: { name: "OsQarek Universe", email: "osqarekuniverse@gmail.com" }, to: [{ email: process.env.ADMIN_EMAIL }] });
-        res.redirect('/auth/admin?msg=Code+Sent+To+Master+Email');
-    } catch (e) { res.redirect('/auth/admin?error=Failed+to+send+email'); }
-});
-
-app.post('/auth/verify-otp', (req, res) => {
-    const storedData = global.otpStore['admin_login'];
-    if (storedData && storedData.otp === req.body.otp && Date.now() < storedData.expires) {
+app.post('/auth/verify-admin', (req, res) => {
+    if (!process.env.ADMIN_PASS) {
+        console.error("❌ [admin login] ADMIN_PASS is not set in .env.");
+        return res.redirect('/auth/admin?error=Admin+login+is+not+configured');
+    }
+    const submitted = req.body.password || '';
+    // Constant-time-ish comparison to avoid trivial timing leaks
+    const valid = submitted.length === process.env.ADMIN_PASS.length &&
+        crypto.timingSafeEqual(Buffer.from(submitted), Buffer.from(process.env.ADMIN_PASS));
+    if (valid) {
         req.session.user = { id: 'admin', username: 'Master Admin', avatar: null };
         req.session.isHeadAdmin = true;
-        delete global.otpStore['admin_login'];
         res.redirect('/settings');
-    } else { res.redirect('/auth/admin?error=Invalid+or+Expired+Code'); }
+    } else {
+        res.redirect('/auth/admin?error=Invalid+Code');
+    }
 });
 
 app.get('/settings', (req, res) => {
