@@ -663,6 +663,66 @@
             </div>
         </div>
 
+        <!-- ═══════════════ BANNED WORDS ═══════════════ -->
+        <div id="banned-words" class="tab-content">
+            <div class="panel">
+                <h2>🚫 Banned Words</h2>
+                <p style="color:#565f89; font-size:0.85rem; margin-top:-10px;">
+                    Messages containing any of these words are automatically deleted and escalated by Auto-Mod.
+                </p>
+
+                <div>
+                    <% if (bannedWords && bannedWords.length > 0) { %>
+                        <% bannedWords.forEach(word => { %>
+                            <span class="word-chip">
+                                <%= word %>
+                                <form action="/banned-words/remove" method="POST">
+                                    <input type="hidden" name="word" value="<%= word %>">
+                                    <button type="submit" title="Remove">✕</button>
+                                </form>
+                            </span>
+                        <% }) %>
+                    <% } else { %>
+                        <p style="color:#565f89;">No banned words configured yet.</p>
+                    <% } %>
+                </div>
+
+                <form action="/banned-words/add" method="POST" class="add-word-row">
+                    <input name="word" placeholder="Add a word to the filter..." required>
+                    <button type="submit" class="btn-submit">Add</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ═══════════════ SYSTEM LOGS ═══════════════ -->
+        <div id="terminal" class="tab-content">
+            <div class="panel">
+                <h2>🖥️ System Logs</h2>
+                <div class="terminal-box">
+                    <% if (logs && logs.length > 0) { %>
+                        <% logs.slice().reverse().forEach(entry => { %>
+                            <div class="log">[<%= entry.time %>] <%= entry.text %></div>
+                        <% }) %>
+                    <% } else { %>
+                        <div style="color:#565f89;">No logs recorded yet.</div>
+                    <% } %>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>⚠️ Errors</h2>
+                <div class="terminal-box">
+                    <% if (errors && errors.length > 0) { %>
+                        <% errors.slice().reverse().forEach(entry => { %>
+                            <div class="err">[<%= entry.time %>] <%= entry.text %></div>
+                        <% }) %>
+                    <% } else { %>
+                        <div style="color:#565f89;">No errors recorded yet.</div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -671,7 +731,8 @@
             for (let c of contents) c.classList.remove("active");
             const buttons = document.getElementsByClassName("tab-btn");
             for (let b of buttons) b.classList.remove("active");
-            document.getElementById(tabName).classList.add("active");
+            const target = document.getElementById(tabName);
+            if (target) target.classList.add("active");
             evt.currentTarget.classList.add("active");
         }
 
