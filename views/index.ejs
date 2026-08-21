@@ -11,7 +11,7 @@
         /* Sidebar */
         .sidebar { width: 260px; background: var(--sidebar-bg); border-right: 1px solid #2f3549; display: flex; flex-direction: column; padding: 20px; }
         .sidebar h2 { color: var(--accent); font-size: 1.2rem; margin-bottom: 2rem; }
-        .tab-btn { background: transparent; border: none; color: var(--text); padding: 12px 15px; border-radius: 6px; text-align: left; cursor: pointer; font-weight: bold; margin-bottom: 5px; transition: 0.2s; width: 100%; }
+        .tab-btn { display: block; background: transparent; border: none; color: var(--text); padding: 12px 15px; border-radius: 6px; text-align: left; cursor: pointer; font-weight: bold; margin-bottom: 5px; transition: 0.2s; width: 100%; box-sizing: border-box; text-decoration: none; }
         .tab-btn:hover, .tab-btn.active { background: #2f3549; color: var(--accent); }
         
         /* Main Content */
@@ -229,13 +229,14 @@
 <body>
     <div class="sidebar">
         <h2>OsQarek's Universe</h2>
-        <button class="tab-btn active" onclick="openTab(event, 'dashboard')">⚙️ Configuration</button>
-        <button class="tab-btn" onclick="openTab(event, 'modules')">🧩 Modules</button>
-        <button class="tab-btn" onclick="openTab(event, 'infractions')">⚖️ Infractions</button>
-        <button class="tab-btn" onclick="openTab(event, 'risk-manager')">🛡️ Risk Manager</button>
-        <button class="tab-btn" onclick="openTab(event, 'roles')">🎭 Reaction Roles</button>
-        <button class="tab-btn" onclick="openTab(event, 'banned-words')">🚫 Banned Words</button>
-        <button class="tab-btn" onclick="openTab(event, 'terminal')">🖥️ System Logs</button>
+        <% const activePage = locals.activePage || 'config'; %>
+        <a href="/config" class="tab-btn <%= activePage === 'config' ? 'active' : '' %>">⚙️ Configuration</a>
+        <a href="/modules" class="tab-btn <%= activePage === 'modules' ? 'active' : '' %>">🧩 Modules</a>
+        <a href="/infractions" class="tab-btn <%= activePage === 'infractions' ? 'active' : '' %>">⚖️ Infractions</a>
+        <a href="/risk-manager" class="tab-btn <%= activePage === 'risk-manager' ? 'active' : '' %>">🛡️ Risk Manager</a>
+        <a href="/reaction-roles" class="tab-btn <%= activePage === 'reaction-roles' ? 'active' : '' %>">🎭 Reaction Roles</a>
+        <a href="/banned-words" class="tab-btn <%= activePage === 'banned-words' ? 'active' : '' %>">🚫 Banned Words</a>
+        <a href="/system-logs" class="tab-btn <%= activePage === 'system-logs' ? 'active' : '' %>">🖥️ System Logs</a>
         <div style="margin-top: auto; display: flex; flex-direction: column; gap: 6px;">
             <% if (user && user.id === 'admin') { %>
             <a href="/settings" class="sidebar-link">🔧 Site Settings</a>
@@ -247,7 +248,7 @@
     <div class="main-content">
 
         <!-- ═══════════════ CONFIGURATION ═══════════════ -->
-        <div id="dashboard" class="tab-content active">
+        <div id="dashboard" class="tab-content<%= (locals.activeTab || 'dashboard') === 'dashboard' ? ' active' : '' %>">
             <h2>Dashboard</h2>
             <div class="grid-stats">
                 <div class="card-stat"><h3>Status</h3><div class="val" style="color:#9ece6a"><%= stats.botStatus %></div></div>
@@ -266,7 +267,7 @@
         </div>
 
         <!-- ═══════════════ MODULES ═══════════════ -->
-        <div id="modules" class="tab-content">
+        <div id="modules" class="tab-content<%= (locals.activeTab || 'dashboard') === 'modules' ? ' active' : '' %>">
             <h2>🧩 Module Control</h2>
             <p style="color:#565f89; font-size:13px; margin-bottom:20px;">Enable or disable bot feature modules. Changes take effect immediately — no restart required.</p>
 
@@ -492,7 +493,7 @@
         </div>
 
 <!-- ═══════════════ INFRACTIONS ═══════════════ -->
-<div id="infractions" class="tab-content">
+<div id="infractions" class="tab-content<%= (locals.activeTab || 'dashboard') === 'infractions' ? ' active' : '' %>">
     <div class="panel">
         <h2>⚖️ Infraction Database Registry</h2>
 
@@ -587,7 +588,7 @@
 
 
         <!-- ═══════════════ RISK MANAGER ═══════════════ -->
-        <div id="risk-manager" class="tab-content">
+        <div id="risk-manager" class="tab-content<%= (locals.activeTab || 'dashboard') === 'risk-manager' ? ' active' : '' %>">
             <div class="panel">
                 <h2>🛡️ Member Risk Assessment</h2>
                 <table>
@@ -637,7 +638,7 @@
         </div>
 
         <!-- ═══════════════ REACTION ROLES ═══════════════ -->
-        <div id="roles" class="tab-content">
+        <div id="roles" class="tab-content<%= (locals.activeTab || 'dashboard') === 'roles' ? ' active' : '' %>">
             <div class="panel">
                 <h2>🎭 Reaction Role Configuration</h2>
                 <form action="/add-reaction-role" method="POST" style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -664,7 +665,7 @@
         </div>
 
         <!-- ═══════════════ BANNED WORDS ═══════════════ -->
-        <div id="banned-words" class="tab-content">
+        <div id="banned-words" class="tab-content<%= (locals.activeTab || 'dashboard') === 'banned-words' ? ' active' : '' %>">
             <div class="panel">
                 <h2>🚫 Banned Words</h2>
                 <p style="color:#565f89; font-size:0.85rem; margin-top:-10px;">
@@ -695,7 +696,7 @@
         </div>
 
         <!-- ═══════════════ SYSTEM LOGS ═══════════════ -->
-        <div id="terminal" class="tab-content">
+        <div id="terminal" class="tab-content<%= (locals.activeTab || 'dashboard') === 'terminal' ? ' active' : '' %>">
             <div class="panel">
                 <h2>🖥️ System Logs</h2>
                 <div class="terminal-box">
@@ -725,20 +726,25 @@
 
     </div>
 
+    <!--
+        Each sidebar item is now a real page (/config, /modules, /infractions,
+        /risk-manager, /reaction-roles, /banned-words, /system-logs) rendered
+        server-side, so the correct tab-content/tab-btn is already marked
+        "active" above — no client-side tab-switching JS needed anymore.
+    -->
     <script>
+        // Kept for backwards compatibility with any inline onclick markup that
+        // might still reference it; normal navigation now happens via <a href>.
         function openTab(evt, tabName) {
-            const contents = document.getElementsByClassName("tab-content");
-            for (let c of contents) c.classList.remove("active");
-            const buttons = document.getElementsByClassName("tab-btn");
-            for (let b of buttons) b.classList.remove("active");
-            const target = document.getElementById(tabName);
-            if (target) target.classList.add("active");
-            evt.currentTarget.classList.add("active");
-        }
-
-        const activeTab = "<%= locals.activeTab || '' %>";
-        if (activeTab) {
-            document.getElementById(activeTab)?.classList.add("active");
+            window.location.href = '/' + ({
+                dashboard: 'config',
+                modules: 'modules',
+                infractions: 'infractions',
+                'risk-manager': 'risk-manager',
+                roles: 'reaction-roles',
+                'banned-words': 'banned-words',
+                terminal: 'system-logs',
+            }[tabName] || 'config');
         }
     </script>
 </body>

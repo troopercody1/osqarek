@@ -247,7 +247,7 @@ function checkAuth(req, res, next) {
 
 // --- ROUTES ---
 app.get('/login', (req, res) => {
-    if (req.session?.user && req.session.isHeadAdmin) return res.redirect(req.session.user?.id === 'admin' ? '/settings' : '/');
+    if (req.session?.user && req.session.isHeadAdmin) return res.redirect(req.session.user?.id === 'admin' ? '/settings' : '/config');
     res.render('login', { error: req.query.error || null, stats: { botName: client?.user?.username || "OsQarek’s Universe" } });
 });
 
@@ -289,7 +289,7 @@ app.get('/auth/callback', async (req, res) => {
         if (!member.roles.some(r => ALLOWED_ROLES.includes(r))) return res.redirect('/login?error=Unauthorized');
         req.session.user = user;
         req.session.isHeadAdmin = true;
-        res.redirect('/');
+        res.redirect('/config');
     } catch (err) {
         console.error('❌ [oauth callback] Discord auth failed:', err.response?.data || err.message);
         res.redirect('/login?error=AuthFailed');
@@ -451,7 +451,8 @@ app.get("/admin/filter/:type", checkAuth, async (req, res) => {
         logs: global.botLogs,
         errors: global.botErrors,
         db,
-        activeTab: "infractions"   // ⭐ tells index.ejs which tab to open
+        activeTab: "infractions",  // ⭐ tells index.ejs which tab to open
+        activePage: "infractions"
     });
 });
 app.get("/admin/search", checkAuth, async (req, res) => {
@@ -483,11 +484,28 @@ app.get("/admin/search", checkAuth, async (req, res) => {
         logs: global.botLogs,
         errors: global.botErrors,
         db,
-        activeTab: "infractions"   // ⭐ auto-open the correct tab
+        activeTab: "infractions",  // ⭐ auto-open the correct tab
+        activePage: "infractions"
     });
 });
 
-app.get('/', checkAuth, async (req, res) => {
+// --- DASHBOARD PAGES ---
+// The dashboard used to be a single page ('/') with client-side JS tabs.
+// It's now a set of real, bookmarkable/shareable routes that each render
+// the same view with a different tab pre-opened server-side. Every route
+// below shares this one render helper so the guild/member/stat fetching
+// only lives in one place.
+const DASHBOARD_TABS = {
+    config: 'dashboard',
+    modules: 'modules',
+    infractions: 'infractions',
+    'risk-manager': 'risk-manager',
+    'reaction-roles': 'roles',
+    'banned-words': 'banned-words',
+    'system-logs': 'terminal',
+};
+
+async function renderDashboard(req, res, activeTab, overrides = {}) {
     const guild = client?.guilds?.cache.get(GUILD_ID);
     let members = [], emojis = [];
     if (guild) {
@@ -518,14 +536,48 @@ app.get('/', checkAuth, async (req, res) => {
         logs: global.botLogs,
         errors: global.botErrors,
         db,
+        activeTab,
+        activePage: overrides.activePage || null,
+        ...overrides.render,
     });
+}
+
+// Legacy root — sends anyone hitting '/' to the new Configuration page.
+app.get('/', checkAuth, (req, res) => res.redirect('/config'));
+
+app.get('/config', checkAuth, async (req, res) => {
+    await renderDashboard(req, res, DASHBOARD_TABS.config, { activePage: 'config' });
 });
 
-app.post('/update-settings', checkAuth, async (req, res) => { db.settings = { prefix: req.body.prefix, welcomeChannel: req.body.welcomeChannel, goodbyeChannel: req.body.goodbyeChannel }; await safeSave(); res.redirect('/'); });
-app.post('/review-risk/:userId', checkAuth, async (req, res) => { if (!db.reviewedUsers) db.reviewedUsers = []; if (!db.reviewedUsers.includes(req.params.userId)) { db.reviewedUsers.push(req.params.userId); await safeSave(); } res.redirect('/#risk-manager'); });
-app.post('/add-reaction-role', checkAuth, async (req, res) => { if (!db.reactionRoles) db.reactionRoles = []; db.reactionRoles.push({ emoji: req.body.emoji, roleId: req.body.roleId, messageId: req.body.messageId }); await safeSave(); res.redirect('/'); });
-app.post('/banned-words/add', checkAuth, async (req, res) => { if (!db.bannedWords) db.bannedWords = []; if (!db.bannedWords.includes(req.body.word)) { db.bannedWords.push(req.body.word); await safeSave(); } res.redirect('/#banned-words'); });
-app.post('/banned-words/remove', checkAuth, async (req, res) => { if (!db.bannedWords) db.bannedWords = []; db.bannedWords = db.bannedWords.filter(w => w !== req.body.word); await safeSave(); res.redirect('/#banned-words'); });
+app.get('/modules', checkAuth, async (req, res) => {
+    await renderDashboard(req, res, DASHBOARD_TABS.modules, { activePage: 'modules' });
+});
+
+app.get('/infractions', checkAuth, async (req, res) => {
+    await renderDashboard(req, res, DASHBOARD_TABS.infractions, { activePage: 'infractions' });
+});
+
+app.get('/risk-manager', checkAuth, async (req, res) => {
+    await renderDashboard(req, res, DASHBOARD_TABS['risk-manager'], { activePage: 'risk-manager' });
+});
+
+app.get('/reaction-roles', checkAuth, async (req, res) => {
+    await renderDashboard(req, res, DASHBOARD_TABS['reaction-roles'], { activePage: 'reaction-roles' });
+});
+
+app.get('/banned-words', checkAuth, async (req, res) => {
+    await renderDashboard(req, res, DASHBOARD_TABS['banned-words'], { activePage: 'banned-words' });
+});
+
+app.get('/system-logs', checkAuth, async (req, res) => {
+    await renderDashboard(req, res, DASHBOARD_TABS['system-logs'], { activePage: 'system-logs' });
+});
+
+app.post('/update-settings', checkAuth, async (req, res) => { db.settings = { prefix: req.body.prefix, welcomeChannel: req.body.welcomeChannel, goodbyeChannel: req.body.goodbyeChannel }; await safeSave(); res.redirect('/config'); });
+app.post('/review-risk/:userId', checkAuth, async (req, res) => { if (!db.reviewedUsers) db.reviewedUsers = []; if (!db.reviewedUsers.includes(req.params.userId)) { db.reviewedUsers.push(req.params.userId); await safeSave(); } res.redirect('/risk-manager'); });
+app.post('/add-reaction-role', checkAuth, async (req, res) => { if (!db.reactionRoles) db.reactionRoles = []; db.reactionRoles.push({ emoji: req.body.emoji, roleId: req.body.roleId, messageId: req.body.messageId }); await safeSave(); res.redirect('/reaction-roles'); });
+app.post('/banned-words/add', checkAuth, async (req, res) => { if (!db.bannedWords) db.bannedWords = []; if (!db.bannedWords.includes(req.body.word)) { db.bannedWords.push(req.body.word); await safeSave(); } res.redirect('/banned-words'); });
+app.post('/banned-words/remove', checkAuth, async (req, res) => { if (!db.bannedWords) db.bannedWords = []; db.bannedWords = db.bannedWords.filter(w => w !== req.body.word); await safeSave(); res.redirect('/banned-words'); });
 app.post("/create-case", checkAuth, async (req, res) => {
     const { user, userId, type, reason } = req.body;
 
@@ -545,7 +597,7 @@ app.post("/create-case", checkAuth, async (req, res) => {
     });
 
     await safeSave();
-    res.redirect("/admin?tab=infractions");
+    res.redirect("/infractions");
 });
 app.post('/remove-reaction-role/:index', checkAuth, async (req, res) => {
     const i = parseInt(req.params.index, 10);
@@ -553,7 +605,7 @@ app.post('/remove-reaction-role/:index', checkAuth, async (req, res) => {
         db.reactionRoles.splice(i, 1);
     
     }
-    res.redirect('/#roles');
+    res.redirect('/reaction-roles');
 });
 
 app.post('/edit-case/:index', checkAuth, async (req, res) => {
@@ -562,7 +614,7 @@ app.post('/edit-case/:index', checkAuth, async (req, res) => {
         db.cases[i].reason = req.body.reason || db.cases[i].reason;
     
     }
-    res.redirect('/#infractions');
+    res.redirect('/infractions');
 });
 
 // --- MODULE TOGGLES ---
@@ -623,7 +675,7 @@ app.post('/modules/toggle', checkAuth, async (req, res) => {
     if (db[mod] === undefined) db[mod] = true;
     db[mod] = !db[mod];
 
-    res.redirect('/#modules');
+    res.redirect('/modules');
 });
 app.post('/settings/toggle-maintenance', async (req, res) => {
     if (req.session.user?.id !== 'admin') return res.status(403).send("Forbidden");
@@ -761,7 +813,7 @@ app.post('/delete-case/:id', checkAuth, async (req, res) => {
             await safeSave();
         }
     }
-    res.redirect('/#infractions');
+    res.redirect('/infractions');
 });
 
 app.post('/settings/flush-sessions', async (req, res) => {
