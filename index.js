@@ -752,6 +752,18 @@ app.post('/settings/discord-webhook', async (req, res) => {
     res.redirect('/settings?msg=' + (sent ? 'Discord+webhook+saved+and+test+sent' : 'Discord+webhook+saved+but+test+failed'));
 });
 
+app.post('/delete-case/:id', checkAuth, async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (!isNaN(id) && db.cases) {
+        const before = db.cases.length;
+        db.cases = db.cases.filter(c => c.id !== id);
+        if (db.cases.length !== before) {
+            await safeSave();
+        }
+    }
+    res.redirect('/#infractions');
+});
+
 app.post('/settings/flush-sessions', async (req, res) => {
     if (req.session.user?.id !== 'admin') return res.status(403).send("Forbidden");
     // Destroy the current session last so the admin gets redirected cleanly
