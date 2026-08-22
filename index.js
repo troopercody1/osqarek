@@ -208,6 +208,8 @@ app.use((req, res, next) => {
     // Dynamically whitelist `/settings` for admin users
     if (req.session?.user?.id === 'admin') {
         maintenanceWhitelist.push('/settings');
+        maintenanceWhitelist.push('/settings/bot-presence');
+        maintenanceWhitelist.push('/settings/bot-presence/reset');
         maintenanceWhitelist.push('/settings/toggle-maintenance');
         maintenanceWhitelist.push('/settings/maintenance-config');
         maintenanceWhitelist.push('/settings/rate-limit');
@@ -802,6 +804,55 @@ app.post('/settings/discord-webhook', async (req, res) => {
         color: 0x5865F2
     });
     res.redirect('/settings?msg=' + (sent ? 'Discord+webhook+saved+and+test+sent' : 'Discord+webhook+saved+but+test+failed'));
+});
+
+app.post('/settings/bot-presence', async (req, res) => {
+    if (req.session.user?.id !== 'admin') return res.status(403).send("Forbidden");
+    if (!db.settings) db.settings = {};
+
+    const allowedStatuses = ['online', 'idle', 'dnd', 'invisible'];
+    const allowedActivityTypes = ['Playing', 'Watching', 'Listening', 'Competing'];
+
+    const status = allowedStatuses.includes(req.body.botPresenceStatus) ? req.body.botPresenceStatus : 'online';
+    const activityTypeName = allowedActivityTypes.includes(req.body.botPresenceActivityType) ? req.body.botPresenceActivityType : 'Playing';
+    const text = (req.body.botPresenceText || '').trim().slice(0, 128);
+
+    if (!text) {
+        return res.redirect('/settings?msg=Activity+text+is+required');
+    }
+
+    db.settings.botPresenceEnabled = true;
+    db.settings.botPresenceStatus = status;
+    db.settings.botPresenceActivityType = activityTypeName;
+    db.settings.botPresenceText = text;
+    await db.save();
+
+    if (client?.user) {
+        client.user.setPresence({
+            activities: [{ name: text, type: ActivityType[activityTypeName] }],
+            status
+        });
+    }
+
+    const guild = client?.guilds?.cache.first();
+    if (guild && db.modLogChannel) {
+        logAction(guild, '🔄 Bot Presence Updated', `**Admin:** ${req.session.user?.username}\n**Activity:** ${activityTypeName} ${text}\n**Status:** ${status}`, 0x3498DB);
+    }
+
+    res.redirect('/settings?msg=Bot+presence+updated');
+});
+
+app.post('/settings/bot-presence/reset', async (req, res) => {
+    if (req.session.user?.id !== 'admin') return res.status(403).send("Forbidden");
+    if (!db.settings) db.settings = {};
+
+    db.settings.botPresenceEnabled = false;
+    delete db.settings.botPresenceStatus;
+    delete db.settings.botPresenceActivityType;
+    delete db.settings.botPresenceText;
+    await db.save();
+
+    res.redirect('/settings?msg=Reverted+to+rotating+status');
 });
 
 app.post('/delete-case/:id', checkAuth, async (req, res) => {
@@ -1553,6 +1604,9 @@ client.once('clientReady', async () => {
 
     // 2. The Rotation Function (Updates status AND logs it)
     const rotateStatus = async () => {
+        // Skip rotation if an admin has set a custom status/activity from the dashboard
+        if (db.settings?.botPresenceEnabled) return;
+
         const status = statusMessages[currentIndex];
 
         try {
@@ -1568,6 +1622,18 @@ client.once('clientReady', async () => {
         // Increment for the next run
         currentIndex = (currentIndex + 1) % statusMessages.length;
     };
+
+    // If a custom presence was saved before restart, re-apply it immediately
+    if (db.settings?.botPresenceEnabled && db.settings?.botPresenceText) {
+        try {
+            client.user.setPresence({
+                activities: [{ name: db.settings.botPresenceText, type: ActivityType[db.settings.botPresenceActivityType] ?? ActivityType.Playing }],
+                status: db.settings.botPresenceStatus || 'online'
+            });
+        } catch (err) {
+            console.error("Failed to restore custom bot presence:", err);
+        }
+    }
 
     // 3. Start the cycle immediately on startup
     rotateStatus();

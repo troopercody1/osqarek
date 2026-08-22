@@ -113,6 +113,78 @@
     </div>
 
     <!-- ══════════════════════════════════════
+         BOT PRESENCE
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Bot Presence</div>
+        <div class="card">
+
+            <!-- Current presence -->
+            <div class="row">
+                <div class="row-icon" style="background:<%= settings.botPresenceEnabled ? '#1a2e1a' : '#1f2030' %>;">
+                    <span style="color:<%= settings.botPresenceEnabled ? '#9ece6a' : '#a9b1d6' %>;">&#127917;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Custom status &amp; activity</div>
+                    <div class="row-desc">
+                        <% if (settings.botPresenceEnabled) { %>
+                            <%= settings.botPresenceActivityType || 'Playing' %> <%= settings.botPresenceText || '' %> &middot; <%= settings.botPresenceStatus || 'online' %>
+                        <% } else { %>
+                            Using default rotating status
+                        <% } %>
+                    </div>
+                </div>
+                <div class="row-end">
+                    <span class="badge <%= settings.botPresenceEnabled ? 'badge-live' : 'badge-info' %>">
+                        <%= settings.botPresenceEnabled ? 'Custom' : 'Rotating' %>
+                    </span>
+                    <span class="chevron" id="presence-chevron" onclick="toggleDrawer('presence-drawer','presence-chevron')">&#8964;</span>
+                </div>
+            </div>
+
+            <!-- Drawer -->
+            <div class="drawer" id="presence-drawer">
+                <form action="/settings/bot-presence" method="POST" style="display:contents;">
+                    <label>Status</label>
+                    <select name="botPresenceStatus">
+                        <option value="online"    <%= (settings.botPresenceStatus || 'online') === 'online'    ? 'selected' : '' %>>&#128994; Online</option>
+                        <option value="idle"      <%= settings.botPresenceStatus === 'idle'      ? 'selected' : '' %>>&#128993; Idle</option>
+                        <option value="dnd"       <%= settings.botPresenceStatus === 'dnd'       ? 'selected' : '' %>>&#128308; Do Not Disturb</option>
+                        <option value="invisible" <%= settings.botPresenceStatus === 'invisible' ? 'selected' : '' %>>&#9898; Invisible</option>
+                    </select>
+
+                    <label>Activity type</label>
+                    <select name="botPresenceActivityType">
+                        <option value="Playing"   <%= (settings.botPresenceActivityType || 'Playing') === 'Playing'   ? 'selected' : '' %>>Playing</option>
+                        <option value="Watching"  <%= settings.botPresenceActivityType === 'Watching'  ? 'selected' : '' %>>Watching</option>
+                        <option value="Listening" <%= settings.botPresenceActivityType === 'Listening' ? 'selected' : '' %>>Listening to</option>
+                        <option value="Competing" <%= settings.botPresenceActivityType === 'Competing' ? 'selected' : '' %>>Competing in</option>
+                    </select>
+
+                    <label>Activity text</label>
+                    <input type="text" name="botPresenceText"
+                           placeholder="e.g. with the Universe"
+                           maxlength="128"
+                           value="<%= settings.botPresenceText || '' %>">
+
+                    <div class="row-actions">
+                        <button type="submit" class="btn btn-primary">Apply</button>
+                        <button type="button" class="btn" onclick="toggleDrawer('presence-drawer','presence-chevron')">Cancel</button>
+                    </div>
+                </form>
+                <% if (settings.botPresenceEnabled) { %>
+                <form action="/settings/bot-presence/reset" method="POST" style="display:contents;">
+                    <div class="row-actions">
+                        <button type="submit" class="btn">Revert to rotating status</button>
+                    </div>
+                </form>
+                <% } %>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
          MAINTENANCE
     ══════════════════════════════════════ -->
     <div class="section">
