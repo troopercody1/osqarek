@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Master Settings</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #16161e; color: #a9b1d6; padding: 40px 20px; }
+        .page { max-width: 640px; margin: 0 auto; }
+
+        a.back { color: #7aa2f7; text-decoration: none; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 24px; }
+        a.back:hover { color: #a9c5ff; }
+
+        h1 { color: #7aa2f7; font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+        .page-sub { font-size: 13px; color: #565f89; margin-bottom: 28px; }
+
+        /* Stat grid */
+        .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 28px; }
+        .stat { background: #1a1b26; border: 1px solid #2f3549; border-radius: 10px; padding: 14px 16px; }
+        .stat-label { font-size: 11px; color: #565f89; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-value { font-size: 20px; font-weight: 600; color: #c0caf5; }
+        .stat-delta { font-size: 11px; color: #9ece6a; margin-top: 3px; }
+
+        /* Section */
+        .section { margin-bottom: 24px; }
+        .section-label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: #565f89; margin-bottom: 10px; padding-left: 2px; }
+
+        /* Card */
+        .card { background: #1a1b26; border: 1px solid #2f3549; border-radius: 12px; overflow: hidden; }
+        .card.danger-card { border-color: #4a1c1c; }
+
+        /* Row */
+        .row { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #2f3549; }
+        .row:last-child { border-bottom: none; }
+        .row.clickable { cursor: pointer; }
+        .row.clickable:hover { background: #1f2030; }
+
+        .row-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; }
+        .row-body { flex: 1; min-width: 0; }
+        .row-title { font-size: 14px; font-weight: 500; color: #c0caf5; }
+        .row-desc { font-size: 12px; color: #565f89; margin-top: 2px; }
+        .row-end { flex-shrink: 0; display: flex; align-items: center; gap: 10px; }
+
+        /* Badge */
+        .badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 99px; }
+        .badge-live    { background: #1a2e1a; color: #9ece6a; }
+        .badge-maint   { background: #2e2a1a; color: #e0af68; }
+        .badge-info    { background: #1a1f3a; color: #7aa2f7; }
+        .badge-danger  { background: #2e1a1a; color: #f7768e; }
+
+        /* Toggle */
+        .toggle { width: 40px; height: 22px; background: #2f3549; border: none; border-radius: 99px; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; outline: none; }
+        .toggle.on { background: #9ece6a; }
+        .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #16161e; transition: left 0.2s; }
+        .toggle.on::after { left: 21px; }
+
+        /* Expandable drawer */
+        .drawer { display: none; padding: 16px 18px; background: #13131a; border-top: 1px solid #2f3549; }
+        .drawer label { font-size: 12px; color: #565f89; display: block; margin-bottom: 6px; margin-top: 14px; }
+        .drawer label:first-child { margin-top: 0; }
+        .drawer input, .drawer select { background: #1a1b26; border: 1px solid #2f3549; color: #c0caf5; padding: 8px 10px; border-radius: 6px; width: 100%; font-family: 'Segoe UI', sans-serif; font-size: 13px; }
+        .drawer input:focus, .drawer select:focus { outline: none; border-color: #7aa2f7; }
+        .drawer .row-actions { display: flex; gap: 8px; margin-top: 14px; }
+
+        /* Chevron */
+        .chevron { font-size: 13px; color: #565f89; transition: transform 0.2s; cursor: pointer; display: inline-block; }
+        .chevron.open { transform: rotate(180deg); }
+
+        /* Buttons */
+        .btn { font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 6px; border: 1px solid #2f3549; background: #1a1b26; color: #c0caf5; cursor: pointer; font-family: 'Segoe UI', sans-serif; transition: background 0.15s; white-space: nowrap; }
+        .btn:hover { background: #252636; }
+        .btn-primary { background: #5865f2; color: #fff; border-color: transparent; }
+        .btn-primary:hover { background: #4752c4; }
+        .btn-danger  { background: #2e1a1a; color: #f7768e; border-color: #4a1c1c; }
+        .btn-danger:hover { background: #3d2020; }
+
+        /* Select inline */
+        select.inline { width: auto; min-width: 140px; font-size: 12px; padding: 6px 8px; background: #1a1b26; border: 1px solid #2f3549; color: #c0caf5; border-radius: 6px; cursor: pointer; font-family: 'Segoe UI', sans-serif; }
+        select.inline:focus { outline: none; border-color: #7aa2f7; }
+
+        /* Forms that POST to server */
+        form.server-form { display: contents; }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <a href="/config" class="back">&#8592; Back to Dashboard</a>
+    <h1>Website Settings</h1>
+    <p class="page-sub">Manage your site configuration, access, and operations.</p>
+
+    <% if (typeof msg !== 'undefined' && msg) { %>
+    <div style="background:rgba(158,206,106,0.1);color:#9ece6a;border:1px solid #9ece6a;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:20px;">
+        ✅ <%= decodeURIComponent(msg).replace(/\+/g,' ') %>
+    </div>
+    <% } %>
+
+    <!-- ── Stat strip ── -->
+    <div class="stat-grid">
+        <div class="stat">
+            <div class="stat-label">Uptime</div>
+            <div class="stat-value">99.9%</div>
+            <div class="stat-delta">↑ Last 30 days</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Status</div>
+            <div class="stat-value" style="font-size:14px; margin-top:4px;" id="site-status-badge">
+                <span class="badge <%= settings.maintenanceMode ? 'badge-maint' : 'badge-live' %>">
+                    <%= settings.maintenanceMode ? 'Maintenance' : 'Live' %>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         BOT PRESENCE
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Bot Presence</div>
+        <div class="card">
+
+            <!-- Current presence -->
+            <div class="row">
+                <div class="row-icon" style="background:<%= settings.botPresenceEnabled ? '#1a2e1a' : '#1f2030' %>;">
+                    <span style="color:<%= settings.botPresenceEnabled ? '#9ece6a' : '#a9b1d6' %>;">&#127917;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Custom status &amp; activity</div>
+                    <div class="row-desc">
+                        <% if (settings.botPresenceEnabled) { %>
+                            <%= settings.botPresenceActivityType || 'Playing' %> <%= settings.botPresenceText || '' %> &middot; <%= settings.botPresenceStatus || 'online' %>
+                        <% } else { %>
+                            Using default rotating status
+                        <% } %>
+                    </div>
+                </div>
+                <div class="row-end">
+                    <span class="badge <%= settings.botPresenceEnabled ? 'badge-live' : 'badge-info' %>">
+                        <%= settings.botPresenceEnabled ? 'Custom' : 'Rotating' %>
+                    </span>
+                    <span class="chevron" id="presence-chevron" onclick="toggleDrawer('presence-drawer','presence-chevron')">&#8964;</span>
+                </div>
+            </div>
+
+            <!-- Drawer -->
+            <div class="drawer" id="presence-drawer">
+                <form action="/settings/bot-presence" method="POST" style="display:contents;">
+                    <label>Status</label>
+                    <select name="botPresenceStatus">
+                        <option value="online"    <%= (settings.botPresenceStatus || 'online') === 'online'    ? 'selected' : '' %>>&#128994; Online</option>
+                        <option value="idle"      <%= settings.botPresenceStatus === 'idle'      ? 'selected' : '' %>>&#128993; Idle</option>
+                        <option value="dnd"       <%= settings.botPresenceStatus === 'dnd'       ? 'selected' : '' %>>&#128308; Do Not Disturb</option>
+                        <option value="invisible" <%= settings.botPresenceStatus === 'invisible' ? 'selected' : '' %>>&#9898; Invisible</option>
+                    </select>
+
+                    <label>Activity type</label>
+                    <select name="botPresenceActivityType">
+                        <option value="Playing"   <%= (settings.botPresenceActivityType || 'Playing') === 'Playing'   ? 'selected' : '' %>>Playing</option>
+                        <option value="Watching"  <%= settings.botPresenceActivityType === 'Watching'  ? 'selected' : '' %>>Watching</option>
+                        <option value="Listening" <%= settings.botPresenceActivityType === 'Listening' ? 'selected' : '' %>>Listening to</option>
+                        <option value="Competing" <%= settings.botPresenceActivityType === 'Competing' ? 'selected' : '' %>>Competing in</option>
+                    </select>
+
+                    <label>Activity text</label>
+                    <input type="text" name="botPresenceText"
+                           placeholder="e.g. with the Universe"
+                           maxlength="128"
+                           value="<%= settings.botPresenceText || '' %>">
+
+                    <div class="row-actions">
+                        <button type="submit" class="btn btn-primary">Apply</button>
+                        <button type="button" class="btn" onclick="toggleDrawer('presence-drawer','presence-chevron')">Cancel</button>
+                    </div>
+                </form>
+                <% if (settings.botPresenceEnabled) { %>
+                <form action="/settings/bot-presence/reset" method="POST" style="display:contents;">
+                    <div class="row-actions">
+                        <button type="submit" class="btn">Revert to rotating status</button>
+                    </div>
+                </form>
+                <% } %>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         MAINTENANCE
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Maintenance</div>
+        <div class="card">
+            <div class="row">
+                <div class="row-icon" style="background:#2e2a1a;">
+                    <span style="color:#e0af68;">&#9881;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Maintenance mode</div>
+                    <div class="row-desc" id="maint-desc">
+                        <%= settings.maintenanceMode
+                            ? 'Site is locked — visitors see maintenance page'
+                            : 'Site is currently live and accessible' %>
+                    </div>
+                </div>
+                <div class="row-end">
+                    <span class="badge <%= settings.maintenanceMode ? 'badge-maint' : 'badge-live' %>" id="maint-badge">
+                        <%= settings.maintenanceMode ? 'Maintenance' : 'Live' %>
+                    </span>
+                    <!-- Real POST toggle -->
+                    <form action="/settings/toggle-maintenance" method="POST" style="display:contents;">
+                        <button type="submit"
+                                class="toggle <%= settings.maintenanceMode ? 'on' : '' %>"
+                                title="<%= settings.maintenanceMode ? 'Disable' : 'Enable' %> maintenance mode"
+                                aria-label="Toggle maintenance mode">
+                        </button>
+                    </form>
+                    <span class="chevron" id="maint-chevron" onclick="toggleDrawer('maint-drawer','maint-chevron')">&#8964;</span>
+                </div>
+            </div>
+
+            <!-- Drawer -->
+            <div class="drawer" id="maint-drawer">
+                <form action="/settings/maintenance-config" method="POST" style="display:contents;">
+                <label>Estimated return time (ETA)</label>
+                <input type="text" name="eta"
+                       placeholder="e.g. 2 hours / 5:00 PM EST"
+                       value="<%= settings.maintenanceETA || '' %>">
+
+                <label>Maintenance message</label>
+                <input type="text" name="maintenanceMessage"
+                       placeholder="We'll be back shortly. Thanks for your patience."
+                       value="<%= settings.maintenanceMessage || '' %>">
+
+                <label>Bypass IPs (comma-separated)</label>
+                <input type="text" name="bypassIPs"
+                       placeholder="127.0.0.1, 192.168.1.0/24"
+                       value="<%= settings.bypassIPs || '' %>">
+
+                <div class="row-actions">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn" onclick="toggleDrawer('maint-drawer','maint-chevron')">Cancel</button>
+                </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         ACCESS & SECURITY
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Access &amp; Security</div>
+        <div class="card">
+
+            <!-- Rate limiting -->
+            <div class="row">
+                <div class="row-icon" style="background:#1a1f3a;">
+                    <span style="color:#7aa2f7;">&#128737;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Rate limiting</div>
+                    <div class="row-desc">100 req/min per IP</div>
+                </div>
+                <div class="row-end">
+                    <span class="badge badge-info">Enabled</span>
+                    <span class="chevron" id="rate-chevron" onclick="toggleDrawer('rate-drawer','rate-chevron')">&#8964;</span>
+                </div>
+            </div>
+            <div class="drawer" id="rate-drawer">
+                <form action="/settings/rate-limit" method="POST" style="display:contents;">
+                    <label>Requests per minute per IP</label>
+                    <input type="number" name="rateLimit" value="<%= settings.rateLimit || 100 %>" min="1">
+                    <div class="row-actions">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" class="btn" onclick="toggleDrawer('rate-drawer','rate-chevron')">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Force HTTPS -->
+            <div class="row">
+                <div class="row-icon" style="background:#1f2030;">
+                    <span style="color:#a9b1d6;">&#128274;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Force HTTPS</div>
+                    <div class="row-desc">Redirect all HTTP requests</div>
+                </div>
+                <div class="row-end">
+                    <form action="/settings/toggle-https" method="POST" style="display:contents;">
+                        <button type="submit"
+                                class="toggle <%= settings.forceHttps ? 'on' : '' %>"
+                                aria-label="Toggle force HTTPS">
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Block bots -->
+            <div class="row">
+                <div class="row-icon" style="background:#1f2030;">
+                    <span style="color:#a9b1d6;">&#129302;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Block bots</div>
+                    <div class="row-desc">Block known scrapers and crawlers</div>
+                </div>
+                <div class="row-end">
+                    <form action="/settings/toggle-bots" method="POST" style="display:contents;">
+                        <button type="submit"
+                                class="toggle <%= settings.blockBots ? 'on' : '' %>"
+                                aria-label="Toggle bot blocking">
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- IP allowlist -->
+            <div class="row">
+                <div class="row-icon" style="background:#1f2030;">
+                    <span style="color:#a9b1d6;">&#9989;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">IP allowlist</div>
+                    <div class="row-desc">
+                        <%= settings.ipAllowlist
+                            ? settings.ipAllowlist.split(',').filter(s=>s.trim()).length + ' address(es) configured'
+                            : 'No addresses configured' %>
+                    </div>
+                </div>
+                <div class="row-end">
+                    <span class="chevron" id="ip-chevron" onclick="toggleDrawer('ip-drawer','ip-chevron')">&#8964;</span>
+                </div>
+            </div>
+            <div class="drawer" id="ip-drawer">
+                <form action="/settings/ip-allowlist" method="POST" style="display:contents;">
+                    <label>Allowed IPs (comma-separated)</label>
+                    <input type="text" name="ipAllowlist"
+                           placeholder="127.0.0.1, 10.0.0.0/8"
+                           value="<%= settings.ipAllowlist || '' %>">
+                    <div class="row-actions">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" class="btn" onclick="toggleDrawer('ip-drawer','ip-chevron')">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         PERFORMANCE
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Performance</div>
+        <div class="card">
+
+            <!-- Cache strategy -->
+            <div class="row">
+                <div class="row-icon" style="background:#1a2e1a;">
+                    <span style="color:#9ece6a;">&#9889;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Cache strategy</div>
+                    <div class="row-desc">Controls how responses are cached</div>
+                </div>
+                <div class="row-end">
+                    <form action="/settings/cache-strategy" method="POST" style="display:contents;">
+                        <select name="cacheStrategy" class="inline" onchange="this.form.submit()">
+                            <option value="aggressive" <%= settings.cacheStrategy === 'aggressive' ? 'selected' : '' %>>Aggressive (7d)</option>
+                            <option value="balanced"   <%= (!settings.cacheStrategy || settings.cacheStrategy === 'balanced') ? 'selected' : '' %>>Balanced (1d)</option>
+                            <option value="minimal"    <%= settings.cacheStrategy === 'minimal'    ? 'selected' : '' %>>Minimal (1h)</option>
+                            <option value="none"       <%= settings.cacheStrategy === 'none'       ? 'selected' : '' %>>No cache</option>
+                        </select>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Image optimisation -->
+            <div class="row">
+                <div class="row-icon" style="background:#1f2030;">
+                    <span style="color:#a9b1d6;">&#128247;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Image optimisation</div>
+                    <div class="row-desc">Auto-compress and convert to WebP</div>
+                </div>
+                <div class="row-end">
+                    <form action="/settings/toggle-image-opt" method="POST" style="display:contents;">
+                        <button type="submit"
+                                class="toggle <%= settings.imageOptimisation ? 'on' : '' %>"
+                                aria-label="Toggle image optimisation">
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Purge cache -->
+            <div class="row">
+                <div class="row-icon" style="background:#1f2030;">
+                    <span style="color:#a9b1d6;">&#8635;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Purge cache</div>
+                    <div class="row-desc">
+                        Last purged:
+                        <%= settings.lastCachePurge
+                            ? new Date(settings.lastCachePurge).toLocaleString()
+                            : 'Never' %>
+                    </div>
+                </div>
+                <div class="row-end">
+                    <form action="/settings/purge-cache" method="POST" style="display:contents;">
+                        <button type="submit" class="btn">Purge now</button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         NOTIFICATIONS
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Notifications</div>
+        <div class="card">
+
+            <!-- Downtime alerts -->
+            <div class="row">
+                <div class="row-icon" style="background:#1f2030;">
+                    <span style="color:#a9b1d6;">&#128140;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Downtime alerts</div>
+                    <div class="row-desc">Email on status changes</div>
+                </div>
+                <div class="row-end">
+                    <form action="/settings/toggle-downtime-alerts" method="POST" style="display:contents;">
+                        <button type="submit"
+                                class="toggle <%= settings.downtimeAlerts ? 'on' : '' %>"
+                                aria-label="Toggle downtime alerts">
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Discord webhook -->
+            <div class="row">
+                <div class="row-icon" style="background:#1f2030;">
+                    <span style="color:#a9b1d6;">&#128279;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Discord webhook</div>
+                    <div class="row-desc">
+                        <%= (settings.discordWebhook || settings.slackWebhook) ? 'Configured' : 'Not configured' %>
+                    </div>
+                </div>
+                <div class="row-end">
+                    <span class="chevron" id="discord-chevron" onclick="toggleDrawer('discord-drawer','discord-chevron')">&#8964;</span>
+                </div>
+            </div>
+            <div class="drawer" id="discord-drawer">
+                <form action="/settings/discord-webhook" method="POST" style="display:contents;">
+                    <label>Discord webhook URL</label>
+                    <input type="url" name="discordWebhook"
+                           placeholder="https://discord.com/api/webhooks/..."
+                           value="<%= settings.discordWebhook || settings.slackWebhook || '' %>">
+                    <div class="row-actions">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" class="btn" onclick="toggleDrawer('discord-drawer','discord-chevron')">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         DANGER ZONE
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Danger Zone</div>
+        <div class="card danger-card">
+
+            <!-- Flush sessions -->
+            <div class="row">
+                <div class="row-icon" style="background:#2e1a1a;">
+                    <span style="color:#f7768e;">&#128465;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Flush all sessions</div>
+                    <div class="row-desc">Signs out all active users immediately</div>
+                </div>
+                <div class="row-end">
+                    <form action="/settings/flush-sessions" method="POST" style="display:contents;"
+                          onsubmit="return confirm('This will sign out all active users. Continue?')">
+                        <button type="submit" class="btn btn-danger">Flush</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Reset to defaults -->
+            <div class="row">
+                <div class="row-icon" style="background:#2e1a1a;">
+                    <span style="color:#f7768e;">&#9888;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Reset to defaults</div>
+                    <div class="row-desc">Restores all settings to factory state</div>
+                </div>
+                <div class="row-end">
+                    <form action="/settings/reset" method="POST" style="display:contents;"
+                          onsubmit="return confirm('All settings will be reset to defaults. This cannot be undone. Continue?')">
+                        <button type="submit" class="btn btn-danger">Reset</button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div><!-- /page -->
+
+<script>
+    function toggleDrawer(drawerId, chevronId) {
+        var drawer  = document.getElementById(drawerId);
+        var chevron = document.getElementById(chevronId);
+        var open = drawer.style.display === 'block';
+        drawer.style.display  = open ? 'none'  : 'block';
+        chevron.classList.toggle('open', !open);
+    }
+</script>
+</body>
+</html>

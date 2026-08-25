@@ -1,0 +1,4234 @@
+{
+    "offences": {
+        "860540496726982706": 10,
+        "427526953046769677": 8,
+        "1144400272152596682": 7,
+        "1100448724334948454": 6,
+        "1188685547959496744": 0,
+        "778819029041152010": 1,
+        "1225528787278499982": 0,
+        "1023154786964615228": 3,
+        "1249657169994059812": 0,
+        "1447124717340201010": 0,
+        "1268166506949120094": 0,
+        "800114998214131772": 4,
+        "911892794619068457": 1,
+        "1266792617836941490": 1,
+        "776683542368354335": 2
+    },
+    "staffStrikes": {
+        "1023154786964615228": 0,
+        "933260214097035276": 0,
+        "778819029041152010": 0,
+        "1427001554539511899": 2,
+        "846784982797910036": 0
+    },
+    "notes": {
+        "778819029041152010": [
+            {
+                "note": "h",
+                "mod": "cydo_15"
+            },
+            {
+                "text": "h",
+                "mod": "cydo_15"
+            }
+        ],
+        "1268166506949120094": [],
+        "1023154786964615228": [
+            {
+                "text": "he's bugging",
+                "mod": "cydo_15"
+            }
+        ]
+    },
+    "ignoredChannels": [
+        "1340439976562786435",
+        "1021111350744846386"
+    ],
+    "cases": [
+        {
+            "id": 1,
+            "type": "WARN",
+            "user": "Historical Record",
+            "userId": "0",
+            "reason": "Archive Start",
+            "moderator": "System",
+            "timestamp": "2024-01-01T12:00:00Z"
+        },
+        {
+            "id": 2,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 3,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 4,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 5,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 6,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 7,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 8,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 9,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 10,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 11,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 12,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 13,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 14,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 15,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 16,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 17,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 18,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 19,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 20,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 21,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 22,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 23,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 24,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 25,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 26,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 27,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 28,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 29,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 30,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 31,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 32,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 33,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 34,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 35,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 36,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 37,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 38,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 39,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 40,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 41,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 42,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 43,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 44,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 45,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 46,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 47,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 48,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 49,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 50,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 51,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 52,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 53,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 54,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 55,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 56,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 57,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 58,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 59,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 60,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 61,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 62,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 63,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 64,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 65,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 66,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 67,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 68,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 69,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 70,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 71,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 72,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 73,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 74,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 75,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 76,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 77,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 78,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 79,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 80,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 81,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 82,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 83,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 84,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 85,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 86,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 87,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 88,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 89,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 90,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 91,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 92,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 93,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 94,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 95,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 96,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 97,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 98,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 99,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 100,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 101,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 102,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 103,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 104,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 105,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 106,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 107,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 108,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 109,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 110,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 111,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 112,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 113,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 114,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 115,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 116,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 117,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 118,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 119,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 120,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 121,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 122,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 123,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 124,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 125,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 126,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 127,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 128,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 129,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 130,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 131,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 132,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 133,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 134,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 135,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 136,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 137,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 138,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 139,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 140,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 141,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 142,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 143,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 144,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 145,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 146,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 147,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 148,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 149,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 150,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 151,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 152,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 153,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 154,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 155,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 156,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 157,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 158,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 159,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 160,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 161,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 162,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 163,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 164,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 165,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 166,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 167,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 168,
+            "type": "VOID",
+            "user": "N/A",
+            "reason": "Skipped ID",
+            "moderator": "System",
+            "timestamp": "2024-05-10T12:00:00Z"
+        },
+        {
+            "id": 169,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 170,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 171,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 172,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 173,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 174,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 175,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 176,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 177,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 178,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 179,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 180,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 181,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 182,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 183,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 184,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 185,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 186,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 187,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 188,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 189,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 190,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 191,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 192,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 193,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 194,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 195,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 196,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 197,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 198,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 199,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 200,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 201,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 202,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 203,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 204,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 205,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 206,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 207,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 208,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 209,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 210,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 211,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 212,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 213,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 214,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 215,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 216,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 217,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 218,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 219,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 220,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 221,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 222,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 223,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 224,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 225,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 226,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 227,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 228,
+            "type": "VOID",
+            "user": "N/A",
+            "reason": "Skipped ID",
+            "moderator": "System",
+            "timestamp": "2024-08-15T12:00:00Z"
+        },
+        {
+            "id": 229,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 230,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 231,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 232,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 233,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 234,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 235,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 236,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 237,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 238,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 239,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 240,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 241,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 242,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 243,
+            "type": "BAN",
+            "user": "pepsicola_07e",
+            "userId": "1100448724334948454",
+            "reason": "racial slur usage",
+            "moderator": "OsQarek",
+            "timestamp": "2024-11-22T14:30:00Z"
+        },
+        {
+            "id": 244,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 245,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 246,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 247,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 248,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 249,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 250,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 251,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 252,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 253,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 254,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 255,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 256,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 257,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 258,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 259,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 260,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 261,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 262,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 263,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 264,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 265,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 266,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 267,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 268,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 269,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 270,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 271,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 272,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 273,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 274,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 275,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 276,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 277,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 278,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 279,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 280,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 281,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 282,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 283,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 284,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 285,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 286,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 287,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 288,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 289,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 290,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 291,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 292,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 293,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 294,
+            "type": "VOID",
+            "user": "N/A",
+            "reason": "Skipped ID",
+            "moderator": "System",
+            "timestamp": "2025-01-05T12:00:00Z"
+        },
+        {
+            "id": 295,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 296,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 297,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 298,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 299,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 300,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 301,
+            "type": "VOID",
+            "user": "N/A",
+            "reason": "Skipped ID",
+            "moderator": "System",
+            "timestamp": "2025-02-01T12:00:00Z"
+        },
+        {
+            "id": 302,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 303,
+            "type": "WARN",
+            "user": "swansealadd_.",
+            "userId": "860540496726982706",
+            "reason": "Brainrot spam",
+            "moderator": "OsQarek",
+            "timestamp": "2025-02-05T10:00:00Z"
+        },
+        {
+            "id": 304,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 305,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 306,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 307,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 308,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 309,
+            "type": "BAN",
+            "user": "its_juliet.",
+            "userId": "1144400272152596682",
+            "reason": "DMing slurs to staff",
+            "moderator": "OsQarek",
+            "timestamp": "2025-02-14T19:45:00Z"
+        },
+        {
+            "id": 310,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 311,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 312,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 313,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 314,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 315,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 316,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 317,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 318,
+            "type": "BAN",
+            "user": "son_yuki",
+            "userId": "427526953046769677",
+            "reason": "persistent rule breaking / brainrot",
+            "moderator": "OsQarek",
+            "timestamp": "2025-03-05T21:10:00Z"
+        },
+        {
+            "id": 319,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 320,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 321,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 322,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 323,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 324,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 325,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 326,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 327,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 328,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 329,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 330,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 331,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 332,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 333,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 334,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 335,
+            "type": "WARN",
+            "user": "swansealadd_.",
+            "userId": "860540496726982706",
+            "reason": "n word usage via gifs",
+            "moderator": "OsQarek",
+            "timestamp": "2025-05-16T11:21:00Z"
+        },
+        {
+            "id": 336,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 337,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 338,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 339,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 340,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 341,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 342,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 343,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 344,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 345,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 346,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 347,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 348,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 349,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 350,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 351,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 352,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 353,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 354,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 355,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 356,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 357,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 358,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 359,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 360,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 361,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 362,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 363,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 364,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 365,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 366,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 367,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 368,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 369,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 370,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 371,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 372,
+            "type": "VOID",
+            "user": "N/A",
+            "reason": "Skipped ID",
+            "moderator": "System",
+            "timestamp": "2026-01-10T12:00:00Z"
+        },
+        {
+            "id": 373,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 374,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 375,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 376,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 377,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 378,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 379,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 380,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 381,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 382,
+            "type": "ARCHIVE",
+            "user": "Legacy User",
+            "userId": "000000000000000000",
+            "reason": "Historical Record (Pre-2026 Import)",
+            "moderator": "System",
+            "timestamp": "2024-01-01T00:00:00.000Z"
+        },
+        {
+            "id": 383,
+            "type": "WARN",
+            "user": "Import Final",
+            "userId": "0",
+            "reason": "Archive End (383 Total)",
+            "moderator": "System",
+            "timestamp": "2026-03-02T12:00:00Z"
+        },
+        {
+            "id": 384,
+            "type": "WARN",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "No reason",
+            "moderator": "cydo_15",
+            "timestamp": "2026-03-03T01:50:55.773Z"
+        },
+        {
+            "id": 385,
+            "type": "🔇 10M MUTE",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "No reason",
+            "moderator": "cydo_15",
+            "timestamp": "2026-03-03T01:50:56.720Z"
+        },
+        {
+            "id": 386,
+            "type": "🔇 30M MUTE",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "No reason",
+            "moderator": "cydo_15",
+            "timestamp": "2026-03-03T01:50:59.165Z"
+        },
+        {
+            "id": 387,
+            "type": "👢 KICK",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "No reason",
+            "moderator": "cydo_15",
+            "timestamp": "2026-03-03T01:51:01.683Z"
+        },
+        {
+            "id": 388,
+            "type": "👢 KICK",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "No reason",
+            "moderator": "cydo_15",
+            "timestamp": "2026-03-03T01:51:03.973Z"
+        },
+        {
+            "id": 389,
+            "type": "⏰ 1D BAN",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "No reason",
+            "moderator": "cydo_15",
+            "timestamp": "2026-03-03T01:51:06.905Z"
+        },
+        {
+            "id": 390,
+            "type": "🔨 PERM BAN",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "No reason",
+            "moderator": "cydo_15",
+            "timestamp": "2026-03-03T01:51:08.959Z"
+        },
+        {
+            "id": 391,
+            "type": "🔨 PERM BAN",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "No reason",
+            "moderator": "cydo_15",
+            "timestamp": "2026-03-03T01:51:11.555Z"
+        },
+        {
+            "id": 392,
+            "type": "🔨 PERM BAN",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "No reason",
+            "moderator": "cydo_15",
+            "timestamp": "2026-03-03T01:51:13.994Z"
+        },
+        {
+            "id": 393,
+            "type": "WARN",
+            "user": "magistique_wonder",
+            "userId": "1225528787278499982",
+            "reason": "Auto-Mod",
+            "moderator": "SYSTEM",
+            "timestamp": "2026-03-03T18:59:16.330Z"
+        },
+        {
+            "id": 394,
+            "type": "WARN",
+            "user": "magistique_wonder",
+            "userId": "1225528787278499982",
+            "reason": "Auto-Mod",
+            "moderator": "SYSTEM",
+            "timestamp": "2026-03-03T19:12:30.346Z"
+        },
+        {
+            "id": 395,
+            "type": "🔇 10M MUTE",
+            "user": "magistique_wonder",
+            "userId": "1225528787278499982",
+            "reason": "Auto-Mod",
+            "moderator": "SYSTEM",
+            "timestamp": "2026-03-03T19:12:40.028Z"
+        },
+        {
+            "id": 396,
+            "type": "🔨 PERM BAN",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "Auto-Mod",
+            "moderator": "SYSTEM",
+            "timestamp": "2026-03-03T19:37:20.207Z"
+        },
+        {
+            "id": 397,
+            "type": "WARN",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "Auto-Mod",
+            "moderator": "SYSTEM",
+            "timestamp": "2026-03-03T19:45:03.801Z"
+        },
+        {
+            "id": 398,
+            "type": "🔇 10M MUTE",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "Auto-Mod",
+            "moderator": "SYSTEM",
+            "timestamp": "2026-03-03T19:48:48.915Z"
+        },
+        {
+            "id": 399,
+            "type": "WARN",
+            "user": "bugbellybunga",
+            "userId": "1023154786964615228",
+            "reason": "Auto-Mod",
+            "moderator": "SYSTEM",
+            "timestamp": "2026-03-03T20:15:58.343Z"
+        },
+        {
+            "id": 400,
+            "type": "🔇 10M MUTE",
+            "user": "bugbellybunga",
+            "userId": "1023154786964615228",
+            "reason": "Auto-Mod",
+            "moderator": "SYSTEM",
+            "timestamp": "2026-03-03T20:20:40.513Z"
+        },
+        {
+            "id": 401,
+            "type": "🔇 30M MUTE",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "Auto-Mod",
+            "moderator": "SYSTEM",
+            "timestamp": "2026-03-03T20:24:52.187Z"
+        },
+        {
+            "id": 402,
+            "type": "WARN",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "No reason",
+            "moderator": "osqarek",
+            "timestamp": "2026-03-03T20:28:06.115Z"
+        },
+        {
+            "id": 403,
+            "type": "🔇 10M MUTE",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "No reason",
+            "moderator": "osqarek",
+            "timestamp": "2026-03-03T20:28:40.649Z"
+        },
+        {
+            "id": 404,
+            "type": "🔇 30M MUTE",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "No reason",
+            "moderator": "osqarek",
+            "timestamp": "2026-03-03T20:28:49.629Z"
+        },
+        {
+            "id": 405,
+            "type": "👢 KICK",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "No reason",
+            "moderator": "osqarek",
+            "timestamp": "2026-03-03T20:28:52.403Z"
+        },
+        {
+            "id": 406,
+            "type": "👢 KICK",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "No reason",
+            "moderator": "osqarek",
+            "timestamp": "2026-03-03T20:29:55.786Z"
+        },
+        {
+            "id": 407,
+            "type": "⏰ 1D BAN",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "No reason",
+            "moderator": "osqarek",
+            "timestamp": "2026-03-03T20:30:47.330Z"
+        },
+        {
+            "id": 408,
+            "type": "🔨 PERM BAN",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "No reason",
+            "moderator": "osqarek",
+            "timestamp": "2026-03-03T20:32:16.489Z"
+        },
+        {
+            "id": 409,
+            "type": "🔨 PERM BAN",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "gay",
+            "moderator": "cydo_15",
+            "timestamp": "2026-03-03T20:35:18.999Z"
+        },
+        {
+            "id": 410,
+            "type": "WARN",
+            "user": "g9w_.",
+            "userId": "1249657169994059812",
+            "reason": "Auto-Mod",
+            "moderator": "SYSTEM",
+            "timestamp": "2026-03-05T01:48:42.579Z"
+        },
+        {
+            "id": 411,
+            "type": "🔇 10M MUTE",
+            "user": "g9w_.",
+            "userId": "1249657169994059812",
+            "reason": "Auto-Mod",
+            "moderator": "SYSTEM",
+            "timestamp": "2026-03-05T01:49:00.138Z"
+        },
+        {
+            "id": 412,
+            "type": "WARN",
+            "user": "deadshot1715j5q",
+            "userId": "1447124717340201010",
+            "reason": "Auto-Mod",
+            "moderator": "SYSTEM",
+            "timestamp": "2026-03-05T01:49:08.752Z"
+        },
+        {
+            "id": 413,
+            "type": "🔇 30M MUTE",
+            "user": "g9w_.",
+            "userId": "1249657169994059812",
+            "reason": "Auto-Mod",
+            "moderator": "SYSTEM",
+            "timestamp": "2026-03-05T01:49:12.876Z"
+        },
+        {
+            "id": 414,
+            "type": "🔇 10M MUTE",
+            "user": "deadshot1715j5q",
+            "userId": "1447124717340201010",
+            "reason": "Auto-Mod",
+            "moderator": "SYSTEM",
+            "timestamp": "2026-03-05T01:49:17.758Z"
+        },
+        {
+            "id": 415,
+            "type": "WARN",
+            "user": "cydo_15",
+            "userId": "778819029041152010",
+            "reason": "test",
+            "moderator": "cydo_15",
+            "timestamp": "2026-03-05T03:48:29.275Z"
+        },
+        {
+            "id": 416,
+            "type": "SOFTBAN",
+            "user": "troopercody4",
+            "userId": "1188685547959496744",
+            "reason": "test",
+            "moderator": "cydo_15",
+            "timestamp": "2026-03-06T03:15:10.009Z"
+        },
+        {
+            "id": 417,
+            "type": "WARN",
+            "user": "cydo_15",
+            "userId": "778819029041152010",
+            "reason": "test",
+            "moderator": "cydo_15",
+            "timestamp": "2026-03-08T03:42:33.540Z"
+        },
+        {
+            "id": 418,
+            "type": "WARN",
+            "user": "bugbellybunga",
+            "userId": "1023154786964615228",
+            "reason": "9/11 in quizzes",
+            "moderator": "cydo_15",
+            "timestamp": "2026-03-11T19:31:46.931Z"
+        },
+        {
+            "id": 419,
+            "user": "1268166506949120094",
+            "type": "Strike Add",
+            "reason": "Test",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 420,
+            "user": "1268166506949120094",
+            "type": "Strike Add",
+            "reason": "Test",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 421,
+            "user": "1268166506949120094",
+            "type": "Strike Remove",
+            "reason": "Test",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 422,
+            "user": "1268166506949120094",
+            "type": "Strike Add",
+            "reason": "Test",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 423,
+            "user": "1268166506949120094",
+            "type": "Strike Remove",
+            "reason": "err",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 424,
+            "user": "1268166506949120094",
+            "type": "Strike Removal",
+            "reason": "err",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 425,
+            "user": "1023154786964615228",
+            "type": "Staff Strike",
+            "reason": "N WORD Bypass (in screenshot) 1/3",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 426,
+            "user": "1023154786964615228",
+            "type": "Strike Removal",
+            "reason": "N/A",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 427,
+            "user": "1023154786964615228",
+            "type": "Staff Strike",
+            "reason": "N WORD Bypass (in screenshot) 1/3",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 428,
+            "user": "1023154786964615228",
+            "type": "Strike Removal",
+            "reason": "left staff team",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 429,
+            "type": "🔇 10M MUTE",
+            "user": "bugbellybunga",
+            "userId": "1023154786964615228",
+            "reason": "transferred from strike - N Word bypass",
+            "moderator": "cydo_15",
+            "timestamp": "2026-03-17T19:06:17.458Z"
+        },
+        {
+            "id": 430,
+            "type": "🔇 10M MUTE",
+            "user": "bugbellybunga",
+            "userId": "1023154786964615228",
+            "reason": "N word bypass(video form)",
+            "moderator": "cydo_15",
+            "timestamp": "2026-03-18T22:06:30.590Z"
+        },
+        {
+            "id": 431,
+            "user": "933260214097035276",
+            "type": "Staff Strike",
+            "reason": "gay",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 432,
+            "user": "933260214097035276",
+            "type": "Staff Strike",
+            "reason": "gay",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 433,
+            "user": "933260214097035276",
+            "type": "Staff Strike",
+            "reason": "gay",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 434,
+            "user": "933260214097035276",
+            "type": "Staff Strike",
+            "reason": "gay",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 435,
+            "user": "933260214097035276",
+            "type": "Strike Removal",
+            "reason": "Err",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 436,
+            "user": "933260214097035276",
+            "type": "Strike Removal",
+            "reason": "Err",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 437,
+            "user": "933260214097035276",
+            "type": "Strike Removal",
+            "reason": "Err",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 438,
+            "user": "933260214097035276",
+            "type": "Strike Removal",
+            "reason": "Err",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 439,
+            "user": "778819029041152010",
+            "type": "Staff Strike",
+            "reason": "Err",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 440,
+            "user": "778819029041152010",
+            "type": "Strike Removal",
+            "reason": "g",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 441,
+            "user": "778819029041152010",
+            "type": "Staff Strike",
+            "reason": "err",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 442,
+            "user": "778819029041152010",
+            "type": "Strike Removal",
+            "reason": "fake",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 443,
+            "type": "WARN",
+            "user": "trooper_cody",
+            "userId": "800114998214131772",
+            "reason": "No reason provided.",
+            "moderator": "cydo_15",
+            "timestamp": "2026-03-29T01:28:18.184Z"
+        },
+        {
+            "id": 444,
+            "type": "WARN",
+            "user": "mrfox_moon",
+            "userId": "911892794619068457",
+            "reason": "No reason provided.",
+            "moderator": "cydo_15",
+            "timestamp": "2026-04-21T16:18:32.219Z"
+        },
+        {
+            "id": 445,
+            "user": "1427001554539511899",
+            "type": "Staff Strike",
+            "reason": "Messages",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 446,
+            "user": "1427001554539511899",
+            "type": "Staff Strike",
+            "reason": "Messages",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 447,
+            "type": "🔇 30M MUTE",
+            "user": "bugbellybunga",
+            "userId": "1023154786964615228",
+            "reason": "N-WORD BYPASS; RESULT 30 MINUTE MUTE",
+            "moderator": "cydo_15",
+            "timestamp": "2026-05-01T12:49:35.203Z"
+        },
+        {
+            "id": 448,
+            "type": "WARN",
+            "user": "trooper_cody",
+            "userId": "800114998214131772",
+            "reason": "liking dick too much",
+            "moderator": "cydo_15",
+            "timestamp": "2026-05-01T21:24:08.323Z"
+        },
+        {
+            "id": 449,
+            "type": "🔇 10M MUTE",
+            "user": "trooper_cody",
+            "userId": "800114998214131772",
+            "reason": "liking dick too much",
+            "moderator": "cydo_15",
+            "timestamp": "2026-05-01T21:24:14.329Z"
+        },
+        {
+            "id": 450,
+            "type": "🔇 30M MUTE",
+            "user": "trooper_cody",
+            "userId": "800114998214131772",
+            "reason": "liking dick too much",
+            "moderator": "cydo_15",
+            "timestamp": "2026-05-01T21:24:15.179Z"
+        },
+        {
+            "id": 451,
+            "type": "👢 KICK",
+            "user": "trooper_cody",
+            "userId": "800114998214131772",
+            "reason": "liking dick too much",
+            "moderator": "cydo_15",
+            "timestamp": "2026-05-01T21:24:20.088Z"
+        },
+        {
+            "id": 452,
+            "type": "WARN",
+            "user": "the_aeri.",
+            "userId": "1266792617836941490",
+            "reason": "Auto-Mod",
+            "moderator": "SYSTEM",
+            "timestamp": "2026-05-02T17:52:00.688Z"
+        },
+        {
+            "id": 453,
+            "user": "846784982797910036",
+            "type": "Staff Strike",
+            "reason": "messages",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 454,
+            "user": "846784982797910036",
+            "type": "Strike Removal",
+            "reason": "wrongful",
+            "moderator": "cydo_15"
+        },
+        {
+            "id": 455,
+            "type": "🔇 10M MUTE",
+            "user": "the_aeri.",
+            "userId": "1266792617836941490",
+            "reason": "how rude",
+            "moderator": "cydo_15",
+            "timestamp": "2026-05-19T22:59:25.473Z"
+        },
+        {
+            "id": 456,
+            "type": "WARN",
+            "user": "i_love_exercise",
+            "userId": "776683542368354335",
+            "reason": "Auto-Mod",
+            "moderator": "SYSTEM",
+            "timestamp": "2026-05-23T11:46:22.421Z"
+        },
+        {
+            "id": 457,
+            "type": "🔇 10M MUTE",
+            "user": "i_love_exercise",
+            "userId": "776683542368354335",
+            "reason": "Auto-Mod",
+            "moderator": "SYSTEM",
+            "timestamp": "2026-05-23T11:46:36.608Z"
+        }
+    ],
+    "modLogChannel": "1478171273422045277",
+    "chatLogChannel": "1478171151157956639",
+    "loaChannel": "1481099657353494538",
+    "disabledCommands": [],
+    "afk": {},
+    "loa": {
+        "846784982797910036": {
+            "status": "Approved",
+            "timestamp": 1778522989,
+            "duration": "2026-06-04 10:00",
+            "reason": "first part of final exams is soon so lots of school stuff ant hw"
+        }
+    },
+    "modRoles": [],
+    "reminders": [
+        {
+            "userId": "778819029041152010",
+            "channelId": "772598596443832330",
+            "task": "the birthday of me",
+            "expiresAt": 1789315200000
+        },
+        {
+            "userId": "778819029041152010",
+            "channelId": "771423231584108568",
+            "task": "owcar",
+            "expiresAt": 1803963600000
+        }
+    ],
+    "stats": {
+        "846784982797910036": {
+            "count": 94
+        },
+        "1444682159775285260": {
+            "count": 209
+        },
+        "933260214097035276": {
+            "count": 486,
+            "triviaPoints": 1
+        },
+        "778819029041152010": {
+            "count": 100,
+            "triviaPoints": 1
+        },
+        "566663733762457611": {
+            "count": 0
+        },
+        "1377565450644361337": {
+            "count": 0
+        },
+        "1266792617836941490": {
+            "count": 258
+        },
+        "1249657169994059812": {
+            "count": 440
+        },
+        "1023154786964615228": {
+            "count": 99,
+            "triviaPoints": null
+        },
+        "1337515073060737108": {
+            "count": 17
+        },
+        "911892794619068457": {
+            "count": 128
+        },
+        "1447124717340201010": {
+            "count": 7
+        },
+        "1400621137653928059": {
+            "count": 11
+        },
+        "759505022316445768": {
+            "count": 6
+        },
+        "1313969489292824658": {
+            "count": 5
+        },
+        "1287427333283778590": {
+            "count": 23
+        },
+        "1283710390198472736": {
+            "count": 1
+        },
+        "1190625556333600840": {
+            "count": 11
+        },
+        "1043215541357256775": {
+            "count": 8
+        },
+        "880114684991270922": {
+            "count": 2
+        },
+        "1409663768543236106": {
+            "count": 10
+        },
+        "1193400869413199895": {
+            "count": 74
+        },
+        "1225528787278499982": {
+            "count": 4
+        },
+        "1027004609530695691": {
+            "count": 2
+        }
+    },
+    "aiEnabled": false,
+    "customQuizzes": {},
+    "quizBanned": [
+        "1023154786964615228"
+    ],
+    "pendingQuizzes": {},
+    "ignoredUsers": [
+        "1023154786964615228"
+    ],
+    "nerds": [],
+    "settings": {
+        "prefix": "^",
+        "welcomeChannel": "771479661573832744",
+        "goodbyeChannel": "831254170900103248"
+    },
+    "reactionRoles": [
+        {
+            "messageId": "1510439348858917085",
+            "emoji": "💙",
+            "roleId": "1510439633929109626"
+        }
+    ]
+}

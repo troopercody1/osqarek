@@ -1,0 +1,30 @@
+{
+  "name": "osqarek-universe-bot",
+  "version": "1.0.0",
+  "description": "OsQarek's Universe Discord bot + dashboard",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "deploy": "node deploy-commands.js"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "dependencies": {
+    "@discordjs/voice": "^0.19.2",
+    "@huggingface/inference": "^4.13.27",
+    "@upstash/redis": "^1.34.3",
+    "axios": "^1.7.9",
+    "dayjs": "^1.11.13",
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "@getbrevo/brevo": "^5.0.0",
+    "ejs": "^6.0.1",
+    "express-session": "^1.18.1",
+    "libsodium-wrappers": "^0.7.15",
+    "opusscript": "^0.1.1",
+    "play-dl": "^1.9.7",
+    "sharp": "^0.33.5"
+  }
+}
