@@ -25,7 +25,11 @@ async function ping({ interaction, client }) {
 }
 
 async function restart({ interaction, guild, user, isHeadAdmin, logAction }) {
-    if (!isHeadAdmin) return interaction.editReply('❌ You do not have permission to restart the bot.');
+    if (!isHeadAdmin) {
+        console.log(`DEBUG: Role check failed for /${interaction.commandName}`);
+        return interaction.editReply('❌ You do not have permission to restart the bot.');
+    }
+    console.log(`DEBUG: Role check passed for /${interaction.commandName}`);
     logAction(guild, '🚀 Restart', `By: ${user.tag}`, 0xFF0000);
     await interaction.editReply('🚀 Restarting...');
     process.exit(0);
@@ -36,8 +40,10 @@ async function status({ interaction, options, guild, member, user, client, db, l
     const hasPerms = member.roles.cache.some((role) => adminRoles.includes(role.id)) || member.permissions.has('Administrator');
 
     if (!hasPerms) {
+        console.log(`DEBUG: Role check failed for /${interaction.commandName}`);
         return interaction.editReply("❌ You do not have permission to change the bot's status.");
     }
+    console.log(`DEBUG: Role check passed for /${interaction.commandName}`);
 
     const presets = {
         universe: { text: "OsQarek's Universe", type: ActivityType.Watching, presence: 'idle' },

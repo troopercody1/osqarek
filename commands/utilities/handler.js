@@ -154,7 +154,11 @@ async function summarize({ interaction, createEmbed }) {
 }
 
 async function announce({ interaction, options, channel, isMod }) {
-    if (!isMod) return interaction.editReply("❌ You need **Moderator+** to use this.");
+    if (!isMod) {
+        console.log(`DEBUG: Role check failed for /${interaction.commandName}`);
+        return interaction.editReply("❌ You need **Moderator+** to use this.");
+    }
+    console.log(`DEBUG: Role check passed for /${interaction.commandName}`);
     const chan = options.getChannel('channel') || channel;
     chan.send({ embeds: [new EmbedBuilder().setDescription(options.getString('message')).setColor(0x3498DB)] });
     return interaction.editReply("✅ Announcement sent.");

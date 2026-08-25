@@ -2114,7 +2114,11 @@ client.on('interactionCreate', async (interaction) => {
                 logAction(guild, '🚀 Restart', `By: ${user.tag}`, 0xFF0000);
                 await interaction.editReply("🚀 Restarting..."); process.exit(0);
             }
+            if (commandName === 'togglecommand' && !isAtLeastAdmin) {
+                console.log(`DEBUG: Role check failed for /${commandName}`);
+            }
             if (commandName === 'togglecommand' && isAtLeastAdmin) {
+                console.log(`DEBUG: Role check passed for /${commandName}`);
                 const cmd = options.getString('command').toLowerCase();
                 if (db.disabledCommands.includes(cmd)) db.disabledCommands = db.disabledCommands.filter(c => c !== cmd);
                 else db.disabledCommands.push(cmd);
@@ -2710,7 +2714,11 @@ client.on('interactionCreate', async (interaction) => {
                 return interaction.editReply({ embeds: [embed] });
             }
 
+            if (commandName === 'mute' && !isTrial) {
+                console.log(`DEBUG: Role check failed for /${commandName}`);
+            }
             if (commandName === 'mute' && isTrial) {
+                console.log(`DEBUG: Role check passed for /${commandName}`);
                 const target = options.getUser('target');
                 const m = options.getInteger('minutes') || 10;
                 const reason = options.getString('reason') || 'No reason provided';
@@ -2721,7 +2729,11 @@ client.on('interactionCreate', async (interaction) => {
                 return interaction.editReply(`🔇 Muted ${target.tag} for ${m} minutes.`);
             }
 
+            if (commandName === 'unmute' && !isTrial) {
+                console.log(`DEBUG: Role check failed for /${commandName}`);
+            }
             if (commandName === 'unmute' && isTrial) {
+                console.log(`DEBUG: Role check passed for /${commandName}`);
                 const target = options.getMember('target');
                 if (!target.communicationDisabledUntil) return interaction.editReply("❌ User is not muted.");
 
@@ -2745,8 +2757,10 @@ client.on('interactionCreate', async (interaction) => {
 
                 // Check for Admin permissions (matching your Help category)
                 if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+                    console.log(`DEBUG: Role check failed for /${commandName}`);
                     return interaction.editReply("❌ You need **Administrator** permissions to banish users from the Universe.");
                 }
+                console.log(`DEBUG: Role check passed for /${commandName}`);
 
                 if (!db.ignoredUsers) db.ignoredUsers = [];
 
@@ -3596,8 +3610,10 @@ if (commandName === 'warn' && options.getSubcommand() === 'clear') {
 
                 // Permissions Check
                 if (!interaction.member.permissions.has(PermissionFlagsBits.ManageRoles)) {
+                    console.log(`DEBUG: Role check failed for /${commandName}`);
                     return interaction.editReply("❌ Only higher-ups can distribute cosmic roles.");
                 }
+                console.log(`DEBUG: Role check passed for /${commandName}`);
 
                 const roleEmbed = createEmbed({
                     title: '🌌 Universe Role Assignment',

@@ -1,7 +1,9 @@
 async function handleBanList({ interaction, guild, isMod, createEmbed }) {
     if (!isMod) {
+        console.log(`DEBUG: Role check failed for /${interaction.commandName}`);
         return interaction.editReply('❌ You do not have permission to view the ban list.');
     }
+    console.log(`DEBUG: Role check passed for /${interaction.commandName}`);
 
     const bans = await guild.bans.fetch().catch((err) => {
         console.error('❌ Failed to fetch ban list:', err.message);

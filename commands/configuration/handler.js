@@ -1,7 +1,11 @@
 const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 
 function requireAdmin(interaction, isAtLeastAdmin) {
-    if (isAtLeastAdmin) return false;
+    if (isAtLeastAdmin) {
+        console.log(`DEBUG: Role check passed for /${interaction.commandName}`);
+        return false;
+    }
+    console.log(`DEBUG: Role check failed for /${interaction.commandName}`);
     interaction.editReply('❌ You need Admin+ permissions to use this command.');
     return true;
 }

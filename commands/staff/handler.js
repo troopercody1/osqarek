@@ -84,8 +84,10 @@ async function staffdm({ interaction, options, guild, member, createEmbed, getCa
         !member.roles.cache.some(r => staffRoles.includes(r.id)) &&
         !member.permissions.has(PermissionFlagsBits.Administrator)
     ) {
+        console.log(`DEBUG: Role check failed for /${interaction.commandName}`);
         return interaction.editReply("❌ You do not have permission to use this command.");
     }
+    console.log(`DEBUG: Role check passed for /${interaction.commandName}`);
 
     const msg = options.getString('message');
     const guildMembers = await getCachedMembers(guild, { ttl: 300000 });
@@ -231,21 +233,33 @@ async function apply({ interaction, db }) {
 }
 
 async function notesAdd({ interaction, options, user, isTrial, db }) {
-    if (!isTrial) return interaction.editReply("❌ You need **Trial Moderator+** to use this.");
+    if (!isTrial) {
+        console.log(`DEBUG: Role check failed for /${interaction.commandName}`);
+        return interaction.editReply("❌ You need **Trial Moderator+** to use this.");
+    }
+    console.log(`DEBUG: Role check passed for /${interaction.commandName}`);
     const target = options.getUser('target'); if (!db.notes[target.id]) db.notes[target.id] = [];
     db.notes[target.id].push({ text: options.getString('note'), mod: user.tag });
     await db.save(); return interaction.editReply("✅ Note added.");
 }
 
 async function notesView({ interaction, options, isTrial, db }) {
-    if (!isTrial) return interaction.editReply("❌ You need **Trial Moderator+** to use this.");
+    if (!isTrial) {
+        console.log(`DEBUG: Role check failed for /${interaction.commandName}`);
+        return interaction.editReply("❌ You need **Trial Moderator+** to use this.");
+    }
+    console.log(`DEBUG: Role check passed for /${interaction.commandName}`);
     const target = options.getUser('target');
     const list = (db.notes[target.id] || []).map((n, i) => `**#${i + 1}** ${n.text} (${n.mod})`).join('\n') || "None";
     return interaction.editReply({ embeds: [new EmbedBuilder().setTitle(`Notes: ${target.tag}`).setDescription(list)] });
 }
 
 async function notesDelete({ interaction, options, isTrial, db }) {
-    if (!isTrial) return interaction.editReply("❌ You need **Trial Moderator+** to use this.");
+    if (!isTrial) {
+        console.log(`DEBUG: Role check failed for /${interaction.commandName}`);
+        return interaction.editReply("❌ You need **Trial Moderator+** to use this.");
+    }
+    console.log(`DEBUG: Role check passed for /${interaction.commandName}`);
     const target = options.getUser('target'); const idx = options.getInteger('index') - 1;
     if (db.notes[target.id]?.[idx]) { db.notes[target.id].splice(idx, 1); await db.save(); return interaction.editReply("✅ Deleted."); }
     return interaction.editReply("❌ Not found.");
@@ -260,7 +274,11 @@ async function notes(ctx) {
 }
 
 async function syncstats({ interaction, isAtLeastAdmin, db }) {
-    if (!isAtLeastAdmin) return interaction.editReply('❌ You need **Administrator+** to use this.');
+    if (!isAtLeastAdmin) {
+        console.log(`DEBUG: Role check failed for /${interaction.commandName}`);
+        return interaction.editReply('❌ You need **Administrator+** to use this.');
+    }
+    console.log(`DEBUG: Role check passed for /${interaction.commandName}`);
     if (!interaction.deferred && !interaction.replied) {
         await interaction.deferReply();
     }
@@ -658,8 +676,10 @@ async function staffstatsAll({ interaction, db }) {
         interaction.member.permissions.has(PermissionFlagsBits.Administrator);
 
     if (!hasPerms) {
+        console.log(`DEBUG: Role check failed for /${interaction.commandName}`);
         return interaction.editReply("❌ You do not have permission to view global staff stats.");
     }
+    console.log(`DEBUG: Role check passed for /${interaction.commandName}`);
 
     const requirements = [
         { roleId: '771423764511981599', name: 'Owner', min: 0, promo: 100 },
@@ -719,12 +739,27 @@ async function staffstatsView({ interaction, options, db }) {
         '1511810524818440243', // Co-Owner
         '771423764511981599'  // Owner
     ];
+    const generalStaffRoleId = '1266661585380708473'; // Server Staff role — self-view only
 
-    const isStaff = interaction.member.roles.cache.some(r => staffRoles.includes(r.id));
-    if (!isStaff) return interaction.editReply("❌ This command is for OsQarek's Universe Staff only.");
+    const hasHierarchyRole = interaction.member.roles.cache.some(r => staffRoles.includes(r.id));
+    const hasGeneralStaffRole = interaction.member.roles.cache.has(generalStaffRoleId);
+    const isStaff = hasHierarchyRole || hasGeneralStaffRole;
+
+    if (!isStaff) {
+        console.log(`DEBUG: Role check failed for /${interaction.commandName}`);
+        return interaction.editReply("❌ This command is for OsQarek's Universe Staff only.");
+    }
+    console.log(`DEBUG: Role check passed for /${interaction.commandName}`);
 
     try {
-        const targetMember = interaction.options.getMember('staff') || interaction.member;
+        const requestedTarget = interaction.options.getMember('staff');
+
+        // General Staff (non-hierarchy) can only look up their own stats.
+        if (!hasHierarchyRole && hasGeneralStaffRole && requestedTarget && requestedTarget.id !== interaction.member.id) {
+            return interaction.editReply("❌ You can only view your own stats.");
+        }
+
+        const targetMember = requestedTarget || interaction.member;
 
         if (!db.stats) db.stats = {};
         const msgCount = db.stats[targetMember.id]?.count || 0;
@@ -857,7 +892,11 @@ async function staffstats(ctx) {
 }
 
 async function messagereset({ interaction, guild, isAtLeastAdmin, logAction, db }) {
-    if (!isAtLeastAdmin) return interaction.editReply('❌ You need **Administrator+** to use this.');
+    if (!isAtLeastAdmin) {
+        console.log(`DEBUG: Role check failed for /${interaction.commandName}`);
+        return interaction.editReply('❌ You need **Administrator+** to use this.');
+    }
+    console.log(`DEBUG: Role check passed for /${interaction.commandName}`);
     // 1. Reset only the WEEKLY counts; all-time totals are preserved.
     if (!db.stats) db.stats = {};
     for (const id of Object.keys(db.stats)) {

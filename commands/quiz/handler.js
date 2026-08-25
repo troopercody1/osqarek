@@ -148,8 +148,10 @@ async function handleDelete({ interaction, db }) {
 async function handleBan({ interaction, db }) {
     // Check for Admin permissions (or use your existing mod check logic)
     if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+        console.log(`DEBUG: Role check failed for /${interaction.commandName}`);
         return interaction.editReply("❌ You don't have permission to use this command.");
     }
+    console.log(`DEBUG: Role check passed for /${interaction.commandName}`);
 
     const target = interaction.options.getUser('target');
     const status = interaction.options.getBoolean('status');
