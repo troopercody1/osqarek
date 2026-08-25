@@ -327,17 +327,16 @@ async function syncstats({ interaction, isAtLeastAdmin, db }) {
             return minutes > 0 ? `${minutes}m ${remSeconds}s` : `${remSeconds}.${tenths}s`;
         };
 
-        // This now walks each channel's FULL history (to rebuild all-time stats), which
-        // takes much longer than a single Monday-to-now pass, so the old per-channel
-        // estimate is no longer accurate — this is a rough floor, not a real ETA. It gets
-        // replaced with a live, measured ETA once scanning actually starts (see below).
+        // Only walks each channel back to last Monday (this week), not full history,
+        // so this is a much rougher-but-reasonable floor estimate — it gets replaced
+        // with a live, measured ETA once scanning actually starts (see below).
         const estSeconds = Math.ceil(channelsToScan.size * 1.5);
         const timeString = estSeconds < 60 ? `${estSeconds}s` : `${Math.floor(estSeconds / 60)}m ${estSeconds % 60}s`;
 
         const skippedLogNote = excludedLogChannelIds.size > 0
             ? ` (skipping ${excludedLogChannelIds.size} bot log channel${excludedLogChannelIds.size > 1 ? 's' : ''})`
             : '';
-        await interaction.editReply(`🔍 **Syncing Universe System...** ${modeText}\nScanning **${channelsToScan.size}** channels${skippedLogNote} (full history). **ETA: at least ~${timeString}, likely longer.**`);
+        await interaction.editReply(`🔍 **Syncing Universe System...** ${modeText}\nScanning **${channelsToScan.size}** channels${skippedLogNote} (this week only). **ETA: at least ~${timeString}, likely longer.**`);
 
         // 2. Security Audit Logic
         for (const [id, member] of allMembers) {
@@ -377,13 +376,11 @@ async function syncstats({ interaction, isAtLeastAdmin, db }) {
         staffIds.forEach(id => {
             if (!db.stats[id]) db.stats[id] = { count: 0, allTime: 0 };
             db.stats[id].count = 0;
-            db.stats[id].allTime = 0;
         });
 
-        // Scan the FULL history of every channel (not just back to last Monday)
-        // so we can rebuild both the weekly count and a true all-time count in one pass.
+        // Scan each channel only back to last Monday (this week), not its full
+        // history — we rebuild the weekly count only, and leave allTime untouched.
         let scannedCount = 0;
-        let allTimeScannedCount = 0;
         let channelsDone = 0;
         let pagesFetched = 0; // one "page" = one 100-message fetch call, our real progress unit
         let lastProgressEditAt = Date.now();
@@ -457,10 +454,10 @@ async function syncstats({ interaction, isAtLeastAdmin, db }) {
                 await withTimeout(
                     interaction.editReply(
                         `🔍 **Syncing Universe System...** ${modeText}\n` +
-                        `Scanned **${channelsDone}/${totalChannelsToScan}** channels (${percent}%) — full history.\n` +
+                        `Scanned **${channelsDone}/${totalChannelsToScan}** channels (${percent}%) — this week only.\n` +
                         scanningLine +
                         `${etaLine}\n` +
-                        `💬 Staff messages found so far: **${allTimeScannedCount}** all-time / **${scannedCount}** this week.`
+                        `💬 Staff messages found so far: **${scannedCount}** this week.`
                     ),
                     EDIT_TIMEOUT_MS,
                     'Progress editReply'
@@ -472,75 +469,7 @@ async function syncstats({ interaction, isAtLeastAdmin, db }) {
             }
         };
 
-        // --- CHECKPOINT / RESUME ---
-        // Every MESSAGE_CHECKPOINT messages scanned (across the whole sync, all
-        // authors — not just staff hits), pause and post a "Continue" button rather
-        // than blasting through a potentially huge full-history scan in one go. This
-        // gives staff a natural point to bail out or step away without losing work,
-        // and keeps a single sync from monopolizing the interaction/rate limits for
-        // an unbounded stretch. Progress is saved to the DB before pausing.
-        const MESSAGE_CHECKPOINT = 10000;
         let totalMessagesProcessed = 0;
-        let nextCheckpoint = MESSAGE_CHECKPOINT;
-
-        const pauseForContinue = async () => {
-            try {
-                await withTimeout(db.save(), DB_SAVE_TIMEOUT_MS, 'db.save() at checkpoint');
-            } catch (saveErr) {
-                console.error("❌ syncstats: checkpoint save failed/stalled:", saveErr.message);
-            }
-
-            const continueId = `syncstats_continue_${interaction.id}_${nextCheckpoint}`;
-            const continueRow = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId(continueId)
-                    .setLabel('▶️ Continue Scan')
-                    .setStyle(ButtonStyle.Primary)
-            );
-
-            let checkpointMsg;
-            try {
-                checkpointMsg = await withTimeout(
-                    interaction.followUp({
-                        content:
-                            `⏸️ **Checkpoint reached — ${totalMessagesProcessed.toLocaleString()} messages scanned so far.**\n` +
-                            `Progress has been saved (**${allTimeScannedCount}** staff messages all-time / **${scannedCount}** this week found so far).\n` +
-                            `Click below to continue scanning.`,
-                        components: [continueRow]
-                    }),
-                    EDIT_TIMEOUT_MS,
-                    'Checkpoint followUp'
-                );
-            } catch (followUpErr) {
-                // Couldn't post the checkpoint message at all — don't hang the whole
-                // scan waiting on a button nobody can see. Log it and keep scanning;
-                // progress up to this point is already saved above.
-                console.error(`⚠️ syncstats: checkpoint followUp failed/stalled, skipping this pause: ${followUpErr.message}`);
-                return;
-            }
-
-            try {
-                const clickInteraction = await checkpointMsg.awaitMessageComponent({
-                    filter: (btn) => btn.user.id === interaction.user.id && btn.customId === continueId,
-                    time: 24 * 60 * 60 * 1000 // 24h — give staff plenty of time to come back and click
-                });
-                await clickInteraction.update({
-                    content: `▶️ **Resuming scan...** (${totalMessagesProcessed.toLocaleString()} messages scanned so far)`,
-                    components: []
-                });
-            } catch (err) {
-                // No click received in time — stop the scan cleanly instead of hanging forever.
-                await checkpointMsg.edit({
-                    content:
-                        `⏹️ **Scan paused and abandoned** — no continue click received in time.\n` +
-                        `Progress up to **${totalMessagesProcessed.toLocaleString()}** messages was saved; re-run \`/syncstats\` to continue rebuilding stats.`,
-                    components: []
-                }).catch(() => { });
-                const abandonError = new Error('Sync paused and abandoned (no continue click received).');
-                abandonError.syncPausedAbandoned = true;
-                throw abandonError;
-            }
-        };
 
         for (const [id, channel] of channelsToScan) {
             let lastId = null;
@@ -553,18 +482,21 @@ async function syncstats({ interaction, isAtLeastAdmin, db }) {
                     pagesFetched++;
                     if (messages.size === 0) break;
                     for (const msg of messages.values()) {
+                        // Messages come back newest-first. Once we hit one older than
+                        // this week's cutoff, everything after it in this channel is
+                        // also older — stop fetching further pages for this channel.
+                        if (msg.createdTimestamp < startTimestamp) {
+                            fetching = false;
+                            break;
+                        }
                         totalMessagesProcessed++;
                         if (staffIds.includes(msg.author.id)) {
-                            db.stats[msg.author.id].allTime++;
-                            allTimeScannedCount++;
-                            if (msg.createdTimestamp >= startTimestamp) {
-                                db.stats[msg.author.id].count++;
-                                scannedCount++;
-                            }
+                            db.stats[msg.author.id].count++;
+                            scannedCount++;
                         }
                     }
                     lastId = messages.last()?.id;
-                    if (messages.size < 100) fetching = false;
+                    if (fetching && messages.size < 100) fetching = false;
                 } catch (err) {
                     if (retriesLeft > 0) {
                         retriesLeft--;
@@ -579,15 +511,6 @@ async function syncstats({ interaction, isAtLeastAdmin, db }) {
                 // Progress ticks here too (throttled inside postProgress), so a single
                 // channel with thousands of pages still visibly updates while it works.
                 await postProgress({ currentChannelName: channel.name });
-
-                // Checkpoint: pause every MESSAGE_CHECKPOINT messages and wait for a
-                // continue click. A single page (100 messages) can never cross more
-                // than one checkpoint boundary, but loop just in case a checkpoint
-                // straddles a retry/skip.
-                while (totalMessagesProcessed >= nextCheckpoint) {
-                    await pauseForContinue();
-                    nextCheckpoint += MESSAGE_CHECKPOINT;
-                }
             }
 
             channelsDone++;
@@ -606,7 +529,7 @@ async function syncstats({ interaction, isAtLeastAdmin, db }) {
                 try {
                     await withTimeout(db.save(), DB_SAVE_TIMEOUT_MS, 'db.save() cluster save');
                     lastSaveError = null;
-                    console.log(`💾 syncstats: persisted progress after ${channelsDone}/${totalChannelsToScan} channels (${allTimeScannedCount} all-time messages so far).`);
+                    console.log(`💾 syncstats: persisted progress after ${channelsDone}/${totalChannelsToScan} channels (${scannedCount} staff messages this week so far).`);
                 } catch (saveErr) {
                     lastSaveError = saveErr;
                     console.error(`❌ syncstats: cluster save failed/stalled at ${channelsDone}/${totalChannelsToScan} channels:`, saveErr.message);
@@ -631,10 +554,10 @@ async function syncstats({ interaction, isAtLeastAdmin, db }) {
         const elapsedMs = Date.now() - syncStartedAt;
         const elapsedString = formatDuration(elapsedMs);
 
-        let finalReport = `✅ **Sync Complete!** (took **${elapsedString}**)\nFound **${scannedCount}** staff messages since **Monday, ${lastMonday.toDateString()}**.\n📚 Found **${allTimeScannedCount}** staff messages **all-time** (full channel history).\n🔎 Scanned **${totalMessagesProcessed.toLocaleString()}** messages total (all authors).\n👑 **Current Owner ID:** \`${guild.ownerId}\``;
+        let finalReport = `✅ **Sync Complete!** (took **${elapsedString}**)\nFound **${scannedCount}** staff messages since **Monday, ${lastMonday.toDateString()}**.\n🔎 Scanned **${totalMessagesProcessed.toLocaleString()}** messages total this week (all authors).\n👑 **Current Owner ID:** \`${guild.ownerId}\``;
 
         if (skippedChannels.length > 0) {
-            finalReport += `\n⚠️ **Skipped ${skippedChannels.length} channel(s)** after repeated fetch timeouts (their all-time counts may be incomplete): \`${skippedChannels.join(', ')}\``;
+            finalReport += `\n⚠️ **Skipped ${skippedChannels.length} channel(s)** after repeated fetch timeouts (their weekly counts may be incomplete): \`${skippedChannels.join(', ')}\``;
         }
 
         if (lastSaveError) {
@@ -657,11 +580,6 @@ async function syncstats({ interaction, isAtLeastAdmin, db }) {
         return await interaction.editReply(finalReport);
 
     } catch (error) {
-        if (error.syncPausedAbandoned) {
-            // Already reported to the user via the checkpoint message edit — no need
-            // to also overwrite the deferred reply with a scary "Sync Failed" message.
-            return;
-        }
         console.error("SyncStats Error:", error);
         return await interaction.editReply(`❌ **Sync Failed:** ${error.message}`);
     }
