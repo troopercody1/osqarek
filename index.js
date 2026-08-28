@@ -1416,6 +1416,26 @@ async function runStartupStatsSync(guild) {
     // against a cached original instead of falling back to "not in cache". On a
     // server with a very large full message history this can use a lot of memory —
     // there's no cap here by design.
+    //
+    // --- FAILSAFE ---
+    // If a run doesn't finish cleanly two times in a row (including a hard crash
+    // like an OOM, which nothing inside this function can catch), the next run
+    // falls back to the original, memory-safe method: cache:false on every fetch
+    // and a full channel.messages.cache.clear() after each channel. That reintroduces
+    // the "message not in cache" edit-log gap this caching change was meant to
+    // close, but it keeps the bot from crash-looping. db.startupSyncConsecutiveFailures
+    // is incremented *before* the scan starts (so a crash mid-scan still counts)
+    // and reset to 0 only once a run completes successfully below.
+    const FAILSAFE_THRESHOLD = 2;
+    const priorFailures = db.startupSyncConsecutiveFailures || 0;
+    const useOriginalMethod = priorFailures >= FAILSAFE_THRESHOLD;
+    db.startupSyncConsecutiveFailures = priorFailures + 1;
+    await withTimeout(db.save(), DB_SAVE_TIMEOUT_MS, 'db.save() startup sync failsafe marker').catch((err) => {
+        console.error(`❌ Startup sync: couldn't persist failsafe marker before starting: ${err.message}`);
+    });
+    if (useOriginalMethod) {
+        console.log(`⚠️ Startup sync: ${priorFailures} consecutive incomplete runs detected — falling back to the original cache:false method for this run.`);
+    }
 
     let scannedCount = 0;
     let allTimeScannedCount = 0;
@@ -1429,7 +1449,8 @@ async function runStartupStatsSync(guild) {
     logAction(
         guild,
         '📊 Startup Stats Sync Starting',
-        `Rebuilding staff stats from full channel history across **${totalChannelsToScan}** channels. This can take a while on large servers — progress every ${PROGRESS_PERCENT_STEP}%, with a console heartbeat every 5 minutes so a big channel doesn't look like a hang.`,
+        `Rebuilding staff stats from full channel history across **${totalChannelsToScan}** channels. This can take a while on large servers — progress every ${PROGRESS_PERCENT_STEP}%, with a console heartbeat every 5 minutes so a big channel doesn't look like a hang.` +
+        (useOriginalMethod ? `\n⚠️ **Failsafe active:** ${priorFailures} consecutive incomplete runs detected — using the original memory-safe method (no full message caching) for this run.` : ''),
         0x5865F2
     );
 
@@ -1442,7 +1463,9 @@ async function runStartupStatsSync(guild) {
         while (fetching) {
             try {
                 const messages = await withTimeout(
-                    channel.messages.fetch({ limit: 100, before: lastId }),
+                    channel.messages.fetch(useOriginalMethod
+                        ? { limit: 100, before: lastId, cache: false }
+                        : { limit: 100, before: lastId }),
                     FETCH_TIMEOUT_MS,
                     `Fetch in #${channel.name}`
                 );
@@ -1483,8 +1506,11 @@ async function runStartupStatsSync(guild) {
             }
         }
 
-        // No cache clear/prune here anymore — every fetched message stays in
-        // Discord.js's cache for the life of the process (see note above).
+        // Only clear the cache in fallback mode (see FAILSAFE note above) — the
+        // normal path keeps everything cached for the life of the process.
+        if (useOriginalMethod) {
+            channel.messages.cache.clear();
+        }
         channelsDone++;
 
         if (channelsDone % CLUSTER_SIZE === 0 || channelsDone === totalChannelsToScan) {
@@ -1511,6 +1537,7 @@ async function runStartupStatsSync(guild) {
     }
 
     db.lastStatsSyncAt = Date.now();
+    db.startupSyncConsecutiveFailures = 0; // this run completed cleanly — clear the failsafe marker
     try {
         await withTimeout(db.save(), DB_SAVE_TIMEOUT_MS, 'db.save() startup sync final');
     } catch (saveErr) {
