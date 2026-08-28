@@ -1411,6 +1411,11 @@ async function runStartupStatsSync(guild) {
     const CLUSTER_SIZE = 5;
     const DB_SAVE_TIMEOUT_MS = 15000;
     const PROGRESS_PERCENT_STEP = 10;
+    // Every fetched message is kept in Discord.js's message cache (no cache:false,
+    // no pruning) so that edits to old messages after a restart can always resolve
+    // against a cached original instead of falling back to "not in cache". On a
+    // server with a very large full message history this can use a lot of memory —
+    // there's no cap here by design.
 
     let scannedCount = 0;
     let allTimeScannedCount = 0;
@@ -1437,7 +1442,7 @@ async function runStartupStatsSync(guild) {
         while (fetching) {
             try {
                 const messages = await withTimeout(
-                    channel.messages.fetch({ limit: 100, before: lastId, cache: false }),
+                    channel.messages.fetch({ limit: 100, before: lastId }),
                     FETCH_TIMEOUT_MS,
                     `Fetch in #${channel.name}`
                 );
@@ -1478,9 +1483,8 @@ async function runStartupStatsSync(guild) {
             }
         }
 
-        // Same memory guard as /syncstats — without this, a ~900K-message server
-        // can accumulate enough cached messages to freeze the process via GC thrashing.
-        channel.messages.cache.clear();
+        // No cache clear/prune here anymore — every fetched message stays in
+        // Discord.js's cache for the life of the process (see note above).
         channelsDone++;
 
         if (channelsDone % CLUSTER_SIZE === 0 || channelsDone === totalChannelsToScan) {
