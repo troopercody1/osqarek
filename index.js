@@ -2,6 +2,17 @@ process.env.TZ = 'Europe/London';
 const { checkMessage } = require('./badwords.js');
 const { commandNames: DEPLOYED_COMMAND_NAMES } = require('./commands');
 const commandHandlers = require('./commands/handlers');
+const { deployCommands } = require('./deploy-commands.js');
+
+// Runs slash-command registration in the background. This is intentionally
+// NOT awaited/blocking anywhere in startup — if Discord's API is slow or
+// unreachable this can fail/timeout without preventing the web server from
+// binding its port or the bot from logging in.
+function deployCommandsSafe() {
+    deployCommands().catch((err) => {
+        console.error('⚠️ Background command deployment failed (bot/dashboard unaffected):', err.message || err);
+    });
+}
 
 const dns = require('dns');
 if (typeof dns.setDefaultResultOrder === 'function') {
@@ -885,7 +896,18 @@ app.post('/settings/reset', async (req, res) => {
 // --- BOT STARTUP ---
 // This section will be registered after the Discord client is initialized.
 
-app.listen(PORT, '0.0.0.0', () => console.log(`🌐 Engine Online on Port ${PORT}`));
+// Bind the web dashboard, but never let a port-binding failure take the
+// whole process down. If listen() fails, we log it and keep going — the
+// Discord bot startup below is fully independent of this succeeding.
+const server = app.listen(PORT, '0.0.0.0', () => console.log(`🌐 Engine Online on Port ${PORT}`));
+server.on('error', (err) => {
+    console.error(`❌ Web dashboard failed to bind port ${PORT}: ${err.message}. Continuing with bot-only mode.`);
+});
+
+// Slash-command registration happens here, in the background, right away.
+// It no longer needs to run (and potentially hang) as a separate blocking
+// step before this file even starts — see deployCommandsSafe() above.
+deployCommandsSafe();
 
 // --- CONSOLIDATED VOICE & DISCORD IMPORTS ---
 const {
