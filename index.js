@@ -51,6 +51,30 @@ const { Redis } = require('@upstash/redis');
 const session = require('express-session');
 const axios = require('axios');
 
+// Discord (and the Cloudflare edge in front of it) will occasionally return
+// 429s to fresh/shared hosting IPs, including on OAuth token exchange. This
+// retries a handful of times, honoring whatever retry-after it's given
+// (falling back to a short delay), instead of failing the user's login on
+// the first transient rate limit.
+async function postWithRateLimitRetry(url, body, options, { maxRetries = 2 } = {}) {
+    for (let attempt = 0; ; attempt++) {
+        try {
+            return await axios.post(url, body, options);
+        } catch (err) {
+            const status = err.response?.status;
+            const retryAfterHeader = Number(err.response?.headers?.['retry-after']);
+            const retryAfterBody = Number(err.response?.data?.retry_after);
+            const waitSeconds = retryAfterHeader || retryAfterBody || 2;
+            if (status === 429 && attempt < maxRetries) {
+                console.warn(`⚠️ 429 from ${url}, retrying in ${waitSeconds}s (attempt ${attempt + 1}/${maxRetries})...`);
+                await new Promise((r) => setTimeout(r, Math.min(waitSeconds, 15) * 1000));
+                continue;
+            }
+            throw err;
+        }
+    }
+}
+
 // --- INITIALIZATION ---
 const app = express();
 app.set('trust proxy', 1);
@@ -296,7 +320,7 @@ app.get('/auth/discord', (req, res) => {
 app.get('/auth/callback', async (req, res) => {
     const { code } = req.query;
     try {
-        const tokenResponse = await axios.post('https://discord.com/api/oauth2/token', new URLSearchParams({ client_id: process.env.CLIENT_ID, client_secret: process.env.DISCORD_CLIENT_SECRET, grant_type: 'authorization_code', code, redirect_uri: process.env.DASHBOARD_CALLBACK_URL }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+        const tokenResponse = await postWithRateLimitRetry('https://discord.com/api/oauth2/token', new URLSearchParams({ client_id: process.env.CLIENT_ID, client_secret: process.env.DISCORD_CLIENT_SECRET, grant_type: 'authorization_code', code, redirect_uri: process.env.DASHBOARD_CALLBACK_URL }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
         const user = (await axios.get('https://discord.com/api/users/@me', { headers: { Authorization: `Bearer ${tokenResponse.data.access_token}` } })).data;
         const member = (await axios.get(`https://discord.com/api/users/@me/guilds/${GUILD_ID}/member`, { headers: { Authorization: `Bearer ${tokenResponse.data.access_token}` } })).data;
         if (!member.roles.some(r => ALLOWED_ROLES.includes(r))) return res.redirect('/login?error=Unauthorized');
@@ -304,7 +328,11 @@ app.get('/auth/callback', async (req, res) => {
         req.session.isHeadAdmin = true;
         res.redirect('/config');
     } catch (err) {
+        const status = err.response?.status;
         console.error('❌ [oauth callback] Discord auth failed:', err.response?.data || err.message);
+        if (status === 429) {
+            return res.redirect('/login?error=' + encodeURIComponent("Discord is rate-limiting this server right now. Please wait a bit and try logging in again."));
+        }
         res.redirect('/login?error=AuthFailed');
     }
 });
@@ -348,7 +376,7 @@ app.get('/verify/callback', async (req, res) => {
     const { code } = req.query;
     if (!code) return res.redirect('/verify?error=' + encodeURIComponent('Discord login was cancelled or failed.'));
     try {
-        const tokenResponse = await axios.post(
+        const tokenResponse = await postWithRateLimitRetry(
             'https://discord.com/api/oauth2/token',
             new URLSearchParams({
                 client_id: process.env.CLIENT_ID,
@@ -366,7 +394,11 @@ app.get('/verify/callback', async (req, res) => {
         req.session.verifyUser = { id: discordUser.id, username: discordUser.username, avatar: discordUser.avatar };
         res.redirect('/verify');
     } catch (err) {
+        const status = err.response?.status;
         console.error('❌ [verify oauth] Discord auth failed:', err.response?.data || err.message);
+        if (status === 429) {
+            return res.redirect('/verify?error=' + encodeURIComponent('Discord is rate-limiting this server right now. Please wait a bit and try again.'));
+        }
         res.redirect('/verify?error=' + encodeURIComponent('Discord login failed. Please try again.'));
     }
 });
