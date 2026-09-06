@@ -1,5 +1,5 @@
 process.env.TZ = 'Europe/London';
-const { checkMessage } = require('./badwords.js');
+const defaultBannedWords = require('./default-banned-words.js');
 const { commandNames: DEPLOYED_COMMAND_NAMES } = require('./commands');
 const commandHandlers = require('./commands/handlers');
 const { deployCommands } = require('./deploy-commands.js');
@@ -1168,12 +1168,14 @@ client.once('clientReady', async () => {
             if (remoteData) {
                 Object.assign(db, remoteData);
                 if (!db.bannedWords) db.bannedWords = [];
+                if (!db.spamOffences) db.spamOffences = {};
             }
         } catch (err) { console.error("❌ Redis sync failed:", err.message); }
     }
 });
 
 const queue = new Map();
+const spamTracker = new Map(); // userId -> array of recent message timestamps (ms), in-memory only
 let unsavedMessages = 0;
 let isTrial = false;
 let stayInVC = false;
@@ -1209,6 +1211,7 @@ let db = {
     customQuizzes: {},
     dmThreads: {},
     bannedWords: [],
+    spamOffences: {}, // userId -> { count, lastOffenseAt } for repeat-offender escalation; resets after 30 days of no spam mutes
 
     // The save function is now a method INSIDE the db object
     async save() {
@@ -1244,9 +1247,16 @@ let db = {
                 Object.assign(db, remoteData);
                 if (!db.dmThreads) db.dmThreads = {};
                 if (!db.bannedWords) db.bannedWords = [];
+                if (!db.spamOffences) db.spamOffences = {};
+                if (db.bannedWords.length === 0) {
+                    db.bannedWords = [...defaultBannedWords];
+                    console.log(`🌱 Seeded ${defaultBannedWords.length} default banned words (list was empty).`);
+                    await db.save();
+                }
                 console.log("✅ Database successfully loaded from Upstash.");
             } else {
-                console.log("ℹ️ No existing database found in Redis; starting with defaults.");
+                db.bannedWords = [...defaultBannedWords];
+                console.log(`ℹ️ No existing database found in Redis; starting with defaults (seeded ${defaultBannedWords.length} banned words).`);
             }
         } else {
             console.warn("⚠️ Redis not configured! Running with memory-only storage.");
@@ -5299,54 +5309,106 @@ client.on('messageCreate', async (message) => {
         });
     }
 
-    //// 3. Auto-Mod
+    //// 3. Auto-Mod (plain-text pattern + banned-word matching + spam rate limiting — no AI)
     if (db.automodEnabled !== false) {
         const isIgnored = db.ignoredChannels?.some(id => String(id) === String(message.channel.id)) || false;
         const isAdmin = message.member.permissions.has(PermissionFlagsBits.Administrator);
 
         if (!isIgnored && !isAdmin) {
-            const fallbackWords = [...(db.bannedWords || [])];
+            // --- 3a. Spam rate limiting ---
+            // Two independent rate windows per user, tracked in memory only
+            // (no need to persist exact timestamps to Upstash):
+            //   - 50+ messages in 10s  -> 7 minute mute  ("burst")
+            //   - 100+ messages in 60s -> 10 minute mute ("sustained")
+            // Repeat offenders (anyone who has already triggered either tier
+            // before) get a flat 20 minute mute instead, regardless of which
+            // tier they tripped this time.
+            const now = Date.now();
+            const userId = message.author.id;
+            const timestamps = (spamTracker.get(userId) || []).filter(t => now - t <= 60_000);
+            timestamps.push(now);
+            spamTracker.set(userId, timestamps);
 
-            const result = await checkMessage(
-                message.content,
-                {
-                    authorTag: message.author.tag,
-                    authorId: message.author.id,
-                    channelId: message.channel.id,
-                },
-                {
-                    // Respects the bot's existing AI toggle — when it's off,
-                    // checkMessage skips Hugging Face entirely and just runs
-                    // the scam-pattern + fallbackWords checks below.
-                    aiEnabled: db.aiEnabled !== false,
-                    fallbackWords,
-                    // Route self-harm alerts through the existing mod log
-                    // channel instead of a separate webhook.
-                    notifier: async ({ text, scores, meta }) => {
-                        if (!db.modLogChannel) {
-                            console.warn('Self-harm flag raised but no modLogChannel configured.');
-                            return;
-                        }
-                        const logChannel = message.guild.channels.cache.get(db.modLogChannel);
-                        if (!logChannel) return;
+            const count10s = timestamps.filter(t => now - t <= 10_000).length;
+            const count60s = timestamps.length;
 
-                        const alertEmbed = new EmbedBuilder()
-                            .setTitle('⚠️ Possible Self-Harm Risk Detected')
-                            .setDescription(
-                                `**User:** ${meta.authorTag} (${meta.authorId})\n` +
-                                `**Channel:** <#${meta.channelId}>\n` +
-                                `**Confidence:** ${((scores.suicide || 0) * 100).toFixed(0)}%\n\n` +
-                                `**Message (left in place, NOT deleted):**\n${text}`
-                            )
-                            .setColor(0xE0AF68)
-                            .setTimestamp();
+            let spamTier = null;
+            if (count10s >= 50) spamTier = 'burst';
+            else if (count60s >= 100) spamTier = 'sustained';
 
-                        await logChannel.send({ embeds: [alertEmbed] }).catch(() => {});
-                    },
+            if (spamTier) {
+                if (!db.spamOffences) db.spamOffences = {};
+                // Backward/format-safe: earlier version stored a plain number.
+                // Normalize to { count, lastOffenseAt } either way.
+                const existing = db.spamOffences[userId];
+                const prevRecord = typeof existing === 'number'
+                    ? { count: existing, lastOffenseAt: now }
+                    : (existing || { count: 0, lastOffenseAt: 0 });
+
+                const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+                const isStale = (now - prevRecord.lastOffenseAt) > THIRTY_DAYS_MS;
+                const priorSpamOffences = isStale ? 0 : prevRecord.count;
+
+                db.spamOffences[userId] = { count: priorSpamOffences + 1, lastOffenseAt: now };
+                spamTracker.delete(userId); // reset burst tracking now that we've acted on it
+
+                const isRepeat = priorSpamOffences >= 1;
+                const muteMinutes = isRepeat ? 20 : (spamTier === 'burst' ? 7 : 10);
+                const reason = isRepeat
+                    ? 'Auto-Mod (spam, repeat offender)'
+                    : spamTier === 'burst'
+                        ? 'Auto-Mod (spam: 50+ messages in 10s)'
+                        : 'Auto-Mod (spam: 100+ messages in 60s)';
+
+                try {
+                    if (message.member.moderatable) {
+                        await message.member.timeout(muteMinutes * 60 * 1000, reason);
+                    }
+                } catch (e) { console.error('Spam mute failed:', e.message); }
+
+                const newCaseId = db.cases.length > 0 ? Math.max(...db.cases.map(c => c.id)) + 1 : 1;
+                db.cases.push({
+                    id: newCaseId,
+                    type: `🔇 ${muteMinutes}M MUTE`,
+                    user: message.author.tag, userId: message.author.id,
+                    reason, moderator: 'SYSTEM', timestamp: new Date()
+                });
+                await db.save();
+
+                logAction(
+                    message.guild,
+                    `🚨 Auto-Mod | Case #${newCaseId}`,
+                    `User: ${message.author.tag}\nReason: ${reason}\nAction: 🔇 ${muteMinutes}M MUTE`,
+                    0xFF0000
+                );
+
+                return; // spam already handled for this message; skip the checks below
+            }
+
+            // --- 3b. Deterministic scam/phishing patterns + banned words ---
+            const content = message.content;
+            let result = { flagged: false, reason: null };
+
+            // Deterministic scam/phishing link patterns — always-on, no
+            // context needed (a fake nitro gift link is always a fake
+            // nitro gift link).
+            const SCAM_PATTERNS = [
+                /discord\.gift\/\w+/i,
+                /free\s*nitro.{0,15}(click|claim|link|http)/i,
+                /steam-?gift.{0,15}(claim|http)/i,
+            ];
+            if (SCAM_PATTERNS.some((re) => re.test(content))) {
+                result = { flagged: true, reason: 'scam_link' };
+            } else if (db.bannedWords?.length) {
+                const matchedWord = db.bannedWords.find((w) =>
+                    new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(content)
+                );
+                if (matchedWord) {
+                    result = { flagged: true, reason: 'wordlist', matchedWord };
                 }
-            );
+            }
 
-            if (result.action === 'delete') {
+            if (result.flagged) {
                 await message.delete().catch(() => {});
                 const { action, caseId } = await applyEscalation(
                     message.guild,
@@ -5362,8 +5424,6 @@ client.on('messageCreate', async (message) => {
                     0xFF0000
                 );
             }
-                        // result.action === 'alert_moderator' → the notifier above already
-            // posted the alert. The message is intentionally left untouched.
         }
     } // end automodEnabled check
 });
