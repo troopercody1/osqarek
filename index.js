@@ -5321,69 +5321,77 @@ client.on('messageCreate', async (message) => {
             //   - 50+ messages in 10s  -> 7 minute mute  ("burst")
             //   - 100+ messages in 60s -> 10 minute mute ("sustained")
             // Repeat offenders (anyone who has already triggered either tier
-            // before) get a flat 20 minute mute instead, regardless of which
-            // tier they tripped this time.
-            const now = Date.now();
-            const userId = message.author.id;
-            const timestamps = (spamTracker.get(userId) || []).filter(t => now - t <= 60_000);
-            timestamps.push(now);
-            spamTracker.set(userId, timestamps);
+            // before, within the last 30 days) get a flat 20 minute mute
+            // instead, regardless of which tier they tripped this time.
+            //
+            // SPAM_CHANNEL (.env) is exempt from spam rate limiting only —
+            // messages posted there aren't tracked or counted at all, but
+            // banned-word/scam-link checks below still apply there normally.
+            const isSpamChannel = process.env.SPAM_CHANNEL && String(message.channel.id) === String(process.env.SPAM_CHANNEL);
 
-            const count10s = timestamps.filter(t => now - t <= 10_000).length;
-            const count60s = timestamps.length;
+            if (!isSpamChannel) {
+                const now = Date.now();
+                const userId = message.author.id;
+                const timestamps = (spamTracker.get(userId) || []).filter(t => now - t <= 60_000);
+                timestamps.push(now);
+                spamTracker.set(userId, timestamps);
 
-            let spamTier = null;
-            if (count10s >= 50) spamTier = 'burst';
-            else if (count60s >= 100) spamTier = 'sustained';
+                const count10s = timestamps.filter(t => now - t <= 10_000).length;
+                const count60s = timestamps.length;
 
-            if (spamTier) {
-                if (!db.spamOffences) db.spamOffences = {};
-                // Backward/format-safe: earlier version stored a plain number.
-                // Normalize to { count, lastOffenseAt } either way.
-                const existing = db.spamOffences[userId];
-                const prevRecord = typeof existing === 'number'
-                    ? { count: existing, lastOffenseAt: now }
-                    : (existing || { count: 0, lastOffenseAt: 0 });
+                let spamTier = null;
+                if (count10s >= 50) spamTier = 'burst';
+                else if (count60s >= 100) spamTier = 'sustained';
 
-                const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-                const isStale = (now - prevRecord.lastOffenseAt) > THIRTY_DAYS_MS;
-                const priorSpamOffences = isStale ? 0 : prevRecord.count;
+                if (spamTier) {
+                    if (!db.spamOffences) db.spamOffences = {};
+                    // Backward/format-safe: earlier version stored a plain number.
+                    // Normalize to { count, lastOffenseAt } either way.
+                    const existing = db.spamOffences[userId];
+                    const prevRecord = typeof existing === 'number'
+                        ? { count: existing, lastOffenseAt: now }
+                        : (existing || { count: 0, lastOffenseAt: 0 });
 
-                db.spamOffences[userId] = { count: priorSpamOffences + 1, lastOffenseAt: now };
-                spamTracker.delete(userId); // reset burst tracking now that we've acted on it
+                    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+                    const isStale = (now - prevRecord.lastOffenseAt) > THIRTY_DAYS_MS;
+                    const priorSpamOffences = isStale ? 0 : prevRecord.count;
 
-                const isRepeat = priorSpamOffences >= 1;
-                const muteMinutes = isRepeat ? 20 : (spamTier === 'burst' ? 7 : 10);
-                const reason = isRepeat
-                    ? 'Auto-Mod (spam, repeat offender)'
-                    : spamTier === 'burst'
-                        ? 'Auto-Mod (spam: 50+ messages in 10s)'
-                        : 'Auto-Mod (spam: 100+ messages in 60s)';
+                    db.spamOffences[userId] = { count: priorSpamOffences + 1, lastOffenseAt: now };
+                    spamTracker.delete(userId); // reset burst tracking now that we've acted on it
 
-                try {
-                    if (message.member.moderatable) {
-                        await message.member.timeout(muteMinutes * 60 * 1000, reason);
-                    }
-                } catch (e) { console.error('Spam mute failed:', e.message); }
+                    const isRepeat = priorSpamOffences >= 1;
+                    const muteMinutes = isRepeat ? 20 : (spamTier === 'burst' ? 7 : 10);
+                    const reason = isRepeat
+                        ? 'Auto-Mod (spam, repeat offender)'
+                        : spamTier === 'burst'
+                            ? 'Auto-Mod (spam: 50+ messages in 10s)'
+                            : 'Auto-Mod (spam: 100+ messages in 60s)';
 
-                const newCaseId = db.cases.length > 0 ? Math.max(...db.cases.map(c => c.id)) + 1 : 1;
-                db.cases.push({
-                    id: newCaseId,
-                    type: `🔇 ${muteMinutes}M MUTE`,
-                    user: message.author.tag, userId: message.author.id,
-                    reason, moderator: 'SYSTEM', timestamp: new Date()
-                });
-                await db.save();
+                    try {
+                        if (message.member.moderatable) {
+                            await message.member.timeout(muteMinutes * 60 * 1000, reason);
+                        }
+                    } catch (e) { console.error('Spam mute failed:', e.message); }
 
-                logAction(
-                    message.guild,
-                    `🚨 Auto-Mod | Case #${newCaseId}`,
-                    `User: ${message.author.tag}\nReason: ${reason}\nAction: 🔇 ${muteMinutes}M MUTE`,
-                    0xFF0000
-                );
+                    const newCaseId = db.cases.length > 0 ? Math.max(...db.cases.map(c => c.id)) + 1 : 1;
+                    db.cases.push({
+                        id: newCaseId,
+                        type: `🔇 ${muteMinutes}M MUTE`,
+                        user: message.author.tag, userId: message.author.id,
+                        reason, moderator: 'SYSTEM', timestamp: new Date()
+                    });
+                    await db.save();
 
-                return; // spam already handled for this message; skip the checks below
-            }
+                    logAction(
+                        message.guild,
+                        `🚨 Auto-Mod | Case #${newCaseId}`,
+                        `User: ${message.author.tag}\nReason: ${reason}\nAction: 🔇 ${muteMinutes}M MUTE`,
+                        0xFF0000
+                    );
+
+                    return; // spam already handled for this message; skip the checks below
+                }
+            } // end !isSpamChannel
 
             // --- 3b. Deterministic scam/phishing patterns + banned words ---
             const content = message.content;
