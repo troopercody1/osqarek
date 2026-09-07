@@ -3,6 +3,7 @@ const defaultBannedWords = require('./default-banned-words.js');
 const { commandNames: DEPLOYED_COMMAND_NAMES } = require('./commands');
 const commandHandlers = require('./commands/handlers');
 const { deployCommands } = require('./deploy-commands.js');
+const { extractUserIds, isTempChannelBlocked, buildTempChannelOverwrites } = require('./commands/tempChannelUtils');
 
 // Runs slash-command registration in the background. This is intentionally
 // NOT awaited/blocking anywhere in startup — if Discord's API is slow or
@@ -663,7 +664,7 @@ app.post('/edit-case/:index', checkAuth, async (req, res) => {
 });
 
 // --- MODULE TOGGLES ---
-const TOGGLEABLE_MODULES = ['aiEnabled', 'musicEnabled', 'modmailEnabled', 'automodEnabled', 'welcomeEnabled', 'remindersEnabled', 'moderationEnabled', 'utilitiesEnabled', 'funEnabled', 'quizEnabled', 'staffToolsEnabled'];
+const TOGGLEABLE_MODULES = ['aiEnabled', 'musicEnabled', 'modmailEnabled', 'automodEnabled', 'welcomeEnabled', 'remindersEnabled', 'moderationEnabled', 'utilitiesEnabled', 'funEnabled', 'quizEnabled', 'staffToolsEnabled', 'tempChannelsEnabled'];
 const MODULE_COMMANDS = {
     aiEnabled: ['summarize', 'ask-rules'],
     musicEnabled: ['music'],
@@ -674,6 +675,7 @@ const MODULE_COMMANDS = {
     funEnabled: ['fun', 'ship', 'ban-prank', 'keyboard-fix', 'nuke-server', 'reset-levels', 'nerd-mode'],
     quizEnabled: ['quiz', 'stateleaderboard'],
     staffToolsEnabled: ['staffstats', 'syncstats', 'messagereset', 'staffdm', 'ping-all-staff', 'loa', 'strike', 'strikes', 'notes'],
+    tempChannelsEnabled: ['channel'],
 };
 const MODULE_LABELS = {
     aiEnabled: 'AI',
@@ -685,6 +687,7 @@ const MODULE_LABELS = {
     funEnabled: 'Fun',
     quizEnabled: 'Quiz',
     staffToolsEnabled: 'Staff Tools',
+    tempChannelsEnabled: 'Temp Channels',
 };
 
 // Every command name this handler actually has an `if (commandName === '...')`
@@ -966,7 +969,8 @@ const {
     MessageFlags,
     ModalBuilder,
     TextInputBuilder,
-    TextInputStyle
+    TextInputStyle,
+    ChannelType
 } = require('discord.js');
 
 dayjs.extend(relativeTime);
@@ -1208,10 +1212,14 @@ let db = {
     funEnabled: true,
     quizEnabled: true,
     staffToolsEnabled: true,
+    tempChannelsEnabled: true,
     customQuizzes: {},
     dmThreads: {},
     bannedWords: [],
     spamOffences: {}, // userId -> { count, lastOffenseAt } for repeat-offender escalation; resets after 30 days of no spam mutes
+    tempChannels: {}, // channelId -> { ownerId, guildId, type, pairId, allowed, createdAt }
+    tempChannelBlocked: [], // userIds blocked from creating/joining temp channels
+    tempChannelMessageId: null, // message ID of the standing "Create Temp Channel" embed
 
     // The save function is now a method INSIDE the db object
     async save() {
@@ -1393,6 +1401,66 @@ async function ensureVerifyEmbed(guild) {
     if (sent) {
         db.verifyMessageId = sent.id;
         await db.save().catch((err) => console.error('❌ Failed to save verifyMessageId:', err.message));
+    }
+}
+
+// --- TEMP CHANNEL EMBED ---
+// Posts (or refreshes) a standing embed + button in TEMP_CHANNEL_MESSAGE that
+// lets members spin up their own temporary voice/text channel under
+// TEMP_CHANNEL_CAT. Clicking the button opens a modal (Voice/Text + who's
+// allowed) handled further down in interactionCreate. Mirrors
+// ensureVerifyEmbed's "cache the message ID, edit in place" pattern so
+// restarts don't repost the embed every time.
+async function ensureTempChannelEmbed(guild) {
+    const channelId = process.env.TEMP_CHANNEL_MESSAGE;
+    if (!channelId) return; // Not configured — nothing to do.
+    if (db.tempChannelsEnabled === false) return; // Module disabled from the dashboard.
+
+    const channel = guild.channels.cache.get(channelId);
+    if (!channel || !channel.isTextBased()) {
+        console.error(`❌ TEMP_CHANNEL_MESSAGE (${channelId}) not found in this guild or isn't a text channel.`);
+        return;
+    }
+
+    if (!process.env.TEMP_CHANNEL_CAT) {
+        console.error('❌ TEMP_CHANNEL_CAT is not set — temp channels have nowhere to be created. Set it to a category ID.');
+    }
+
+    const embed = new EmbedBuilder()
+        .setTitle('🎛️ Create a Temporary Channel')
+        .setDescription(
+            `Click the button below to spin up your own temporary voice or text channel.\n\n` +
+            `You'll pick the type and who's allowed in, and it'll be created right away. ` +
+            `Manage it anytime with \`/channel\`.`
+        )
+        .setColor(0x5865F2)
+        .setFooter({ text: 'Channels are created under the temp channel category.' });
+
+    const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('tempchannel_open_modal')
+            .setLabel('➕ Create Temp Channel')
+            .setStyle(ButtonStyle.Primary)
+    );
+
+    if (db.tempChannelMessageId) {
+        const existing = await channel.messages.fetch(db.tempChannelMessageId).catch(() => null);
+        if (existing) {
+            await existing.edit({ embeds: [embed], components: [row] }).catch((err) => {
+                console.error(`❌ Failed to refresh existing temp channel embed: ${err.message}`);
+            });
+            return;
+        }
+        // Message we were tracking is gone — fall through and repost.
+    }
+
+    const sent = await channel.send({ embeds: [embed], components: [row] }).catch((err) => {
+        console.error(`❌ Failed to post temp channel embed: ${err.message}`);
+        return null;
+    });
+    if (sent) {
+        db.tempChannelMessageId = sent.id;
+        await db.save().catch((err) => console.error('❌ Failed to save tempChannelMessageId:', err.message));
     }
 }
 
@@ -1752,6 +1820,14 @@ client.once('clientReady', async () => {
         });
     }
 
+    // 6b. Temp Channel Embed — post/refresh the standing "create channel" button.
+    const tempChannelEmbedGuild = client.guilds.cache.first();
+    if (tempChannelEmbedGuild) {
+        ensureTempChannelEmbed(tempChannelEmbedGuild).catch((err) => {
+            console.error("❌ ensureTempChannelEmbed crashed:", err.message);
+        });
+    }
+
     // 7. Startup Stats Sync — fire-and-forget so it doesn't block the rest of
     // startup or command handling. It reports its own progress via logAction,
     // so nothing here needs to await or watch it.
@@ -1957,6 +2033,43 @@ client.on('interactionCreate', async (interaction) => {
 
             return interaction.showModal(modal);
         }
+
+        // TEMP CHANNEL: open the create-channel modal
+        if (interaction.customId === 'tempchannel_open_modal') {
+            if (db.tempChannelsEnabled === false) {
+                return interaction.reply({ content: '🚫 The Temp Channels module is currently disabled.', ephemeral: true });
+            }
+            if (isTempChannelBlocked(db, interaction.user.id)) {
+                return interaction.reply({ content: '🚫 You have been blocked from using temporary channels.', ephemeral: true });
+            }
+
+            const modal = new ModalBuilder()
+                .setCustomId('tempchannel_create_modal')
+                .setTitle('Create a Temp Channel');
+
+            const typeInput = new TextInputBuilder()
+                .setCustomId('tempchannel_type')
+                .setLabel('Voice or Text channel?')
+                .setStyle(TextInputStyle.Short)
+                .setPlaceholder('voice / text')
+                .setMaxLength(10)
+                .setRequired(true);
+
+            const allowedInput = new TextInputBuilder()
+                .setCustomId('tempchannel_allowed')
+                .setLabel("Who's allowed in?")
+                .setStyle(TextInputStyle.Paragraph)
+                .setPlaceholder('@mention or IDs, space separated — leave blank for just you')
+                .setMaxLength(500)
+                .setRequired(false);
+
+            modal.addComponents(
+                new ActionRowBuilder().addComponents(typeInput),
+                new ActionRowBuilder().addComponents(allowedInput)
+            );
+
+            return interaction.showModal(modal);
+        }
     } // End of Button Logic
 
     // MODAL SUBMIT: DM MODMAIL REPLY
@@ -1998,6 +2111,88 @@ client.on('interactionCreate', async (interaction) => {
             await interaction.reply({ content: `❌ Could not DM that user (DMs closed or blocked).`, ephemeral: true });
         }
         return;
+    }
+
+    // MODAL SUBMIT: TEMP CHANNEL CREATION
+    if (interaction.isModalSubmit() && interaction.customId === 'tempchannel_create_modal') {
+        await interaction.deferReply({ ephemeral: true });
+
+        if (db.tempChannelsEnabled === false) {
+            return interaction.editReply('🚫 The Temp Channels module is currently disabled.');
+        }
+        if (isTempChannelBlocked(db, interaction.user.id)) {
+            return interaction.editReply('🚫 You have been blocked from using temporary channels.');
+        }
+
+        const categoryId = process.env.TEMP_CHANNEL_CAT;
+        const category = categoryId ? interaction.guild.channels.cache.get(categoryId) : null;
+        if (!category || category.type !== ChannelType.GuildCategory) {
+            return interaction.editReply('❌ Temp channels aren\'t configured correctly — ask an admin to check `TEMP_CHANNEL_CAT`.');
+        }
+
+        const rawType = interaction.fields.getTextInputValue('tempchannel_type').trim().toLowerCase();
+        const isVoice = rawType.startsWith('v');
+        const isText = rawType.startsWith('t');
+        if (!isVoice && !isText) {
+            return interaction.editReply('❌ Please type either `voice` or `text` for the channel type.');
+        }
+
+        const allowedText = interaction.fields.getTextInputValue('tempchannel_allowed');
+        const requestedIds = extractUserIds(allowedText);
+        const allowedIds = [];
+        const skippedIds = [];
+        for (const id of requestedIds) {
+            if (id === interaction.user.id) continue;
+            if (isTempChannelBlocked(db, id)) {
+                skippedIds.push(id);
+                continue;
+            }
+            const member = await interaction.guild.members.fetch(id).catch(() => null);
+            if (member) allowedIds.push(id);
+        }
+
+        let newChannel;
+        try {
+            newChannel = await interaction.guild.channels.create({
+                name: isVoice ? `🔊 ${interaction.user.username}` : `text-${interaction.user.username}`.toLowerCase(),
+                type: isVoice ? ChannelType.GuildVoice : ChannelType.GuildText,
+                parent: category.id,
+                permissionOverwrites: buildTempChannelOverwrites({
+                    guild: interaction.guild,
+                    PermissionFlagsBits,
+                    ownerId: interaction.user.id,
+                    allowedIds,
+                    isVoice,
+                }),
+            });
+        } catch (err) {
+            console.error('❌ Failed to create temp channel from modal:', err.message);
+            return interaction.editReply('❌ Failed to create the channel. Check my permissions and the category setup.');
+        }
+
+        if (!db.tempChannels) db.tempChannels = {};
+        db.tempChannels[newChannel.id] = {
+            ownerId: interaction.user.id,
+            guildId: interaction.guild.id,
+            type: isVoice ? 'voice' : 'text',
+            pairId: null,
+            allowed: allowedIds,
+            createdAt: Date.now(),
+        };
+        await db.save().catch((err) => console.error('❌ Failed to save new temp channel:', err.message));
+
+        const resultEmbed = new EmbedBuilder()
+            .setTitle('✅ Temp Channel Created')
+            .setDescription(
+                `**Channel:** <#${newChannel.id}>\n` +
+                `**Allowed:** ${allowedIds.length ? allowedIds.map((id) => `<@${id}>`).join(', ') : 'Just you'}` +
+                (skippedIds.length ? `\n\n⚠️ Skipped (blocked from temp channels): ${skippedIds.map((id) => `<@${id}>`).join(', ')}` : '')
+            )
+            .setColor(0x2ECC71)
+            .setFooter({ text: 'Manage it anytime with /channel' })
+            .setTimestamp();
+
+        return interaction.editReply({ embeds: [resultEmbed] });
     }
 
 
@@ -4359,6 +4554,31 @@ if (commandName === 'warn' && options.getSubcommand() === 'clear') {
                         } catch (e) {
                             return interaction.editReply(`❌ Could not DM **${target.tag}** (DMs closed or blocked).`);
                         }
+
+                    case 'channel-block':
+                        if (!isMod) return interaction.editReply("❌ You need **Moderator+** to use this.");
+                        if (!Array.isArray(db.tempChannelBlocked)) db.tempChannelBlocked = [];
+
+                        const alreadyBlocked = db.tempChannelBlocked.includes(target.id);
+                        if (alreadyBlocked) {
+                            db.tempChannelBlocked = db.tempChannelBlocked.filter((id) => id !== target.id);
+                        } else {
+                            db.tempChannelBlocked.push(target.id);
+                        }
+                        await safeSave();
+
+                        logAction(
+                            guild,
+                            alreadyBlocked ? '🔓 Temp Channel Unblock' : '🚫 Temp Channel Block',
+                            `**User:** ${target.tag}\n**Moderator:** ${user.tag}`,
+                            alreadyBlocked ? 0x00FF00 : 0xFF0000
+                        );
+
+                        return interaction.editReply(
+                            alreadyBlocked
+                                ? `🔓 **${target.tag}** can use temp channels again.`
+                                : `🚫 **${target.tag}** has been blocked from creating/joining temp channels.`
+                        );
                 }
             }
 

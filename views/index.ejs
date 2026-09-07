@@ -489,6 +489,24 @@
                     </div>
                 </div>
 
+                <!-- Temp Channels -->
+                <div class="module-row">
+                    <div class="module-icon" style="background:#1a2e2a;">🎛️</div>
+                    <div class="module-body">
+                        <div class="module-title">Temp Channels</div>
+                        <div class="module-desc">Controls the "Create Temp Channel" button/modal and the full <code>/channel</code> command group (add-voice, delete, member-add, member-delete).</div>
+                    </div>
+                    <div class="module-end">
+                        <span class="mod-badge <%= db.tempChannelsEnabled !== false ? 'on' : 'off' %>">
+                            <%= db.tempChannelsEnabled !== false ? 'Enabled' : 'Disabled' %>
+                        </span>
+                        <form action="/modules/toggle" method="POST" style="display:contents;">
+                            <input type="hidden" name="module" value="tempChannelsEnabled">
+                            <button type="submit" class="mod-toggle <%= db.tempChannelsEnabled !== false ? 'on' : '' %>" aria-label="Toggle Temp Channels"></button>
+                        </form>
+                    </div>
+                </div>
+
             </div>
         </div>
 

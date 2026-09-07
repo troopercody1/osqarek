@@ -6,6 +6,7 @@ const moderation = require('./moderation');
 const staff = require('./staff');
 const quiz = require('./quiz');
 const utilities = require('./utilities');
+const channels = require('./channels');
 
 const commandGroups = {
     system,
@@ -16,6 +17,7 @@ const commandGroups = {
     staff,
     quiz,
     utilities,
+    channels,
 };
 
 const commands = Object.values(commandGroups).flat();

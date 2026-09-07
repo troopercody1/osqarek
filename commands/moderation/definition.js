@@ -12,6 +12,7 @@ module.exports = [
             { name: 'purge', description: 'Mass delete messages from the channel', type: 1, options: [{ name: 'amount', description: 'Number of messages (1-100)', type: 4, required: true }] },
             { name: 'lockdown', description: 'Toggle server lockdown status', type: 1, options: [{ name: 'status', description: 'True to lock, False to unlock', type: 5, required: true }] },
             { name: 'dm', description: 'Send an official staff DM to a member', type: 1, options: [{ name: 'target', description: 'User to message', type: 6, required: true }, { name: 'message', description: 'The message content', type: 3, required: true }] },
+            { name: 'channel-block', description: 'Block (or unblock) a member from using temp channels', type: 1, options: [{ name: 'target', description: 'User to block/unblock', type: 6, required: true }] },
         ],
     },
     {

@@ -6,6 +6,7 @@ const moderation = require('./moderation');
 const staff = require('./staff');
 const quiz = require('./quiz');
 const utilities = require('./utilities');
+const channels = require('./channels');
 
 module.exports = {
     ...system.handlers,
@@ -16,4 +17,5 @@ module.exports = {
     ...staff.handlers,
     ...quiz.handlers,
     ...utilities.handlers,
+    ...channels.handlers,
 };
