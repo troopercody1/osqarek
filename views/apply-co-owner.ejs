@@ -195,6 +195,40 @@
             color: #565b66;
             margin-top: 20px;
         }
+
+        .btn-discord {
+            background: #5865F2;
+            color: #fff;
+        }
+        .btn-discord:hover { background: #4752c4; }
+
+        .discord-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #1c1f28;
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 22px;
+        }
+        .discord-user img {
+            width: 32px; height: 32px; border-radius: 50%;
+        }
+        .discord-user span {
+            font-size: 14px;
+            color: var(--text-dim);
+        }
+        .discord-user strong { color: var(--text); }
+
+        .field.readonly-username {
+            background: #1c1f28;
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 11px 12px;
+            color: var(--text);
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -214,19 +248,31 @@
                 <h3>Requirements</h3>
                 <ul>
                     <li>Staff experience in this server <strong>(temporary staff counts)</strong></li>
-                    <li>At least <strong>Level 40</strong></li>
+                    <li>At least <strong>Level 15</strong></li>
                     <li>At least <strong>1,500 messages</strong></li>
                     <li>Less than <strong>3 warnings</strong></li>
                 </ul>
             </div>
+
+            <% if (!discordUser) { %>
+                <a class="btn btn-discord" href="/apply-co-owner/login">Log in with Discord to apply</a>
+            <% } else { %>
+                <div class="discord-user">
+                    <% if (discordUser.avatar) { %>
+                        <img src="https://cdn.discordapp.com/avatars/<%= discordUser.id %>/<%= discordUser.avatar %>.png?size=64" alt="">
+                    <% } %>
+                    <span>Applying as <strong><%= discordUser.username %></strong></span>
+                </div>
 
             <form method="POST" action="/apply-co-owner">
                 <p class="section-title">About You</p>
 
                 <div class="field">
                     <label><span class="num">1</span>What is your Discord username?</label>
-                    <input type="text" name="q1_username" required maxlength="100">
+                    <div class="field readonly-username"><%= discordUser.username %></div>
+                    <div class="hint">Pulled automatically from your Discord login above.</div>
                 </div>
+
 
                 <div class="field">
                     <label><span class="num">2</span>What is your time-zone?</label>
@@ -321,6 +367,7 @@
 
                 <button class="btn btn-submit" type="submit">Submit Application</button>
             </form>
+            <% } %>
         <% } %>
 
         <p class="footer-note">Questions about the process? Ask in the server.</p>

@@ -341,22 +341,77 @@ app.get('/auth/callback', async (req, res) => {
 app.get('/auth/admin', (req, res) => res.render('admin', { error: req.query.error || null, msg: req.query.msg || null }));
 
 // --- PUBLIC CO-OWNER APPLICATION ---
-// Simple public form (no auth required) where members can apply to be the
-// server's next co-owner. Submissions are stored in db.coOwnerApplications
-// and, if a Discord webhook is configured (see /settings/discord-webhook),
-// a summary is posted so the owner team gets notified immediately.
+// Simple public form where members can apply to be the server's next
+// co-owner. Discord username is pulled automatically from a Discord OAuth
+// login (same pattern as /verify) rather than typed in by hand, so it can't
+// be spoofed. Kept on its own session key (req.session.applyUser) rather
+// than req.session.user / req.session.isHeadAdmin, which are what checkAuth()
+// checks for admin dashboard access.
+// Submissions are stored in db.coOwnerApplications and, if a Discord webhook
+// is configured (see /settings/discord-webhook), a summary is posted so the
+// owner team gets notified immediately.
+const APPLY_CALLBACK_URL = process.env.APPLY_CALLBACK_URL; // e.g. https://yourdomain.com/apply-co-owner/callback
+
 app.get('/apply-co-owner', (req, res) => {
     res.render('apply-co-owner', {
+        discordUser: req.session.applyUser || null,
         error: req.query.error || null,
         success: req.query.success || null,
         stats: { botName: client?.user?.username || "OsQarek's Universe" }
     });
 });
 
+app.get('/apply-co-owner/login', (req, res) => {
+    if (!APPLY_CALLBACK_URL) return res.redirect('/apply-co-owner?error=' + encodeURIComponent('Application login is not configured yet — missing APPLY_CALLBACK_URL.'));
+    const params = new URLSearchParams({
+        client_id: process.env.CLIENT_ID,
+        redirect_uri: APPLY_CALLBACK_URL,
+        response_type: 'code',
+        scope: 'identify'
+    });
+    res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
+});
+
+app.get('/apply-co-owner/callback', async (req, res) => {
+    const { code } = req.query;
+    if (!code) return res.redirect('/apply-co-owner?error=' + encodeURIComponent('Discord login was cancelled or failed.'));
+    try {
+        const tokenResponse = await postWithRateLimitRetry(
+            'https://discord.com/api/oauth2/token',
+            new URLSearchParams({
+                client_id: process.env.CLIENT_ID,
+                client_secret: process.env.DISCORD_CLIENT_SECRET,
+                grant_type: 'authorization_code',
+                code,
+                redirect_uri: APPLY_CALLBACK_URL
+            }),
+            { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+        );
+        const discordUser = (await axios.get('https://discord.com/api/users/@me', {
+            headers: { Authorization: `Bearer ${tokenResponse.data.access_token}` }
+        })).data;
+
+        req.session.applyUser = { id: discordUser.id, username: discordUser.username, avatar: discordUser.avatar };
+        res.redirect('/apply-co-owner');
+    } catch (err) {
+        const status = err.response?.status;
+        console.error('❌ [apply-co-owner oauth] Discord auth failed:', err.response?.data || err.message);
+        if (status === 429) {
+            return res.redirect('/apply-co-owner?error=' + encodeURIComponent('Discord is rate-limiting this server right now. Please wait a bit and try again.'));
+        }
+        res.redirect('/apply-co-owner?error=' + encodeURIComponent('Discord login failed. Please try again.'));
+    }
+});
+
 app.post('/apply-co-owner', async (req, res) => {
+    const discordUser = req.session.applyUser;
+    if (!discordUser) {
+        return res.redirect('/apply-co-owner?error=' + encodeURIComponent('Please log in with Discord before submitting.'));
+    }
+
     const b = req.body || {};
     const required = [
-        'q1_username', 'q2_timezone', 'q3_age', 'q4_motivation', 'q5_vision',
+        'q2_timezone', 'q3_age', 'q4_motivation', 'q5_vision',
         'q6_stress', 'q7_experience', 'q8_unpopular_decisions', 'q9_feedback',
         'q10_authority_balance', 'q11_arguing_staff', 'q12_escalation',
         'q13_fair_discipline', 'q14_security'
@@ -374,7 +429,8 @@ app.post('/apply-co-owner', async (req, res) => {
     const application = {
         id: crypto.randomUUID(),
         submittedAt: new Date().toISOString(),
-        username: String(b.q1_username).trim().slice(0, 100),
+        discordId: discordUser.id,
+        username: String(discordUser.username).trim().slice(0, 100),
         timezone: String(b.q2_timezone).trim().slice(0, 100),
         age,
         motivation: String(b.q4_motivation).trim(),
@@ -405,6 +461,7 @@ app.post('/apply-co-owner', async (req, res) => {
         return res.redirect('/apply-co-owner?error=' + encodeURIComponent('Something went wrong submitting your application. Please try again.'));
     }
 
+    delete req.session.applyUser;
     res.redirect('/apply-co-owner?success=1');
 });
 
@@ -711,6 +768,14 @@ app.get('/co-owner-applications/:id', checkSettingsAuth, async (req, res) => {
         application,
         user: req.session.user
     });
+});
+
+app.post('/co-owner-applications/:id/delete', checkSettingsAuth, async (req, res) => {
+    if (db.coOwnerApplications) {
+        db.coOwnerApplications = db.coOwnerApplications.filter(a => a.id !== req.params.id);
+        await safeSave();
+    }
+    res.redirect('/co-owner-applications');
 });
 
 app.post('/update-settings', checkAuth, async (req, res) => { db.settings = { prefix: req.body.prefix, welcomeChannel: req.body.welcomeChannel, goodbyeChannel: req.body.goodbyeChannel }; await safeSave(); res.redirect('/config'); });

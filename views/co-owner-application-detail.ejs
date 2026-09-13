@@ -28,13 +28,42 @@
             display: inline-block; padding: 4px 12px; border-radius: 6px;
             background: #1a2e1a; color: #9ece6a; font-weight: 700; font-size: 13px;
         }
+
+        .header-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+        .header-row h1 { margin-bottom: 0; }
+        .btn-danger-outline {
+            background: transparent; color: #f7768e; border: 1px solid #4a1c1c;
+            padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+            cursor: pointer; font-family: inherit;
+        }
+        .btn-danger-outline:hover { background: rgba(247,118,142,0.1); }
     </style>
 </head>
 <body>
 <div class="page">
+    <%
+        const mcOptions = {
+            arguingStaff: { A: 'Encourage them', B: 'Temporarily suspend them', C: 'Ignore them', D: 'Join them' },
+            escalation: { A: 'Whenever a user disagrees with a warning', B: 'Only when a server boost is threatened', C: 'When dealing with threats of self-harm, doxxing, or severe safety breaches', D: 'Never, staff should handle everything alone' },
+            fairDiscipline: { A: 'Punish the new member harshly and ignore the trusted member completely', B: 'Apply the server rules fairly and consistently regardless of how long someone has been in the community', C: 'Ban both users permanently without a warning', D: 'Ask the general chat to vote on whether rules should apply to old members' },
+            security: { A: 'Turning off all text channels for everyone', B: 'Requiring Two-Factor Authentication (2FA) for all staff roles and properly configuring channel permissions', C: 'Asking members to politely tell the hacker to stop', D: 'Deleting the entire server immediately' }
+        };
+        const mcLabel = (field) => {
+            const letter = application[field];
+            const text = (mcOptions[field] || {})[letter];
+            return text ? `${letter} - ${text}` : letter;
+        };
+    %>
 
     <a href="/co-owner-applications" class="back">&#8592; Back to All Applications</a>
-    <h1>👑 <%= application.username %></h1>
+
+    <div class="header-row">
+        <h1>👑 <%= application.username %></h1>
+        <form method="POST" action="/co-owner-applications/<%= application.id %>/delete" onsubmit="return confirm('Delete this application? This cannot be undone.')">
+            <button type="submit" class="btn-danger-outline">🗑 Delete Application</button>
+        </form>
+    </div>
+
 
     <div class="app-meta">
         <div class="stat"><span class="label">Time-zone</span><span class="value"><%= application.timezone %></span></div>
@@ -73,19 +102,19 @@
         </div>
         <div class="qa-block">
             <div class="qa-question">11. Two staff members are arguing in general and violating the rules. What would you do?</div>
-            <div class="qa-answer mc"><%= application.arguingStaff %></div>
+            <div class="qa-answer mc"><%= mcLabel('arguingStaff') %></div>
         </div>
         <div class="qa-block">
             <div class="qa-question">12. When should a staff member escalate a situation directly to the owner team?</div>
-            <div class="qa-answer mc"><%= application.escalation %></div>
+            <div class="qa-answer mc"><%= mcLabel('escalation') %></div>
         </div>
         <div class="qa-block">
             <div class="qa-question">13. A trusted member breaks a minor rule for the first time; a new member breaks a major rule. How should discipline be approached?</div>
-            <div class="qa-answer mc"><%= application.fairDiscipline %></div>
+            <div class="qa-answer mc"><%= mcLabel('fairDiscipline') %></div>
         </div>
         <div class="qa-block">
             <div class="qa-question">14. Best preventative security measure against a hacked moderator account?</div>
-            <div class="qa-answer mc"><%= application.security %></div>
+            <div class="qa-answer mc"><%= mcLabel('security') %></div>
         </div>
     </div>
 
