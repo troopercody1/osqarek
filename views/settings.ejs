@@ -420,6 +420,30 @@
     </div>
 
     <!-- ══════════════════════════════════════
+         CO-OWNER APPLICATIONS
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Co-Owner Applications</div>
+        <div class="card">
+            <div class="row clickable" onclick="window.location.href='/co-owner-applications'">
+                <div class="row-icon" style="background:#1f2030;">
+                    <span style="color:#e0af68;">&#128081;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Applicant submissions</div>
+                    <div class="row-desc">
+                        <%= coOwnerApplicationCount %> application<%= coOwnerApplicationCount === 1 ? '' : 's' %> submitted via /apply-co-owner
+                    </div>
+                </div>
+                <div class="row-end">
+                    <span class="badge badge-info"><%= coOwnerApplicationCount %></span>
+                    <a href="/co-owner-applications" class="btn btn-primary" onclick="event.stopPropagation();">View All</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
          NOTIFICATIONS
     ══════════════════════════════════════ -->
     <div class="section">
@@ -444,6 +468,7 @@
                     </form>
                 </div>
             </div>
+
 
             <!-- Discord webhook -->
             <div class="row">

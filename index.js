@@ -91,7 +91,7 @@ if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) 
 
 global.botErrors = global.botErrors || [];
 global.botLogs = global.botLogs || [];
-global.db = global.db || { settings: {}, reviewedUsers: [], reactionRoles: [], bannedWords: [], cases: [], dmThreads: {}, aiEnabled: true, musicEnabled: true, modmailEnabled: true, automodEnabled: true, welcomeEnabled: true, remindersEnabled: true, moderationEnabled: true, utilitiesEnabled: true, funEnabled: true, quizEnabled: true, staffToolsEnabled: true };
+global.db = global.db || { settings: {}, reviewedUsers: [], reactionRoles: [], bannedWords: [], cases: [], dmThreads: {}, coOwnerApplications: [], aiEnabled: true, musicEnabled: true, modmailEnabled: true, automodEnabled: true, welcomeEnabled: true, remindersEnabled: true, moderationEnabled: true, utilitiesEnabled: true, funEnabled: true, quizEnabled: true, staffToolsEnabled: true };
 
 // Error Handling
 process.on('uncaughtException', (err) => console.error('CRITICAL DASHBOARD ERROR:', err));
@@ -340,6 +340,74 @@ app.get('/auth/callback', async (req, res) => {
 
 app.get('/auth/admin', (req, res) => res.render('admin', { error: req.query.error || null, msg: req.query.msg || null }));
 
+// --- PUBLIC CO-OWNER APPLICATION ---
+// Simple public form (no auth required) where members can apply to be the
+// server's next co-owner. Submissions are stored in db.coOwnerApplications
+// and, if a Discord webhook is configured (see /settings/discord-webhook),
+// a summary is posted so the owner team gets notified immediately.
+app.get('/apply-co-owner', (req, res) => {
+    res.render('apply-co-owner', {
+        error: req.query.error || null,
+        success: req.query.success || null,
+        stats: { botName: client?.user?.username || "OsQarek's Universe" }
+    });
+});
+
+app.post('/apply-co-owner', async (req, res) => {
+    const b = req.body || {};
+    const required = [
+        'q1_username', 'q2_timezone', 'q3_age', 'q4_motivation', 'q5_vision',
+        'q6_stress', 'q7_experience', 'q8_unpopular_decisions', 'q9_feedback',
+        'q10_authority_balance', 'q11_arguing_staff', 'q12_escalation',
+        'q13_fair_discipline', 'q14_security'
+    ];
+    const missing = required.some((field) => !String(b[field] || '').trim());
+    if (missing) {
+        return res.redirect('/apply-co-owner?error=' + encodeURIComponent('Please fill out every question before submitting.'));
+    }
+
+    const age = parseInt(b.q3_age, 10);
+    if (!Number.isFinite(age) || age <= 0 || age > 120) {
+        return res.redirect('/apply-co-owner?error=' + encodeURIComponent('Please enter a valid age.'));
+    }
+
+    const application = {
+        id: crypto.randomUUID(),
+        submittedAt: new Date().toISOString(),
+        username: String(b.q1_username).trim().slice(0, 100),
+        timezone: String(b.q2_timezone).trim().slice(0, 100),
+        age,
+        motivation: String(b.q4_motivation).trim(),
+        vision: String(b.q5_vision).trim(),
+        stress: String(b.q6_stress).trim(),
+        experience: String(b.q7_experience).trim(),
+        unpopularDecisions: String(b.q8_unpopular_decisions).trim(),
+        feedback: String(b.q9_feedback).trim(),
+        authorityBalance: String(b.q10_authority_balance).trim(),
+        arguingStaff: String(b.q11_arguing_staff).trim(),
+        escalation: String(b.q12_escalation).trim(),
+        fairDiscipline: String(b.q13_fair_discipline).trim(),
+        security: String(b.q14_security).trim()
+    };
+
+    try {
+        if (!db.coOwnerApplications) db.coOwnerApplications = [];
+        db.coOwnerApplications.push(application);
+        await safeSave();
+
+        await sendDiscordWebhook({
+            title: '👑 New Co-Owner Application',
+            message: `**Discord Username:** ${application.username}\n**Time-zone:** ${application.timezone}\n**Age:** ${application.age}\n**Quiz answers:** Q11: ${application.arguingStaff} • Q12: ${application.escalation} • Q13: ${application.fairDiscipline} • Q14: ${application.security}\n\nFull answers saved on the dashboard.`,
+            color: 0xFFD700
+        });
+    } catch (err) {
+        console.error('❌ [apply-co-owner] Failed to save application:', err.message);
+        return res.redirect('/apply-co-owner?error=' + encodeURIComponent('Something went wrong submitting your application. Please try again.'));
+    }
+
+    res.redirect('/apply-co-owner?success=1');
+});
+
 // --- PUBLIC VERIFICATION GATE ---
 // Lets ordinary members verify via Discord OAuth + CAPTCHA + a rules-agreement
 // checkbox, then the bot adds the configured "verified" role. This is
@@ -469,7 +537,7 @@ app.post('/auth/verify-admin', (req, res) => {
 
 app.get('/settings', (req, res) => {
     if (req.session.user?.id === 'admin') {
-        res.render('settings', { user: req.session.user, settings: db.settings || {}, bannedWords: db.bannedWords || [], msg: req.query.msg || null });
+        res.render('settings', { user: req.session.user, settings: db.settings || {}, bannedWords: db.bannedWords || [], msg: req.query.msg || null, coOwnerApplicationCount: (db.coOwnerApplications || []).length });
     } else res.status(403).send("<h1>403 Forbidden</h1><p>Access denied.</p>");
 });
 
@@ -617,6 +685,32 @@ app.get('/banned-words', checkAuth, async (req, res) => {
 
 app.get('/system-logs', checkAuth, async (req, res) => {
     await renderDashboard(req, res, DASHBOARD_TABS['system-logs'], { activePage: 'system-logs' });
+});
+
+// --- CO-OWNER APPLICATIONS (SETTINGS-GATED STAFF VIEW) ---
+// Lives under the same master-admin password gate as /settings (see
+// /auth/admin + POST /auth/verify-admin) rather than the Discord OAuth
+// checkAuth() used elsewhere, since this list is linked from the Settings
+// page and should require the same password to view.
+function checkSettingsAuth(req, res, next) {
+    if (req.session.user?.id === 'admin') return next();
+    res.status(403).send("<h1>403 Forbidden</h1><p>Access denied.</p>");
+}
+
+app.get('/co-owner-applications', checkSettingsAuth, async (req, res) => {
+    res.render('co-owner-applications', {
+        applications: db.coOwnerApplications || [],
+        user: req.session.user
+    });
+});
+
+app.get('/co-owner-applications/:id', checkSettingsAuth, async (req, res) => {
+    const application = (db.coOwnerApplications || []).find(a => a.id === req.params.id);
+    if (!application) return res.redirect('/co-owner-applications');
+    res.render('co-owner-application-detail', {
+        application,
+        user: req.session.user
+    });
 });
 
 app.post('/update-settings', checkAuth, async (req, res) => { db.settings = { prefix: req.body.prefix, welcomeChannel: req.body.welcomeChannel, goodbyeChannel: req.body.goodbyeChannel }; await safeSave(); res.redirect('/config'); });

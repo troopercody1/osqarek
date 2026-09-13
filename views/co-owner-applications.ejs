@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Co-Owner Applications</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #16161e; color: #a9b1d6; padding: 40px 20px; }
+        .page { max-width: 900px; margin: 0 auto; }
+
+        a.back { color: #7aa2f7; text-decoration: none; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 24px; }
+        a.back:hover { color: #a9c5ff; }
+
+        h1 { color: #7aa2f7; font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+        .page-sub { font-size: 13px; color: #565f89; margin-bottom: 28px; }
+
+        .card { background: #1a1b26; border: 1px solid #2f3549; border-radius: 12px; overflow: hidden; padding: 20px; }
+        .empty-state { color: #565f89; padding: 10px 0; font-size: 14px; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+        th { text-align: left; color: #565f89; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; padding: 10px 8px; border-bottom: 1px solid #2f3549; }
+        td { padding: 12px 8px; border-bottom: 1px solid #2f3549; color: #a9b1d6; font-size: 13.5px; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #1f2030; }
+
+        .app-answer-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+        .answer-badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 22px; height: 22px; border-radius: 6px;
+            background: #1f2335; color: #7dcfff; font-size: 0.75rem; font-weight: 700;
+        }
+        .view-btn {
+            display: inline-block; padding: 6px 14px; border-radius: 6px;
+            background: #5865f2; color: #fff; text-decoration: none;
+            font-size: 12.5px; font-weight: 600;
+        }
+        .view-btn:hover { background: #4752c4; }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <a href="/settings" class="back">&#8592; Back to Settings</a>
+    <h1>👑 Co-Owner Applications</h1>
+    <p class="page-sub"><%= applications.length %> application<%= applications.length === 1 ? '' : 's' %> submitted via /apply-co-owner</p>
+
+    <div class="card">
+        <% if (applications.length === 0) { %>
+            <p class="empty-state">No applications have been submitted yet. Share the application link to start collecting candidates.</p>
+        <% } else { %>
+        <table>
+            <thead>
+                <tr>
+                    <th>Discord Username</th>
+                    <th>Time-zone</th>
+                    <th>Age</th>
+                    <th>Submitted</th>
+                    <th>Quiz Answers</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <% applications.slice().reverse().forEach(app => { %>
+                <tr>
+                    <td style="color:#c0caf5; font-weight:600;"><%= app.username %></td>
+                    <td><%= app.timezone %></td>
+                    <td><%= app.age %></td>
+                    <td><%= new Date(app.submittedAt).toLocaleString('en-GB') %></td>
+                    <td>
+                        <div class="app-answer-badges">
+                            <span class="answer-badge" title="Q11: Arguing staff"><%= app.arguingStaff %></span>
+                            <span class="answer-badge" title="Q12: Escalation"><%= app.escalation %></span>
+                            <span class="answer-badge" title="Q13: Fair discipline"><%= app.fairDiscipline %></span>
+                            <span class="answer-badge" title="Q14: Security"><%= app.security %></span>
+                        </div>
+                    </td>
+                    <td><a href="/co-owner-applications/<%= app.id %>" class="view-btn">View</a></td>
+                </tr>
+                <% }) %>
+            </tbody>
+        </table>
+        <% } %>
+    </div>
+
+</div>
+</body>
+</html>

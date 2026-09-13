@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Co-Owner Application — <%= stats.botName %></title>
+    <style>
+        :root {
+            --bg: #0e0f13;
+            --panel: #16181f;
+            --panel-border: #262a35;
+            --accent: #5865F2;
+            --accent-hover: #4752c4;
+            --text: #e7e9ee;
+            --text-dim: #9aa0ac;
+            --danger: #ed4245;
+            --danger-bg: rgba(237, 66, 69, 0.12);
+            --success: #3ba55c;
+            --success-bg: rgba(59, 165, 92, 0.12);
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, #1b1e28 0%, var(--bg) 60%);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text);
+            padding: 24px;
+        }
+        .card {
+            width: 100%;
+            max-width: 640px;
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 36px 34px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+        }
+        .card h1 {
+            font-size: 22px;
+            margin: 0 0 6px;
+            text-align: center;
+        }
+        .card p.sub {
+            text-align: center;
+            color: var(--text-dim);
+            margin: 0 0 24px;
+            font-size: 14px;
+        }
+        .banner {
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 13.5px;
+            margin-bottom: 18px;
+            line-height: 1.4;
+        }
+        .banner.error { background: var(--danger-bg); color: #ff7b7d; border: 1px solid rgba(237,66,69,0.35); }
+        .banner.success { background: var(--success-bg); color: #7ee2a0; border: 1px solid rgba(59,165,92,0.35); }
+
+        .req-box {
+            background: #1c1f28;
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 24px;
+        }
+        .req-box h3 {
+            margin: 0 0 10px;
+            font-size: 12px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #7dcfff;
+        }
+        .req-box ul {
+            margin: 0;
+            padding-left: 18px;
+            font-size: 13.5px;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+        .req-box strong { color: var(--text); }
+
+        form .field { margin-bottom: 20px; }
+        .field label {
+            display: block;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        .field label .num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            background: #2a2e39;
+            color: var(--text-dim);
+            font-size: 11px;
+            font-weight: 700;
+            margin-right: 8px;
+        }
+        .field .hint {
+            font-size: 12px;
+            color: #565b66;
+            margin-top: 6px;
+        }
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            background: #1c1f28;
+            border: 1px solid var(--panel-border);
+            color: var(--text);
+            padding: 11px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+        }
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        textarea { min-height: 80px; line-height: 1.5; }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .option {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            background: #1c1f28;
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 13.5px;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: border-color 0.15s ease, background 0.15s ease;
+        }
+        .option:hover { border-color: #3a3f4d; }
+        .option input { margin-top: 3px; accent-color: var(--accent); }
+        .option span.letter { color: var(--text); font-weight: 700; margin-right: 2px; }
+        .option:has(input:checked) {
+            border-color: var(--accent);
+            background: rgba(88, 101, 242, 0.08);
+            color: var(--text);
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid var(--panel-border);
+            margin: 28px 0;
+        }
+        .section-title {
+            font-size: 12px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #7dcfff;
+            margin: 0 0 16px;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 13px 16px;
+            border-radius: 10px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.15s ease;
+        }
+        .btn-submit {
+            background: var(--accent);
+            color: #fff;
+            margin-top: 8px;
+        }
+        .btn-submit:hover { background: var(--accent-hover); }
+
+        .footer-note {
+            text-align: center;
+            font-size: 12px;
+            color: #565b66;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Co-Owner Application</h1>
+        <p class="sub">OsQarek's Universe is looking for a new co-owner. Fill out the form below to be considered.</p>
+
+        <% if (error) { %>
+            <div class="banner error"><%= error %></div>
+        <% } %>
+        <% if (success) { %>
+            <div class="banner success">✅ Your application has been submitted! The owner team will review it and reach out on Discord if you're selected.</div>
+        <% } %>
+
+        <% if (!success) { %>
+            <div class="req-box">
+                <h3>Requirements</h3>
+                <ul>
+                    <li>Staff experience in this server <strong>(temporary staff counts)</strong></li>
+                    <li>At least <strong>Level 15</strong></li>
+                    <li>At least <strong>1,500 messages</strong></li>
+                    <li>Less than <strong>3 warnings</strong></li>
+                </ul>
+            </div>
+
+            <form method="POST" action="/apply-co-owner">
+                <p class="section-title">About You</p>
+
+                <div class="field">
+                    <label><span class="num">1</span>What is your Discord username?</label>
+                    <input type="text" name="q1_username" required maxlength="100">
+                </div>
+
+                <div class="field">
+                    <label><span class="num">2</span>What is your time-zone?</label>
+                    <input type="text" name="q2_timezone" required maxlength="100" placeholder="e.g. EST, GMT+1">
+                </div>
+
+                <div class="field">
+                    <label><span class="num">3</span>How old are you?</label>
+                    <input type="number" name="q3_age" required min="1" max="120">
+                </div>
+
+                <hr class="divider">
+                <p class="section-title">Motivation & Vision</p>
+
+                <div class="field">
+                    <label><span class="num">4</span>What makes you want this position in this server, other than another staff role?</label>
+                    <textarea name="q4_motivation" required></textarea>
+                </div>
+
+                <div class="field">
+                    <label><span class="num">5</span>Where do you see yourself in 6 months, and what improvements would you make to the server?</label>
+                    <textarea name="q5_vision" required></textarea>
+                </div>
+
+                <div class="field">
+                    <label><span class="num">6</span>How do you handle stress?</label>
+                    <textarea name="q6_stress" required></textarea>
+                </div>
+
+                <div class="field">
+                    <label><span class="num">7</span>What is your past moderator experience in this server?</label>
+                    <textarea name="q7_experience" required></textarea>
+                </div>
+
+                <hr class="divider">
+                <p class="section-title">Leadership & Judgment</p>
+
+                <div class="field">
+                    <label><span class="num">8</span>As a co-owner, or part of any ownership team, you'll need to enforce unpopular decisions made by the staff team. How would you handle communicating these decisions to members who disagree with them?</label>
+                    <textarea name="q8_unpopular_decisions" required></textarea>
+                </div>
+
+                <div class="field">
+                    <label><span class="num">9</span>How do you prefer to receive feedback from the server owner, and other staff members when you make a mistake?</label>
+                    <textarea name="q9_feedback" required></textarea>
+                </div>
+
+                <div class="field">
+                    <label><span class="num">10</span>How will you handle being a person of authority, and being a friendly member towards others?</label>
+                    <textarea name="q10_authority_balance" required></textarea>
+                </div>
+
+                <div class="field">
+                    <label><span class="num">11</span>2 staff members are arguing in general, and violating the rules. What would you do?</label>
+                    <div class="options">
+                        <label class="option"><input type="radio" name="q11_arguing_staff" value="A" required><span><span class="letter">A.</span> Encourage them</span></label>
+                        <label class="option"><input type="radio" name="q11_arguing_staff" value="B"><span><span class="letter">B.</span> Temporarily suspend them</span></label>
+                        <label class="option"><input type="radio" name="q11_arguing_staff" value="C"><span><span class="letter">C.</span> Ignore them</span></label>
+                        <label class="option"><input type="radio" name="q11_arguing_staff" value="D"><span><span class="letter">D.</span> Join them</span></label>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label><span class="num">12</span>When should a staff member escalate a situation directly to the owner team rather than handling it themselves?</label>
+                    <div class="options">
+                        <label class="option"><input type="radio" name="q12_escalation" value="A" required><span><span class="letter">A.</span> Whenever a user disagrees with a warning</span></label>
+                        <label class="option"><input type="radio" name="q12_escalation" value="B"><span><span class="letter">B.</span> Only when a server boost is threatened</span></label>
+                        <label class="option"><input type="radio" name="q12_escalation" value="C"><span><span class="letter">C.</span> When dealing with threats of self-harm, doxxing, or severe safety breaches</span></label>
+                        <label class="option"><input type="radio" name="q12_escalation" value="D"><span><span class="letter">D.</span> Never, staff should handle everything alone</span></label>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label><span class="num">13</span>A trusted community member is caught breaking a minor rule for the first time, while a brand new member breaks a major rule. How should the disciplinary response be approached?</label>
+                    <div class="options">
+                        <label class="option"><input type="radio" name="q13_fair_discipline" value="A" required><span><span class="letter">A.</span> Punish the new member harshly and ignore the trusted member completely</span></label>
+                        <label class="option"><input type="radio" name="q13_fair_discipline" value="B"><span><span class="letter">B.</span> Apply the server rules fairly and consistently regardless of how long someone has been in the community</span></label>
+                        <label class="option"><input type="radio" name="q13_fair_discipline" value="C"><span><span class="letter">C.</span> Ban both users permanently without a warning</span></label>
+                        <label class="option"><input type="radio" name="q13_fair_discipline" value="D"><span><span class="letter">D.</span> Ask the general chat to vote on whether rules should apply to old members</span></label>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label><span class="num">14</span>If a malicious user manages to hack a moderator account and attempts to delete channels, what is the best preventative security measure a co-owner should have already set up?</label>
+                    <div class="options">
+                        <label class="option"><input type="radio" name="q14_security" value="A" required><span><span class="letter">A.</span> Turning off all text channels for everyone</span></label>
+                        <label class="option"><input type="radio" name="q14_security" value="B"><span><span class="letter">B.</span> Requiring Two-Factor Authentication (2FA) for all staff roles and properly configuring channel permissions</span></label>
+                        <label class="option"><input type="radio" name="q14_security" value="C"><span><span class="letter">C.</span> Asking members to politely tell the hacker to stop</span></label>
+                        <label class="option"><input type="radio" name="q14_security" value="D"><span><span class="letter">D.</span> Deleting the entire server immediately</span></label>
+                    </div>
+                </div>
+
+                <button class="btn btn-submit" type="submit">Submit Application</button>
+            </form>
+        <% } %>
+
+        <p class="footer-note">Questions about the process? Ask in the server.</p>
+    </div>
+</body>
+</html>
