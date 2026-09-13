@@ -28,6 +28,31 @@
             display: inline-block; padding: 4px 12px; border-radius: 6px;
             background: #1a2e1a; color: #9ece6a; font-weight: 700; font-size: 13px;
         }
+        .qa-answer.mc.incorrect { background: #2e1a1a; color: #f7768e; }
+        .qa-grade-tag {
+            display: inline-block; margin-left: 8px; font-size: 11px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.03em;
+        }
+        .qa-grade-tag.correct { color: #9ece6a; }
+        .qa-grade-tag.incorrect { color: #f7768e; }
+
+        .mark-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+        .mark-btn {
+            width: 30px; height: 30px; border-radius: 8px; border: 1px solid #2f3549;
+            background: #1c1f28; color: #a9b1d6; font-size: 14px; font-weight: 700;
+            cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; justify-content: center;
+            transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+        }
+        .mark-btn:hover { border-color: #3a3f4d; }
+        .mark-btn.plus.active { background: #1a2e1a; color: #9ece6a; border-color: #2c4a2c; }
+        .mark-btn.minus.active { background: #2e1a1a; color: #f7768e; border-color: #4a2c2c; }
+        .mark-current {
+            font-size: 12px; font-weight: 700; color: #565f89; min-width: 60px;
+        }
+        .mark-current.plus { color: #9ece6a; }
+        .mark-current.minus { color: #f7768e; }
+        .mark-saved-flash { opacity: 0; transition: opacity 0.2s ease; font-size: 11px; color: #565f89; }
+        .mark-saved-flash.show { opacity: 1; }
 
         .header-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
         .header-row h1 { margin-bottom: 0; }
@@ -71,6 +96,10 @@
             const text = (mcOptions[field] || {})[letter];
             return text ? `${letter} - ${text}` : letter;
         };
+        // Maps the application's short field name to the answer-key's form
+        // field name so we can look up auto-grade correctness for it.
+        const mcKeyFieldMap = { arguingStaff: 'q11_arguing_staff', escalation: 'q12_escalation', fairDiscipline: 'q13_fair_discipline', security: 'q14_security' };
+        const isMcCorrect = (field) => !!(score.mcCorrect || {})[mcKeyFieldMap[field]];
     %>
 
     <a href="/co-owner-applications" class="back">&#8592; Back to All Applications</a>
@@ -98,54 +127,113 @@
         <div class="stat"><span class="label">Time-zone</span><span class="value"><%= application.timezone %></span></div>
         <div class="stat"><span class="label">Age</span><span class="value"><%= application.age %></span></div>
         <div class="stat"><span class="label">Submitted</span><span class="value"><%= new Date(application.submittedAt).toLocaleString('en-GB') %></span></div>
+        <div class="stat"><span class="label">Multiple Choice</span><span class="value"><%= score.mcScore %> / <%= score.mcMax %> auto-graded</span></div>
+        <div class="stat"><span class="label">Total Score</span><span class="value" id="total-score-value"><%= score.totalScore %> pts</span></div>
     </div>
 
     <div class="card">
-        <div class="qa-block">
-            <div class="qa-question">4. What makes you want this position in this server, other than another staff role?</div>
-            <div class="qa-answer"><%= application.motivation %></div>
+        <%
+            const essayQuestions = [
+                { field: 'motivation', num: 4, text: 'What makes you want this position in this server, other than another staff role?' },
+                { field: 'vision', num: 5, text: 'Where do you see yourself in 6 months, and what improvements would you make to the server?' },
+                { field: 'stress', num: 6, text: 'How do you handle stress?' },
+                { field: 'experience', num: 7, text: 'What is your past moderator experience in this server?' },
+                { field: 'unpopularDecisions', num: 8, text: 'As a co-owner, or part of any ownership team, how would you handle communicating unpopular decisions to members who disagree?' },
+                { field: 'feedback', num: 9, text: 'How do you prefer to receive feedback from the server owner and other staff members when you make a mistake?' },
+                { field: 'authorityBalance', num: 10, text: 'How will you handle being a person of authority, and being a friendly member towards others?' }
+            ];
+        %>
+        <% essayQuestions.forEach(q => { const mark = (application.marks || {})[q.field]; %>
+        <div class="qa-block" data-field="<%= q.field %>">
+            <div class="qa-question"><%= q.num %>. <%= q.text %></div>
+            <div class="qa-answer"><%= application[q.field] %></div>
+            <div class="mark-row">
+                <button type="button" class="mark-btn plus <%= mark === 1 ? 'active' : '' %>" data-action="plus" title="Add 1 point">+1</button>
+                <button type="button" class="mark-btn minus <%= mark === -1 ? 'active' : '' %>" data-action="minus" title="Subtract 1 point">-1</button>
+                <button type="button" class="mark-btn clear" data-action="clear" title="Remove mark">✕</button>
+                <span class="mark-current <%= mark === 1 ? 'plus' : mark === -1 ? 'minus' : '' %>">
+                    <%= mark === 1 ? 'Marked +1' : mark === -1 ? 'Marked -1' : 'Unmarked' %>
+                </span>
+                <span class="mark-saved-flash">Saved ✓</span>
+            </div>
         </div>
-        <div class="qa-block">
-            <div class="qa-question">5. Where do you see yourself in 6 months, and what improvements would you make to the server?</div>
-            <div class="qa-answer"><%= application.vision %></div>
-        </div>
-        <div class="qa-block">
-            <div class="qa-question">6. How do you handle stress?</div>
-            <div class="qa-answer"><%= application.stress %></div>
-        </div>
-        <div class="qa-block">
-            <div class="qa-question">7. What is your past moderator experience in this server?</div>
-            <div class="qa-answer"><%= application.experience %></div>
-        </div>
-        <div class="qa-block">
-            <div class="qa-question">8. As a co-owner, or part of any ownership team, how would you handle communicating unpopular decisions to members who disagree?</div>
-            <div class="qa-answer"><%= application.unpopularDecisions %></div>
-        </div>
-        <div class="qa-block">
-            <div class="qa-question">9. How do you prefer to receive feedback from the server owner and other staff members when you make a mistake?</div>
-            <div class="qa-answer"><%= application.feedback %></div>
-        </div>
-        <div class="qa-block">
-            <div class="qa-question">10. How will you handle being a person of authority, and being a friendly member towards others?</div>
-            <div class="qa-answer"><%= application.authorityBalance %></div>
-        </div>
+        <% }) %>
         <div class="qa-block">
             <div class="qa-question">11. Two staff members are arguing in general and violating the rules. What would you do?</div>
-            <div class="qa-answer mc"><%= mcLabel('arguingStaff') %></div>
+            <div class="qa-answer mc <%= isMcCorrect('arguingStaff') ? '' : 'incorrect' %>"><%= mcLabel('arguingStaff') %></div>
+            <span class="qa-grade-tag <%= isMcCorrect('arguingStaff') ? 'correct' : 'incorrect' %>"><%= isMcCorrect('arguingStaff') ? '✓ Correct' : '✗ Incorrect' %></span>
         </div>
         <div class="qa-block">
             <div class="qa-question">12. When should a staff member escalate a situation directly to the owner team?</div>
-            <div class="qa-answer mc"><%= mcLabel('escalation') %></div>
+            <div class="qa-answer mc <%= isMcCorrect('escalation') ? '' : 'incorrect' %>"><%= mcLabel('escalation') %></div>
+            <span class="qa-grade-tag <%= isMcCorrect('escalation') ? 'correct' : 'incorrect' %>"><%= isMcCorrect('escalation') ? '✓ Correct' : '✗ Incorrect' %></span>
         </div>
         <div class="qa-block">
             <div class="qa-question">13. A trusted member breaks a minor rule for the first time; a new member breaks a major rule. How should discipline be approached?</div>
-            <div class="qa-answer mc"><%= mcLabel('fairDiscipline') %></div>
+            <div class="qa-answer mc <%= isMcCorrect('fairDiscipline') ? '' : 'incorrect' %>"><%= mcLabel('fairDiscipline') %></div>
+            <span class="qa-grade-tag <%= isMcCorrect('fairDiscipline') ? 'correct' : 'incorrect' %>"><%= isMcCorrect('fairDiscipline') ? '✓ Correct' : '✗ Incorrect' %></span>
         </div>
         <div class="qa-block">
             <div class="qa-question">14. Best preventative security measure against a hacked moderator account?</div>
-            <div class="qa-answer mc"><%= mcLabel('security') %></div>
+            <div class="qa-answer mc <%= isMcCorrect('security') ? '' : 'incorrect' %>"><%= mcLabel('security') %></div>
+            <span class="qa-grade-tag <%= isMcCorrect('security') ? 'correct' : 'incorrect' %>"><%= isMcCorrect('security') ? '✓ Correct' : '✗ Incorrect' %></span>
         </div>
     </div>
+
+    <script>
+        // Wires up the +1 / -1 / ✕ buttons on each free-response answer.
+        // Clicking one immediately POSTs to the server and saves — no page
+        // reload, no separate "save" button.
+        document.querySelectorAll('.qa-block[data-field]').forEach((block) => {
+            const field = block.dataset.field;
+            const plusBtn = block.querySelector('.mark-btn.plus');
+            const minusBtn = block.querySelector('.mark-btn.minus');
+            const clearBtn = block.querySelector('.mark-btn.clear');
+            const currentLabel = block.querySelector('.mark-current');
+            const savedFlash = block.querySelector('.mark-saved-flash');
+
+            function applyUiState(action) {
+                plusBtn.classList.toggle('active', action === 'plus');
+                minusBtn.classList.toggle('active', action === 'minus');
+                currentLabel.classList.remove('plus', 'minus');
+                if (action === 'plus') {
+                    currentLabel.textContent = 'Marked +1';
+                    currentLabel.classList.add('plus');
+                } else if (action === 'minus') {
+                    currentLabel.textContent = 'Marked -1';
+                    currentLabel.classList.add('minus');
+                } else {
+                    currentLabel.textContent = 'Unmarked';
+                }
+            }
+
+            async function sendMark(action) {
+                const previousAction = plusBtn.classList.contains('active') ? 'plus' : minusBtn.classList.contains('active') ? 'minus' : 'clear';
+                applyUiState(action); // optimistic update
+                try {
+                    const res = await fetch('/co-owner-applications/<%= application.id %>/mark', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ field, action })
+                    });
+                    if (!res.ok) throw new Error('Request failed');
+                    const data = await res.json();
+                    const totalEl = document.getElementById('total-score-value');
+                    if (totalEl && typeof data.totalScore === 'number') totalEl.textContent = data.totalScore + ' pts';
+                    savedFlash.classList.add('show');
+                    setTimeout(() => savedFlash.classList.remove('show'), 1200);
+                } catch (err) {
+                    console.error('Failed to save mark:', err);
+                    applyUiState(previousAction); // revert on failure
+                    alert('Could not save that mark. Please try again.');
+                }
+            }
+
+            plusBtn.addEventListener('click', () => sendMark(plusBtn.classList.contains('active') ? 'clear' : 'plus'));
+            minusBtn.addEventListener('click', () => sendMark(minusBtn.classList.contains('active') ? 'clear' : 'minus'));
+            clearBtn.addEventListener('click', () => sendMark('clear'));
+        });
+    </script>
 
 </div>
 </body>

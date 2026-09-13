@@ -4,6 +4,10 @@ const { commandNames: DEPLOYED_COMMAND_NAMES } = require('./commands');
 const commandHandlers = require('./commands/handlers');
 const { deployCommands } = require('./deploy-commands.js');
 const { extractUserIds, isTempChannelBlocked, buildTempChannelOverwrites } = require('./commands/tempChannelUtils');
+// Answer key used to auto-grade the multiple-choice section of the
+// co-owner application. Keyed by the form field name (e.g. q11_arguing_staff)
+// so it lines up 1:1 with req.body when the application is submitted.
+const coOwnerAnswerKey = require('./views/handlers/co-owner-answers.json');
 
 // Runs slash-command registration in the background. This is intentionally
 // NOT awaited/blocking anywhere in startup — if Discord's API is slow or
@@ -108,6 +112,28 @@ let client;
 
 async function safeSave() {
     try { await db.save(); console.log("💾 Database synced."); } catch (e) { console.error("❌ Sync failed:", e.message); }
+}
+
+// Works out the co-owner application score: auto-graded MC section +
+// whatever staff has manually marked on the free-response questions.
+// Falls back to grading against the answer key on the fly for older
+// applications saved before auto-grading/marking existed.
+function computeCoOwnerScore(application) {
+    let mcScore = application.mcScore;
+    let mcCorrect = application.mcCorrect;
+    if (typeof mcScore !== 'number' || !mcCorrect) {
+        const mcFieldMap = { arguingStaff: 'q11_arguing_staff', escalation: 'q12_escalation', fairDiscipline: 'q13_fair_discipline', security: 'q14_security' };
+        mcCorrect = {};
+        mcScore = 0;
+        Object.entries(mcFieldMap).forEach(([appField, keyField]) => {
+            const isCorrect = String(application[appField] || '').trim() === String(coOwnerAnswerKey[keyField] || '').trim();
+            mcCorrect[keyField] = isCorrect;
+            if (isCorrect) mcScore += 1;
+        });
+    }
+    const marks = application.marks || {};
+    const manualTotal = Object.values(marks).reduce((sum, v) => sum + v, 0);
+    return { mcScore, mcMax: application.mcMax || 4, mcCorrect, marks, manualTotal, totalScore: mcScore + manualTotal };
 }
 
 async function sendDiscordWebhook({ title, message, color = 0x5865F2 }) {
@@ -229,6 +255,7 @@ app.use(session({
     cookie: { maxAge: 60000 * 60 * 24 }
 }));
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use((req, res, next) => {
@@ -430,6 +457,18 @@ app.post('/apply-co-owner', async (req, res) => {
         return res.redirect('/apply-co-owner?error=' + encodeURIComponent('Please enter a valid age.'));
     }
 
+    // Auto-grade the multiple-choice section against the answer key. Each
+    // correct answer is worth 1 point; the per-question breakdown is stored
+    // too so the dashboard can show which ones were right/wrong.
+    const mcFields = ['q11_arguing_staff', 'q12_escalation', 'q13_fair_discipline', 'q14_security'];
+    const mcCorrect = {};
+    let mcScore = 0;
+    mcFields.forEach((field) => {
+        const isCorrect = String(b[field]).trim() === String(coOwnerAnswerKey[field] || '').trim();
+        mcCorrect[field] = isCorrect;
+        if (isCorrect) mcScore += 1;
+    });
+
     const application = {
         id: crypto.randomUUID(),
         status: 'pending',
@@ -448,7 +487,15 @@ app.post('/apply-co-owner', async (req, res) => {
         arguingStaff: String(b.q11_arguing_staff).trim(),
         escalation: String(b.q12_escalation).trim(),
         fairDiscipline: String(b.q13_fair_discipline).trim(),
-        security: String(b.q14_security).trim()
+        security: String(b.q14_security).trim(),
+        // Auto-graded multiple-choice results (out of mcFields.length).
+        mcScore,
+        mcMax: mcFields.length,
+        mcCorrect,
+        // Staff-assigned marks for the free-response questions. Each key maps
+        // to +1 (good answer), -1 (bad answer), or is absent (unmarked).
+        // Populated/updated live from the application detail page.
+        marks: {}
     };
 
     try {
@@ -778,8 +825,12 @@ function checkSettingsAuth(req, res, next) {
 }
 
 app.get('/co-owner-applications', checkSettingsAuth, async (req, res) => {
+    const applications = db.coOwnerApplications || [];
+    const scores = {};
+    applications.forEach((app) => { scores[app.id] = computeCoOwnerScore(app); });
     res.render('co-owner-applications', {
-        applications: db.coOwnerApplications || [],
+        applications,
+        scores,
         user: req.session.user
     });
 });
@@ -789,6 +840,7 @@ app.get('/co-owner-applications/:id', checkSettingsAuth, async (req, res) => {
     if (!application) return res.redirect('/co-owner-applications');
     res.render('co-owner-application-detail', {
         application,
+        score: computeCoOwnerScore(application),
         user: req.session.user
     });
 });
@@ -799,6 +851,44 @@ app.post('/co-owner-applications/:id/delete', checkSettingsAuth, async (req, res
         await safeSave();
     }
     res.redirect('/co-owner-applications');
+});
+
+// Fields a staff member is allowed to hand-grade (the free-response
+// questions — the multiple-choice ones in mcFields are auto-graded above).
+const CO_OWNER_MARKABLE_FIELDS = [
+    'motivation', 'vision', 'stress', 'experience',
+    'unpopularDecisions', 'feedback', 'authorityBalance'
+];
+
+// Staff clicks +1 / -1 / ✕ next to a free-response answer; this saves
+// immediately (no separate "save" step/page reload) and returns the running
+// total so the dashboard can update in place.
+app.post('/co-owner-applications/:id/mark', checkSettingsAuth, async (req, res) => {
+    const application = (db.coOwnerApplications || []).find(a => a.id === req.params.id);
+    if (!application) return res.status(404).json({ error: 'Application not found.' });
+
+    const { field, action } = req.body || {};
+    if (!CO_OWNER_MARKABLE_FIELDS.includes(field)) {
+        return res.status(400).json({ error: 'Unknown or non-markable field.' });
+    }
+    if (!['plus', 'minus', 'clear'].includes(action)) {
+        return res.status(400).json({ error: 'Invalid action.' });
+    }
+
+    if (!application.marks) application.marks = {};
+    if (action === 'plus') application.marks[field] = 1;
+    else if (action === 'minus') application.marks[field] = -1;
+    else delete application.marks[field];
+
+    try {
+        await safeSave();
+    } catch (err) {
+        return res.status(500).json({ error: 'Failed to save mark.' });
+    }
+
+    const manualTotal = Object.values(application.marks).reduce((sum, v) => sum + v, 0);
+    const totalScore = (application.mcScore || 0) + manualTotal;
+    res.json({ success: true, marks: application.marks, totalScore });
 });
 
 // Staff marks an application Pass/Fail; DMs the applicant an embed with the result.

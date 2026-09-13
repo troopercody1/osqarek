@@ -71,6 +71,7 @@
                     <th>Age</th>
                     <th>Submitted</th>
                     <th>Quiz Answers</th>
+                    <th>Score</th>
                     <th>Status</th>
                     <th></th>
                 </tr>
@@ -89,6 +90,12 @@
                             <span class="answer-badge" title="Q13: Fair discipline"><%= app.fairDiscipline %></span>
                             <span class="answer-badge" title="Q14: Security"><%= app.security %></span>
                         </div>
+                    </td>
+                    <td>
+                        <% const s = scores[app.id]; %>
+                        <span class="answer-badge" style="width:auto; padding:0 8px; background:#1f2335;" title="Multiple choice: <%= s.mcScore %>/<%= s.mcMax %> · Staff marks: <%= s.manualTotal >= 0 ? '+' : '' %><%= s.manualTotal %>">
+                            <%= s.totalScore %> pts
+                        </span>
                     </td>
                     <td><span class="status-badge <%= app.status || 'pending' %>"><%= app.status || 'pending' %></span></td>
                     <td>
