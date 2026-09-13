@@ -100,6 +100,9 @@ process.on('unhandledRejection', (reason, promise) => console.error('Unhandled P
 const PORT = process.env.PORT || 3000;
 const GUILD_ID = process.env.GUILD_ID || '771423231114084353';
 const ALLOWED_ROLES = ["850513944329191445", "1511810524818440243", "771423764511981599", "850513087399329823", "801828933800296478", "772558550555295794"];
+// Base URL used to build absolute, shareable links (e.g. the co-owner application
+// status page). Override with PUBLIC_BASE_URL in .env if the domain changes.
+const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || 'https://osqareks-universe.onrender.com').replace(/\/$/, '');
 
 let client;
 
@@ -357,6 +360,7 @@ app.get('/apply-co-owner', (req, res) => {
         discordUser: req.session.applyUser || null,
         error: req.query.error || null,
         success: req.query.success || null,
+        statusUrl: req.query.statusUrl || null,
         stats: { botName: client?.user?.username || "OsQarek's Universe" }
     });
 });
@@ -428,6 +432,7 @@ app.post('/apply-co-owner', async (req, res) => {
 
     const application = {
         id: crypto.randomUUID(),
+        status: 'pending',
         submittedAt: new Date().toISOString(),
         discordId: discordUser.id,
         username: String(discordUser.username).trim().slice(0, 100),
@@ -451,18 +456,36 @@ app.post('/apply-co-owner', async (req, res) => {
         db.coOwnerApplications.push(application);
         await safeSave();
 
+        const statusUrl = `${PUBLIC_BASE_URL}/co-owner-application-status/${application.discordId}`;
+
         await sendDiscordWebhook({
             title: '👑 New Co-Owner Application',
             message: `**Discord Username:** ${application.username}\n**Time-zone:** ${application.timezone}\n**Age:** ${application.age}\n**Quiz answers:** Q11: ${application.arguingStaff} • Q12: ${application.escalation} • Q13: ${application.fairDiscipline} • Q14: ${application.security}\n\nFull answers saved on the dashboard.`,
             color: 0xFFD700
         });
+
+        // Best-effort DM with the applicant's status-check link, in case they
+        // close the tab before reading the on-page confirmation below.
+        try {
+            const applicantUser = await client?.users?.fetch(application.discordId);
+            if (applicantUser) {
+                const linkEmbed = new EmbedBuilder()
+                    .setTitle('👑 Co-Owner Application Received')
+                    .setDescription(`Thanks for applying! You can check your application status any time here:\n${statusUrl}`)
+                    .setColor(0xFFD700)
+                    .setTimestamp();
+                await applicantUser.send({ embeds: [linkEmbed] }).catch(() => console.log('Applicant DMs closed — status link only shown on-page.'));
+            }
+        } catch (dmErr) {
+            console.error('⚠️ [apply-co-owner] Could not DM status link:', dmErr.message);
+        }
+
+        delete req.session.applyUser;
+        return res.redirect('/apply-co-owner?success=1&statusUrl=' + encodeURIComponent(statusUrl));
     } catch (err) {
         console.error('❌ [apply-co-owner] Failed to save application:', err.message);
         return res.redirect('/apply-co-owner?error=' + encodeURIComponent('Something went wrong submitting your application. Please try again.'));
     }
-
-    delete req.session.applyUser;
-    res.redirect('/apply-co-owner?success=1');
 });
 
 // --- PUBLIC VERIFICATION GATE ---
@@ -776,6 +799,49 @@ app.post('/co-owner-applications/:id/delete', checkSettingsAuth, async (req, res
         await safeSave();
     }
     res.redirect('/co-owner-applications');
+});
+
+// Staff marks an application Pass/Fail; DMs the applicant an embed with the result.
+app.post('/co-owner-applications/:id/status', checkSettingsAuth, async (req, res) => {
+    const newStatus = req.body.status === 'passed' ? 'passed' : req.body.status === 'failed' ? 'failed' : null;
+    if (!newStatus) return res.redirect('/co-owner-applications/' + req.params.id);
+
+    const application = (db.coOwnerApplications || []).find(a => a.id === req.params.id);
+    if (!application) return res.redirect('/co-owner-applications');
+
+    application.status = newStatus;
+    await safeSave();
+
+    try {
+        const applicantUser = await client?.users?.fetch(application.discordId);
+        if (applicantUser) {
+            const description = newStatus === 'passed'
+                ? 'Your application has been reviewed by our ownership team. You have passed.'
+                : 'Your application has been reviewed by our ownership team. You have failed. We are sorry that you have failed.';
+            const statusEmbed = new EmbedBuilder()
+                .setTitle('CO-OWNER APPLICATION STATUS')
+                .setDescription(description)
+                .setColor(newStatus === 'passed' ? 0x9ece6a : 0xf7768e)
+                .setTimestamp();
+            await applicantUser.send({ embeds: [statusEmbed] }).catch(() => console.log('Applicant DMs closed — could not send status embed.'));
+        }
+    } catch (err) {
+        console.error('⚠️ [co-owner-applications] Could not DM status update:', err.message);
+    }
+
+    res.redirect('/co-owner-applications/' + req.params.id);
+});
+
+// --- PUBLIC APPLICATION STATUS CHECK ---
+// No auth required — an applicant only needs their own Discord user ID
+// (which they already know) to check where their application stands.
+app.get('/co-owner-application-status/:userId', (req, res) => {
+    const matches = (db.coOwnerApplications || []).filter(a => a.discordId === req.params.userId);
+    const application = matches.length ? matches[matches.length - 1] : null;
+    res.render('co-owner-application-status', {
+        application,
+        stats: { botName: client?.user?.username || "OsQarek's Universe" }
+    });
 });
 
 app.post('/update-settings', checkAuth, async (req, res) => { db.settings = { prefix: req.body.prefix, welcomeChannel: req.body.welcomeChannel, goodbyeChannel: req.body.goodbyeChannel }; await safeSave(); res.redirect('/config'); });

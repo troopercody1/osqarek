@@ -37,6 +37,24 @@
             cursor: pointer; font-family: inherit;
         }
         .btn-danger-outline:hover { background: rgba(247,118,142,0.1); }
+
+        .status-badge {
+            display: inline-block; padding: 4px 12px; border-radius: 99px;
+            font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+        }
+        .status-badge.pending { background: #2e2a1a; color: #e0af68; }
+        .status-badge.passed { background: #1a2e1a; color: #9ece6a; }
+        .status-badge.failed { background: #2e1a1a; color: #f7768e; }
+
+        .decision-row { display: flex; gap: 10px; margin-bottom: 24px; }
+        .btn-pass, .btn-fail {
+            padding: 9px 18px; border-radius: 8px; font-size: 13.5px; font-weight: 700;
+            border: none; cursor: pointer; font-family: inherit;
+        }
+        .btn-pass { background: #1a2e1a; color: #9ece6a; }
+        .btn-pass:hover { background: #234023; }
+        .btn-fail { background: #2e1a1a; color: #f7768e; }
+        .btn-fail:hover { background: #402323; }
     </style>
 </head>
 <body>
@@ -58,9 +76,20 @@
     <a href="/co-owner-applications" class="back">&#8592; Back to All Applications</a>
 
     <div class="header-row">
-        <h1>👑 <%= application.username %></h1>
+        <h1>👑 <%= application.username %> <span class="status-badge <%= application.status || 'pending' %>"><%= application.status || 'pending' %></span></h1>
         <form method="POST" action="/co-owner-applications/<%= application.id %>/delete" onsubmit="return confirm('Delete this application? This cannot be undone.')">
             <button type="submit" class="btn-danger-outline">🗑 Delete Application</button>
+        </form>
+    </div>
+
+    <div class="decision-row">
+        <form method="POST" action="/co-owner-applications/<%= application.id %>/status" onsubmit="return confirm('Mark this application as PASSED and DM the applicant?')">
+            <input type="hidden" name="status" value="passed">
+            <button type="submit" class="btn-pass">✅ Pass</button>
+        </form>
+        <form method="POST" action="/co-owner-applications/<%= application.id %>/status" onsubmit="return confirm('Mark this application as FAILED and DM the applicant?')">
+            <input type="hidden" name="status" value="failed">
+            <button type="submit" class="btn-fail">❌ Fail</button>
         </form>
     </div>
 

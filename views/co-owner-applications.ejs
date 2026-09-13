@@ -42,6 +42,14 @@
             font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit;
         }
         .delete-btn:hover { background: rgba(247,118,142,0.1); }
+
+        .status-badge {
+            display: inline-block; padding: 3px 10px; border-radius: 99px;
+            font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+        }
+        .status-badge.pending { background: #2e2a1a; color: #e0af68; }
+        .status-badge.passed { background: #1a2e1a; color: #9ece6a; }
+        .status-badge.failed { background: #2e1a1a; color: #f7768e; }
     </style>
 </head>
 <body>
@@ -63,6 +71,7 @@
                     <th>Age</th>
                     <th>Submitted</th>
                     <th>Quiz Answers</th>
+                    <th>Status</th>
                     <th></th>
                 </tr>
             </thead>
@@ -81,6 +90,7 @@
                             <span class="answer-badge" title="Q14: Security"><%= app.security %></span>
                         </div>
                     </td>
+                    <td><span class="status-badge <%= app.status || 'pending' %>"><%= app.status || 'pending' %></span></td>
                     <td>
                         <div class="row-actions">
                             <a href="/co-owner-applications/<%= app.id %>" class="view-btn">View</a>

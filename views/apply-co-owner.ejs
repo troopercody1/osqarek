@@ -240,7 +240,13 @@
             <div class="banner error"><%= error %></div>
         <% } %>
         <% if (success) { %>
-            <div class="banner success">✅ Your application has been submitted! The owner team will review it and reach out on Discord if you're selected.</div>
+            <div class="banner success">
+                ✅ Your application has been submitted! The owner team will review it and reach out on Discord if you're selected.
+                <% if (typeof statusUrl !== 'undefined' && statusUrl) { %>
+                    <br><br>You can check your application status any time at:<br>
+                    <a href="<%= statusUrl %>" style="color:#7ee2a0; word-break: break-all;"><%= statusUrl %></a>
+                <% } %>
+            </div>
         <% } %>
 
         <% if (!success) { %>
@@ -248,7 +254,7 @@
                 <h3>Requirements</h3>
                 <ul>
                     <li>Staff experience in this server <strong>(temporary staff counts)</strong></li>
-                    <li>At least <strong>Level 40</strong></li>
+                    <li>At least <strong>Level 15</strong></li>
                     <li>At least <strong>1,500 messages</strong></li>
                     <li>Less than <strong>3 warnings</strong></li>
                 </ul>
