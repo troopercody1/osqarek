@@ -8,6 +8,29 @@ const { extractUserIds, isTempChannelBlocked, buildTempChannelOverwrites } = req
 // co-owner application. Keyed by the form field name (e.g. q11_arguing_staff)
 // so it lines up 1:1 with req.body when the application is submitted.
 const coOwnerAnswerKey = require('./views/handlers/co-owner-answers.json');
+// Named admin/staff logins for the settings dashboard, replacing the old
+// single shared ADMIN_PASS. These live in the same database as everything
+// else (db.adminUsers — saved to Redis/database.json via safeSave(), same
+// as settings/cases/bannedWords), not a separate file.
+// Shape: [{ username, password, rank: "admin" | "mod", passwordChanged }]
+// "rank": "admin" can access /settings and the co-owner application review
+// pages; "rank": "mod" (or anything else) can only use the normal dashboard.
+// "passwordChanged": false (or missing) forces that account to pick a new
+// password the next time it logs in.
+const DEFAULT_ADMIN_USERS = [
+    { username: 'me', password: '123456', rank: 'admin', passwordChanged: false }
+];
+// Returns db.adminUsers, self-healing (like db.bannedWords does) by seeding
+// the default account if the list is ever missing or emptied out.
+function getAdminUsers() {
+    if (!Array.isArray(db.adminUsers) || db.adminUsers.length === 0) {
+        db.adminUsers = DEFAULT_ADMIN_USERS.map(u => ({ ...u }));
+    }
+    return db.adminUsers;
+}
+function isAdminRank(sessionUser) {
+    return sessionUser?.id === 'admin' && sessionUser?.rank === 'admin';
+}
 
 // Runs slash-command registration in the background. This is intentionally
 // NOT awaited/blocking anywhere in startup — if Discord's API is slow or
@@ -265,14 +288,16 @@ app.use((req, res, next) => {
         '/auth/callback',
         '/auth/admin',
         '/auth/verify-admin',
+        '/auth/change-password',
+        '/logout',
         '/verify',
         '/verify/login',
         '/verify/callback',
         '/verify/submit',
     ];
 
-    // Dynamically whitelist `/settings` for admin users
-    if (req.session?.user?.id === 'admin') {
+    // Dynamically whitelist `/settings` for admin-rank users only.
+    if (isAdminRank(req.session?.user)) {
         maintenanceWhitelist.push('/settings');
         maintenanceWhitelist.push('/settings/bot-presence');
         maintenanceWhitelist.push('/settings/bot-presence/reset');
@@ -302,6 +327,16 @@ app.use((req, res, next) => {
     next();
 });
 
+// Forces any locally-logged-in admin/mod account that hasn't set its own
+// password yet to do so before touching anything else on the dashboard.
+app.use((req, res, next) => {
+    const whitelist = ['/auth/change-password', '/logout', '/login', '/auth/admin', '/auth/verify-admin'];
+    if (req.session?.user?.id === 'admin' && req.session?.mustChangePassword && !whitelist.includes(req.path)) {
+        return res.redirect('/auth/change-password');
+    }
+    next();
+});
+
 // Logging Helpers
 const originalLog = console.log;
 const originalError = console.error;
@@ -315,7 +350,7 @@ function checkAuth(req, res, next) {
 
 // --- ROUTES ---
 app.get('/login', (req, res) => {
-    if (req.session?.user && req.session.isHeadAdmin) return res.redirect(req.session.user?.id === 'admin' ? '/settings' : '/config');
+    if (req.session?.user && req.session.isHeadAdmin) return res.redirect(isAdminRank(req.session.user) ? '/settings' : '/config');
     res.render('login', { error: req.query.error || null, stats: { botName: client?.user?.username || "OsQarek’s Universe" } });
 });
 
@@ -645,25 +680,80 @@ app.post('/verify/submit', async (req, res) => {
 });
 
 app.post('/auth/verify-admin', (req, res) => {
-    if (!process.env.ADMIN_PASS) {
-        console.error("❌ [admin login] ADMIN_PASS is not set in .env.");
-        return res.redirect('/auth/admin?error=Admin+login+is+not+configured');
-    }
-    const submitted = req.body.password || '';
-    // Constant-time-ish comparison to avoid trivial timing leaks
-    const valid = submitted.length === process.env.ADMIN_PASS.length &&
-        crypto.timingSafeEqual(Buffer.from(submitted), Buffer.from(process.env.ADMIN_PASS));
+    const adminUsers = getAdminUsers();
+
+    const submittedUsername = String(req.body.username || '').trim();
+    const submittedPassword = req.body.password || '';
+
+    const account = adminUsers.find(u => u.username === submittedUsername);
+    // Constant-time-ish password comparison to avoid trivial timing leaks.
+    // Compares against a same-length dummy buffer when there's no matching
+    // account, so a bad username doesn't short-circuit noticeably faster.
+    const expectedPassword = account ? account.password : '\0'.repeat(submittedPassword.length);
+    const valid = !!account &&
+        submittedPassword.length === expectedPassword.length &&
+        crypto.timingSafeEqual(Buffer.from(submittedPassword), Buffer.from(expectedPassword));
+
     if (valid) {
-        req.session.user = { id: 'admin', username: 'Master Admin', avatar: null };
+        const rank = account.rank === 'admin' ? 'admin' : 'mod';
+        req.session.user = { id: 'admin', username: account.username, rank, avatar: null };
         req.session.isHeadAdmin = true;
-        res.redirect('/settings');
+        req.session.mustChangePassword = account.passwordChanged !== true;
+
+        if (req.session.mustChangePassword) {
+            return res.redirect('/auth/change-password');
+        }
+        res.redirect(rank === 'admin' ? '/settings' : '/config');
     } else {
-        res.redirect('/auth/admin?error=Invalid+Code');
+        res.redirect('/auth/admin?error=Invalid+Username+or+Password');
     }
 });
 
+// --- FORCED PASSWORD CHANGE (first login) ---
+// Any local db.adminUsers account with passwordChanged !== true is routed
+// here (see the global middleware above) before it can touch anything else.
+app.get('/auth/change-password', (req, res) => {
+    if (req.session?.user?.id !== 'admin') return res.redirect('/login');
+    res.render('change-password', { error: req.query.error || null, username: req.session.user.username });
+});
+
+app.post('/auth/change-password', async (req, res) => {
+    if (req.session?.user?.id !== 'admin') return res.redirect('/login');
+
+    const newPassword = String(req.body.newPassword || '');
+    const confirmPassword = String(req.body.confirmPassword || '');
+
+    if (!/^\d{6}$/.test(newPassword)) {
+        return res.redirect('/auth/change-password?error=' + encodeURIComponent('Password must be exactly 6 numbers.'));
+    }
+    if (newPassword !== confirmPassword) {
+        return res.redirect('/auth/change-password?error=' + encodeURIComponent('Passwords do not match.'));
+    }
+
+    const adminUsers = getAdminUsers();
+    const account = adminUsers.find(u => u.username === req.session.user.username);
+    if (!account) {
+        return res.redirect('/auth/change-password?error=' + encodeURIComponent('Account not found. Please log in again.'));
+    }
+    if (newPassword === account.password) {
+        return res.redirect('/auth/change-password?error=' + encodeURIComponent('New password cannot be the same as your current password.'));
+    }
+
+    account.password = newPassword;
+    account.passwordChanged = true;
+    try {
+        await safeSave();
+    } catch (err) {
+        console.error('❌ [change-password] Failed to save admin users to the database:', err.message);
+        return res.redirect('/auth/change-password?error=' + encodeURIComponent('Could not save your new password. Please try again.'));
+    }
+
+    req.session.mustChangePassword = false;
+    res.redirect(req.session.user.rank === 'admin' ? '/settings?msg=Password+updated' : '/config?msg=Password+updated');
+});
+
 app.get('/settings', (req, res) => {
-    if (req.session.user?.id === 'admin') {
+    if (isAdminRank(req.session.user)) {
         res.render('settings', { user: req.session.user, settings: db.settings || {}, bannedWords: db.bannedWords || [], msg: req.query.msg || null, coOwnerApplicationCount: (db.coOwnerApplications || []).length });
     } else res.status(403).send("<h1>403 Forbidden</h1><p>Access denied.</p>");
 });
@@ -820,7 +910,7 @@ app.get('/system-logs', checkAuth, async (req, res) => {
 // checkAuth() used elsewhere, since this list is linked from the Settings
 // page and should require the same password to view.
 function checkSettingsAuth(req, res, next) {
-    if (req.session.user?.id === 'admin') return next();
+    if (isAdminRank(req.session.user)) return next();
     res.status(403).send("<h1>403 Forbidden</h1><p>Access denied.</p>");
 }
 
@@ -1041,7 +1131,7 @@ app.post('/modules/toggle', checkAuth, async (req, res) => {
     res.redirect('/modules');
 });
 app.post('/settings/toggle-maintenance', async (req, res) => {
-    if (req.session.user?.id !== 'admin') return res.status(403).send("Forbidden");
+    if (!isAdminRank(req.session.user)) return res.status(403).send("Forbidden");
     if (!db.settings) db.settings = { maintenanceMode: false };
     db.settings.maintenanceMode = !db.settings.maintenanceMode;
     await db.save();
@@ -1064,7 +1154,7 @@ app.post('/settings/toggle-maintenance', async (req, res) => {
 });
 
 app.post('/settings/maintenance-config', async (req, res) => {
-    if (req.session.user?.id !== 'admin') return res.status(403).send("Forbidden");
+    if (!isAdminRank(req.session.user)) return res.status(403).send("Forbidden");
     if (!db.settings) db.settings = {};
     db.settings.maintenanceETA     = req.body.eta              || '';
     db.settings.maintenanceMessage = req.body.maintenanceMessage || '';
@@ -1074,7 +1164,7 @@ app.post('/settings/maintenance-config', async (req, res) => {
 });
 
 app.post('/settings/rate-limit', async (req, res) => {
-    if (req.session.user?.id !== 'admin') return res.status(403).send("Forbidden");
+    if (!isAdminRank(req.session.user)) return res.status(403).send("Forbidden");
     if (!db.settings) db.settings = {};
     db.settings.rateLimit = parseInt(req.body.rateLimit, 10) || 100;
     await db.save();
@@ -1082,7 +1172,7 @@ app.post('/settings/rate-limit', async (req, res) => {
 });
 
 app.post('/settings/toggle-https', async (req, res) => {
-    if (req.session.user?.id !== 'admin') return res.status(403).send("Forbidden");
+    if (!isAdminRank(req.session.user)) return res.status(403).send("Forbidden");
     if (!db.settings) db.settings = {};
     db.settings.forceHttps = !db.settings.forceHttps;
     await db.save();
@@ -1090,7 +1180,7 @@ app.post('/settings/toggle-https', async (req, res) => {
 });
 
 app.post('/settings/toggle-bots', async (req, res) => {
-    if (req.session.user?.id !== 'admin') return res.status(403).send("Forbidden");
+    if (!isAdminRank(req.session.user)) return res.status(403).send("Forbidden");
     if (!db.settings) db.settings = {};
     db.settings.blockBots = !db.settings.blockBots;
     await db.save();
@@ -1098,7 +1188,7 @@ app.post('/settings/toggle-bots', async (req, res) => {
 });
 
 app.post('/settings/ip-allowlist', async (req, res) => {
-    if (req.session.user?.id !== 'admin') return res.status(403).send("Forbidden");
+    if (!isAdminRank(req.session.user)) return res.status(403).send("Forbidden");
     if (!db.settings) db.settings = {};
     db.settings.ipAllowlist = req.body.ipAllowlist || '';
     await db.save();
@@ -1106,7 +1196,7 @@ app.post('/settings/ip-allowlist', async (req, res) => {
 });
 
 app.post('/settings/cache-strategy', async (req, res) => {
-    if (req.session.user?.id !== 'admin') return res.status(403).send("Forbidden");
+    if (!isAdminRank(req.session.user)) return res.status(403).send("Forbidden");
     if (!db.settings) db.settings = {};
     db.settings.cacheStrategy = req.body.cacheStrategy || 'balanced';
     await db.save();
@@ -1114,7 +1204,7 @@ app.post('/settings/cache-strategy', async (req, res) => {
 });
 
 app.post('/settings/toggle-image-opt', async (req, res) => {
-    if (req.session.user?.id !== 'admin') return res.status(403).send("Forbidden");
+    if (!isAdminRank(req.session.user)) return res.status(403).send("Forbidden");
     if (!db.settings) db.settings = {};
     db.settings.imageOptimisation = !db.settings.imageOptimisation;
     await db.save();
@@ -1122,7 +1212,7 @@ app.post('/settings/toggle-image-opt', async (req, res) => {
 });
 
 app.post('/settings/purge-cache', async (req, res) => {
-    if (req.session.user?.id !== 'admin') return res.status(403).send("Forbidden");
+    if (!isAdminRank(req.session.user)) return res.status(403).send("Forbidden");
     if (!db.settings) db.settings = {};
     db.settings.lastCachePurge = Date.now();
     await db.save();
@@ -1130,7 +1220,7 @@ app.post('/settings/purge-cache', async (req, res) => {
 });
 
 app.post('/settings/toggle-downtime-alerts', async (req, res) => {
-    if (req.session.user?.id !== 'admin') return res.status(403).send("Forbidden");
+    if (!isAdminRank(req.session.user)) return res.status(403).send("Forbidden");
     if (!db.settings) db.settings = {};
     db.settings.downtimeAlerts = !db.settings.downtimeAlerts;
     await db.save();
@@ -1154,7 +1244,7 @@ app.post('/settings/toggle-downtime-alerts', async (req, res) => {
 });
 
 app.post('/settings/discord-webhook', async (req, res) => {
-    if (req.session.user?.id !== 'admin') return res.status(403).send("Forbidden");
+    if (!isAdminRank(req.session.user)) return res.status(403).send("Forbidden");
     if (!db.settings) db.settings = {};
     db.settings.discordWebhook = (req.body.discordWebhook || req.body.slackWebhook || '').trim();
     delete db.settings.slackWebhook;
@@ -1168,7 +1258,7 @@ app.post('/settings/discord-webhook', async (req, res) => {
 });
 
 app.post('/settings/bot-presence', async (req, res) => {
-    if (req.session.user?.id !== 'admin') return res.status(403).send("Forbidden");
+    if (!isAdminRank(req.session.user)) return res.status(403).send("Forbidden");
     if (!db.settings) db.settings = {};
 
     const allowedStatuses = ['online', 'idle', 'dnd', 'invisible'];
@@ -1204,7 +1294,7 @@ app.post('/settings/bot-presence', async (req, res) => {
 });
 
 app.post('/settings/bot-presence/reset', async (req, res) => {
-    if (req.session.user?.id !== 'admin') return res.status(403).send("Forbidden");
+    if (!isAdminRank(req.session.user)) return res.status(403).send("Forbidden");
     if (!db.settings) db.settings = {};
 
     db.settings.botPresenceEnabled = false;
@@ -1229,14 +1319,14 @@ app.post('/delete-case/:id', checkAuth, async (req, res) => {
 });
 
 app.post('/settings/flush-sessions', async (req, res) => {
-    if (req.session.user?.id !== 'admin') return res.status(403).send("Forbidden");
+    if (!isAdminRank(req.session.user)) return res.status(403).send("Forbidden");
     // Destroy the current session last so the admin gets redirected cleanly
     req.session.destroy(() => {});
     res.redirect('/login?msg=All+sessions+flushed');
 });
 
 app.post('/settings/reset', async (req, res) => {
-    if (req.session.user?.id !== 'admin') return res.status(403).send("Forbidden");
+    if (!isAdminRank(req.session.user)) return res.status(403).send("Forbidden");
     db.settings = {};
     await db.save();
     res.redirect('/settings?msg=Settings+reset+to+defaults');
