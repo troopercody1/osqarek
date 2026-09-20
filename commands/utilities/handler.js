@@ -70,6 +70,7 @@ async function osqareksocials({ interaction, client, createEmbed }) {
             { name: '🐦 Twitter', value: '[Follow](https://x.com/OQarek)', inline: true },
             { name: '📸 Instagram', value: '[Follow](https://www.instagram.com/oscarek2304/)', inline: true },
             { name: '🎵 Spotify', value: '[Listen](https://open.spotify.com/artist/1pJNyBvcufHketSgMj3upF?si=2c403446d85648cc)', inline: true },
+            { name: '📺 Roblox Group', value: '[Join](https://www.roblox.com/communities/955168731/OsQareks-Universe-2-0#!/about)', inline: true },
         ],
     });
 
