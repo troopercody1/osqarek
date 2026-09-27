@@ -3,7 +3,7 @@ module.exports = [
         name: 'music',
         description: "OsQarek's Universe Audio Suite",
         options: [
-            { name: 'play', description: 'Play music from SoundCloud', type: 1, options: [{ name: 'query', description: 'The song name or URL', type: 3, required: true }] },
+            { name: 'play', description: 'Play music from YouTube', type: 1, options: [{ name: 'query', description: 'The song name, YouTube video URL, or YouTube playlist URL', type: 3, required: true }] },
             { name: 'skip', description: 'Skip the current song', type: 1 },
             { name: 'queue', description: 'View the music queue', type: 1 },
             { name: 'pause', description: 'Pause the current song', type: 1 },

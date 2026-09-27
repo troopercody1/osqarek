@@ -7,36 +7,30 @@ const {
     createAudioResource,
     VoiceConnectionStatus,
     entersState,
-    demuxProbe,
     getVoiceConnection,
 } = require('@discordjs/voice');
 
-// --- SAFE COOKIE INITIALIZATION ---
+// --- YOUTUBE AUTH (OPTIONAL) ---
 async function setupPlayDL() {
     try {
-        console.log("🔐 Setting up SoundCloud authentication...");
-        // SoundCloud client_ids are scraped, unofficial tokens that SoundCloud
-        // periodically rotates/invalidates. A static SOUNDCLOUD_CLIENT_ID env var
-        // will eventually 401. play.getFreeClientID() scrapes a fresh, currently
-        // valid one from soundcloud.com at startup instead.
-        const clientID = await play.getFreeClientID();
-        await play.setToken({
-            soundcloud: {
-                client_id: clientID
-            }
-        });
-        console.log("✅ SoundCloud Authorized (fresh client ID fetched).");
-    } catch (err) {
-        console.error("❌ SoundCloud Auth Error:", err.message);
-        // Fallback: try the env var if scraping failed for some reason (e.g. network block)
-        if (process.env.SOUNDCLOUD_CLIENT_ID) {
-            try {
-                await play.setToken({ soundcloud: { client_id: process.env.SOUNDCLOUD_CLIENT_ID } });
-                console.log("⚠️ SoundCloud Authorized using fallback SOUNDCLOUD_CLIENT_ID env var (may be stale).");
-            } catch (fallbackErr) {
-                console.error("❌ SoundCloud fallback auth also failed:", fallbackErr.message);
-            }
+        // YouTube streaming works with play-dl out of the box with no auth. A
+        // cookie is only needed to reach age-restricted videos or to reduce the
+        // chance of hitting YouTube's "confirm you're not a bot" block, which
+        // shows up more often on datacenter/cloud-hosted IPs (e.g. Railway).
+        // Export your browser's YouTube cookie header into YOUTUBE_COOKIE to enable it.
+        if (process.env.YOUTUBE_COOKIE) {
+            console.log("🔐 Setting up YouTube authentication...");
+            await play.setToken({
+                youtube: {
+                    cookie: process.env.YOUTUBE_COOKIE
+                }
+            });
+            console.log("✅ YouTube cookie loaded.");
+        } else {
+            console.log("ℹ️ No YOUTUBE_COOKIE set — streaming YouTube without authentication.");
         }
+    } catch (err) {
+        console.error("❌ YouTube Auth Error:", err.message);
     }
 }
 
@@ -52,20 +46,18 @@ async function playSong(guildId, song) {
     }
 
     try {
-        console.log(`🎧 Streaming SoundCloud track: ${song.title}`);
+        console.log(`🎧 Streaming YouTube track: ${song.title}`);
 
-        const streamData = await play.stream(song.streamURL || song.url, {
-            quality: 2,
+        // play-dl auto-picks the best audio-only format and tells us the
+        // container type via streamData.type — no need to re-probe it.
+        const streamData = await play.stream(song.url, {
             discordPlayerCompatibility: true
         });
 
-        const stream = streamData.stream || streamData;
-        if (!stream) throw new Error("SoundCloud stream is null");
+        if (!streamData?.stream) throw new Error("YouTube stream is null");
 
-        const { stream: probedStream, type: probedType } = await demuxProbe(stream);
-
-        const resource = createAudioResource(probedStream, {
-            inputType: probedType,
+        const resource = createAudioResource(streamData.stream, {
+            inputType: streamData.type,
             inlineVolume: true
         });
 
@@ -74,21 +66,9 @@ async function playSong(guildId, song) {
         serverQueue.connection.subscribe(serverQueue.player);
         serverQueue.player.removeAllListeners(AudioPlayerStatus.Idle);
 
-        const playbackStartedAt = Date.now();
         serverQueue.player.play(resource);
 
         serverQueue.player.on(AudioPlayerStatus.Idle, () => {
-            // SoundCloud serves 30s "preview" streams instead of the full track for a lot of
-            // commercial/label music when accessed without a paid/OAuth client_id. If playback
-            // ended way earlier than the track's reported duration, it's almost certainly that —
-            // not a crash — so tell the channel instead of silently vanishing.
-            const playedSeconds = (Date.now() - playbackStartedAt) / 1000;
-            if (song.duration && playedSeconds < song.duration - 10 && playedSeconds < 40) {
-                serverQueue.textChannel?.send(
-                    `⚠️ **${song.title}** cut off after ~${Math.round(playedSeconds)}s — SoundCloud likely only allows a preview clip for this track (common for major-label releases without a paid API key).`
-                ).catch(() => { });
-            }
-
             serverQueue.songs.shift();
 
             if (serverQueue.songs.length > 0) {
@@ -102,9 +82,9 @@ async function playSong(guildId, song) {
         return true;
 
     } catch (err) {
-        console.error(`❌ SoundCloud Stream Error: ${err.message}`);
+        console.error(`❌ YouTube Stream Error: ${err.message}`);
         serverQueue.textChannel?.send(
-            `❌ Couldn't play **${song.title}** — this track's stream link is unavailable (it may have been removed or restricted on SoundCloud).`
+            `❌ Couldn't play **${song.title}** — this video is unavailable (it may be age-restricted, region-locked, or removed from YouTube).`
         ).catch(() => { });
 
         serverQueue.songs.shift();
@@ -167,6 +147,22 @@ async function finalizeSongSelection(interaction, member, song) {
 
     serverQueue.songs.push(song);
     return interaction.followUp(`➕ Added **${song.title}** to queue.`);
+}
+
+// Starts playback with the first video (joining VC if needed) and silently
+// pushes the rest of a playlist onto the queue behind it.
+async function queuePlaylist(interaction, member, songs) {
+    await finalizeSongSelection(interaction, member, songs[0]);
+    const rest = songs.slice(1);
+    if (!rest.length) return;
+
+    const serverQueue = queue.get(interaction.guild.id);
+    if (!serverQueue) return;
+
+    serverQueue.songs.push(...rest);
+    return interaction.channel?.send(
+        `📜 Queued **${rest.length}** more track${rest.length === 1 ? '' : 's'} from the playlist.`
+    ).catch(() => { });
 }
 
 function formatDuration(sec) {
@@ -235,39 +231,62 @@ async function music({ interaction, options, db, createEmbed }) {
 
             try {
                 let results = [];
-                console.log(`DEBUG: Searching SoundCloud for: ${query}`);
+                console.log(`DEBUG: Resolving YouTube query: ${query}`);
 
-                if (query.includes("soundcloud.com")) {
-                    const scTrack = await play.soundcloud(query).catch(() => null);
-                    if (!scTrack) return interaction.editReply("❌ Could not load that SoundCloud link.");
+                const ytType = play.yt_validate(query); // 'video' | 'playlist' | false
 
+                if (ytType === 'playlist') {
+                    const playlist = await play.playlist_info(query, { incomplete: true }).catch(() => null);
+                    if (!playlist) return interaction.editReply("❌ Could not load that YouTube playlist.");
+
+                    const videos = await playlist.all_videos().catch(() => []);
+                    if (!videos.length) return interaction.editReply("❌ That playlist has no playable videos.");
+
+                    const songs = videos.map(v => ({
+                        title: v.title,
+                        url: v.url,
+                        artist: v.channel?.name || "Unknown Artist",
+                        duration: v.durationInSec || 0,
+                        thumbnail: v.thumbnails?.[v.thumbnails.length - 1]?.url,
+                    }));
+
+                    await queuePlaylist(interaction, member, songs).catch(err => {
+                        console.error("❌ STREAM ERROR:", err.message);
+                        return interaction.editReply("❌ Couldn't start that playlist.");
+                    });
+                    return;
+                }
+
+                if (ytType === 'video') {
+                    const info = await play.video_basic_info(query).catch(() => null);
+                    if (!info?.video_details) return interaction.editReply("❌ Could not load that YouTube video.");
+
+                    const v = info.video_details;
                     results = [{
-                        title: scTrack.name || scTrack.title,
-                        url: scTrack.url,
-                        streamURL: scTrack.streamURL,
-                        artist: scTrack.publisher?.artist || "Unknown Artist",
-                        duration: scTrack.durationInSec || 0,
-                        thumbnail: scTrack.thumbnail,
+                        title: v.title,
+                        url: v.url,
+                        artist: v.channel?.name || "Unknown Artist",
+                        duration: v.durationInSec || 0,
+                        thumbnail: v.thumbnails?.[v.thumbnails.length - 1]?.url,
                     }];
                 } else {
                     const searchResults = await play.search(query, {
                         limit: 5,
-                        source: { soundcloud: "tracks" }
+                        source: { youtube: "video" }
                     });
                     console.log(`DEBUG: Found ${searchResults?.length || 0} results`);
 
                     if (!searchResults || searchResults.length === 0) {
-                        return interaction.editReply("❌ No SoundCloud results found.");
+                        return interaction.editReply("❌ No YouTube results found.");
                     }
 
                     // FIX: Enforce 5 result limit to prevent BASE_TYPE_BAD_LENGTH error
-                    results = searchResults.slice(0, 5).map(t => ({
-                        title: t.name || t.title,
-                        url: t.url,
-                        streamURL: t.streamURL,
-                        artist: t.publisher?.artist || "Unknown Artist",
-                        duration: t.durationInSec || 0,
-                        thumbnail: t.thumbnail
+                    results = searchResults.slice(0, 5).map(v => ({
+                        title: v.title,
+                        url: v.url,
+                        artist: v.channel?.name || "Unknown Artist",
+                        duration: v.durationInSec || 0,
+                        thumbnail: v.thumbnails?.[v.thumbnails.length - 1]?.url,
                     }));
                 }
 
@@ -280,13 +299,13 @@ async function music({ interaction, options, db, createEmbed }) {
                     // PATCH: Catch 404s during finalization to stop indefinite "thinking"
                     await finalizeSongSelection(interaction, member, results[0]).catch(err => {
                         console.error("❌ STREAM ERROR:", err.message);
-                        return interaction.editReply("❌ This track is unavailable (404). It may be geo-blocked or private.");
+                        return interaction.editReply("❌ This video is unavailable. It may be geo-blocked or private.");
                     });
                     return;
                 }
 
                 const embed = createEmbed({
-                    title: "🎧 Choose a SoundCloud Track",
+                    title: "🎧 Choose a YouTube Video",
                     description: results.map((r, i) => `**${i + 1}.** [${r.title}](${r.url})\n👤 *${r.artist}* • ⏱️ ${formatDuration(r.duration)}`).join("\n\n"),
                     footer: "Select a track using the buttons below",
                     timestamp: false,
@@ -294,11 +313,11 @@ async function music({ interaction, options, db, createEmbed }) {
 
                 const row = new ActionRowBuilder();
                 results.forEach((_, i) => {
-                    row.addComponents(new ButtonBuilder().setCustomId(`sc_select_${i}`).setLabel(`${i + 1}`).setStyle(ButtonStyle.Primary));
+                    row.addComponents(new ButtonBuilder().setCustomId(`yt_select_${i}`).setLabel(`${i + 1}`).setStyle(ButtonStyle.Primary));
                 });
 
                 const msg = await interaction.editReply({ embeds: [embed], components: [row] });
-                const filter = btn => btn.user.id === interaction.user.id && btn.customId.startsWith("sc_select_");
+                const filter = btn => btn.user.id === interaction.user.id && btn.customId.startsWith("yt_select_");
                 const collector = msg.createMessageComponentCollector({ filter, time: 30000 });
 
                 collector.on("collect", async btn => {
@@ -310,7 +329,7 @@ async function music({ interaction, options, db, createEmbed }) {
                     // PATCH: Catch stream failures for button selections
                     await finalizeSongSelection(interaction, member, chosen).catch(err => {
                         console.error("❌ STREAM ERROR:", err.message);
-                        return interaction.editReply("❌ This track is unavailable (404).");
+                        return interaction.editReply("❌ This video is unavailable.");
                     });
                 });
 
