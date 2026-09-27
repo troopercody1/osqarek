@@ -157,10 +157,14 @@ async function music({ interaction, options, db, createEmbed, client }) {
             try {
                 console.log(`DEBUG: Resolving YouTube query: ${query}`);
 
+                // search() lives on the player, not the manager, so make sure a
+                // player exists (joining the user's VC if needed) before searching.
+                const searchPlayer = await getOrCreatePlayer({ client, interaction, member, textChannel: interaction.channel });
+
                 // player.search() understands raw URLs (video/playlist) as well as
                 // plain text, which it runs through defaultSearchPlatform (ytsearch).
                 // This replaces play-dl's separate yt_validate()/search() branching.
-                const searchResult = await lavalink.search({ query, source: 'ytsearch' }, interaction.user).catch((err) => {
+                const searchResult = await searchPlayer.search({ query, source: 'ytsearch' }, interaction.user).catch((err) => {
                     console.error("❌ YouTube Search Error:", err.message);
                     return null;
                 });
