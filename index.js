@@ -6087,9 +6087,6 @@ client.on('guildMemberRemove', async (member) => {
 // --- BOT STARTUP ---
 (async () => {
     try {
-        await setupPlayDL();
-        console.log("🎧 Play-DL initialized.");
-
         if (!process.env.TOKEN) {
             console.error("❌ Startup aborted: process.env.TOKEN is missing/empty. Check Render's Environment tab.");
             return;
