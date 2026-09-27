@@ -1,0 +1,81 @@
+# Sample application.yml for a Lavalink v4 server, configured for this bot.
+#
+# This file belongs next to Lavalink.jar on whatever machine/host runs the
+# Lavalink SERVER — it is NOT part of the bot process and doesn't get
+# deployed alongside index.js. Rename it to application.yml once filled in.
+#
+# 1. Get Lavalink.jar (Java 17+ required): https://github.com/lavalink-devs/Lavalink/releases
+# 2. Put this file (renamed to application.yml) next to it.
+# 3. Run: java -jar Lavalink.jar
+# 4. Point the bot at it via the LAVALINK_* env vars below (see ../.env.example).
+
+server:
+  port: 2333
+  address: 0.0.0.0
+
+lavalink:
+  plugins:
+    # youtube-source replaces Lavalink's deprecated built-in YouTube source.
+    # https://github.com/lavalink-devs/youtube-source
+    # https://github.com/lavalink-devs/youtube-source/releases — re-check this
+    # occasionally and bump it, since YouTube-facing plugins break over time.
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.2"
+      repository: "https://maven.lavalink.dev/releases"
+      snapshot: false # set true only if you intentionally want a snapshot build
+
+  server:
+    password: "youshallnotpass" # change this, and mirror it in LAVALINK_PASSWORD
+    sources:
+      # The built-in YouTube source is deprecated — youtube-source (above)
+      # replaces it, so it MUST be turned off here or the two will conflict.
+      youtube: false
+      soundcloud: true
+      bandcamp: true
+      twitch: true
+      vimeo: true
+      nico: true
+      http: true # keeping this on without a proxy in front exposes the server's IP
+      local: false
+    filters:
+      volume: true
+      equalizer: true
+      karaoke: true
+      timescale: true
+      tremolo: true
+      vibrato: true
+      distortion: true
+      rotation: true
+      channelMix: true
+      lowPass: true
+    bufferDurationMs: 400
+    frameBufferDurationMs: 5000
+    opusEncodingQuality: 10
+    resamplingQuality: LOW
+    trackStuckThresholdMs: 10000
+    useSeekGhosting: true
+    youtubePlaylistLoadLimit: 6
+    playerUpdateInterval: 5
+    youtubeSearchEnabled: true
+    soundcloudSearchEnabled: true
+
+# youtube-source's own settings — safe to leave at these defaults to start.
+# Full option list: https://github.com/lavalink-devs/youtube-source#plugin
+plugins:
+  youtube:
+    enabled: true
+    allowSearch: true # lets "ytsearch:"/"ytmsearch:" queries work (used by defaultSearchPlatform in lavalink.js)
+    allowDirectVideoIds: true
+    allowDirectPlaylistIds: true
+
+metrics:
+  prometheus:
+    enabled: false
+    endpoint: /metrics
+
+sentry:
+  dsn: ""
+
+logging:
+  level:
+    root: INFO
+    lavalink: INFO

@@ -1,179 +1,112 @@
-const play = require('play-dl');
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const {
-    joinVoiceChannel,
-    createAudioPlayer,
-    AudioPlayerStatus,
-    createAudioResource,
-    VoiceConnectionStatus,
-    entersState,
-    getVoiceConnection,
-} = require('@discordjs/voice');
+const { getLavalink } = require('./lavalink');
 
-// --- YOUTUBE AUTH (OPTIONAL) ---
-async function setupPlayDL() {
-    try {
-        // YouTube streaming works with play-dl out of the box with no auth. A
-        // cookie is only needed to reach age-restricted videos or to reduce the
-        // chance of hitting YouTube's "confirm you're not a bot" block, which
-        // shows up more often on datacenter/cloud-hosted IPs (e.g. Railway).
-        // Export your browser's YouTube cookie header into YOUTUBE_COOKIE to enable it.
-        if (process.env.YOUTUBE_COOKIE) {
-            console.log("🔐 Setting up YouTube authentication...");
-            await play.setToken({
-                youtube: {
-                    cookie: process.env.YOUTUBE_COOKIE
-                }
-            });
-            console.log("✅ YouTube cookie loaded.");
-        } else {
-            console.log("ℹ️ No YOUTUBE_COOKIE set — streaming YouTube without authentication.");
-        }
-    } catch (err) {
-        console.error("❌ YouTube Auth Error:", err.message);
-    }
+// Guild-scoped 24/7 flags. Kept outside the player (instead of the old single
+// global `stayInVC` boolean) so enabling it in one server doesn't affect every
+// other server the bot is in — the original global flag was a bug, not a
+// feature, and it's just as simple to key it by guild.
+const stay247 = new Set();
+
+function formatDuration(ms) {
+    const totalSec = Math.floor((ms || 0) / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-const queue = new Map();
-let stayInVC = false;
+function trackToSong(track) {
+    return {
+        title: track.info.title,
+        url: track.info.uri,
+        artist: track.info.author || "Unknown Artist",
+        duration: track.info.duration,
+        thumbnail: track.info.artworkUrl,
+    };
+}
 
-async function playSong(guildId, song) {
-    const serverQueue = queue.get(guildId);
-    if (!serverQueue || !song) {
-        if (serverQueue?.connection) serverQueue.connection.destroy();
-        queue.delete(guildId);
-        return false;
-    }
+// Wires the manager-level events once per process. Safe to call repeatedly;
+// LavalinkManager is a singleton (see lavalink.js) so this only ever attaches
+// once in practice, but guard anyway in case handler.js is required twice.
+let listenersAttached = false;
+function attachManagerListeners(lavalink) {
+    if (listenersAttached) return;
+    listenersAttached = true;
 
-    try {
-        console.log(`🎧 Streaming YouTube track: ${song.title}`);
-
-        // play-dl auto-picks the best audio-only format and tells us the
-        // container type via streamData.type — no need to re-probe it.
-        const streamData = await play.stream(song.url, {
-            discordPlayerCompatibility: true
-        });
-
-        if (!streamData?.stream) throw new Error("YouTube stream is null");
-
-        const resource = createAudioResource(streamData.stream, {
-            inputType: streamData.type,
-            inlineVolume: true
-        });
-
-        resource.volume.setVolume(serverQueue.volume ?? 0.5);
-
-        serverQueue.connection.subscribe(serverQueue.player);
-        serverQueue.player.removeAllListeners(AudioPlayerStatus.Idle);
-
-        serverQueue.player.play(resource);
-
-        serverQueue.player.on(AudioPlayerStatus.Idle, () => {
-            serverQueue.songs.shift();
-
-            if (serverQueue.songs.length > 0) {
-                playSong(guildId, serverQueue.songs[0]);
-            } else if (!stayInVC) {
-                serverQueue.connection.destroy();
-                queue.delete(guildId);
-            }
-        });
-
-        return true;
-
-    } catch (err) {
-        console.error(`❌ YouTube Stream Error: ${err.message}`);
-        serverQueue.textChannel?.send(
-            `❌ Couldn't play **${song.title}** — this video is unavailable (it may be age-restricted, region-locked, or removed from YouTube).`
+    lavalink.on('trackError', (player, track, payload) => {
+        console.error(`❌ Lavalink track error for "${track?.info?.title}":`, payload?.exception?.message || payload);
+        player.textChannel?.send(
+            `❌ Couldn't play **${track?.info?.title || "that track"}** — ${payload?.exception?.message || "it may be age-restricted, region-locked, or unavailable."}`
         ).catch(() => { });
+    });
 
-        serverQueue.songs.shift();
-        if (serverQueue.songs.length > 0) {
-            return playSong(guildId, serverQueue.songs[0]);
-        } else {
-            serverQueue.connection.destroy();
-            queue.delete(guildId);
-            return false;
-        }
-    }
+    lavalink.on('trackStuck', (player, track) => {
+        console.error(`❌ Lavalink track stuck: "${track?.info?.title}"`);
+        player.textChannel?.send(`⚠️ **${track?.info?.title || "That track"}** got stuck and was skipped.`).catch(() => { });
+    });
+
+    // Fires once the queue has nothing left to play. Mirrors the old
+    // "auto-leave unless 24/7 mode" behavior from the play-dl implementation.
+    lavalink.on('queueEnd', (player) => {
+        if (stay247.has(player.guildId)) return;
+        player.destroy().catch(() => { });
+    });
 }
 
-async function finalizeSongSelection(interaction, member, song) {
-    let serverQueue = queue.get(interaction.guild.id);
+async function getOrCreatePlayer({ client, interaction, member, textChannel }) {
+    const lavalink = getLavalink(client);
+    attachManagerListeners(lavalink);
 
-    if (!serverQueue) {
-        const connection = joinVoiceChannel({
-            channelId: member.voice.channel.id,
-            guildId: interaction.guild.id,
-            adapterCreator: interaction.guild.voiceAdapterCreator,
-            selfDeaf: true
-        });
+    let player = lavalink.getPlayer(interaction.guildId);
+    if (player) return player;
 
-        // --- TEMP DIAGNOSTIC LOGGING (voice connection troubleshooting) ---
-        // Distinguishes "voice signalling never connects" from "signalling OK but
-        // UDP audio path never completes" — these need different fixes.
-        connection.on('debug', (msg) => console.log('🔧 [voice debug]', msg));
-        connection.on('stateChange', (oldState, newState) => {
-            console.log(`🔧 [voice state] ${oldState.status} -> ${newState.status} | networking: ${newState.networking?.state?.code ?? newState.networking?.state ?? 'n/a'}`);
-        });
+    player = lavalink.createPlayer({
+        guildId: interaction.guildId,
+        voiceChannelId: member.voice.channel.id,
+        textChannelId: textChannel.id,
+        selfDeaf: true,
+        selfMute: false,
+    });
+    // Kept for the manager event handlers above, which only receive `player`.
+    player.textChannel = textChannel;
 
-        try {
-            // 5s was too tight for some hosts' network paths to Discord's voice
-            // media servers, causing spurious "operation was aborted" errors
-            // even though the connection would have succeeded a couple seconds later.
-            await entersState(connection, VoiceConnectionStatus.Ready, 20000);
-        } catch (err) {
-            connection.destroy();
-            console.error("❌ Voice connection failed to become ready:", err.message);
-            return interaction.followUp("❌ Couldn't establish a stable voice connection. Please try again.");
-        }
-
-        const queueConstruct = {
-            textChannel: interaction.channel,
-            voiceChannel: member.voice.channel,
-            connection: connection,
-            player: createAudioPlayer(),
-            songs: [song],
-            autoplay: false,
-            volume: 0.5
-        };
-
-        queue.set(interaction.guild.id, queueConstruct);
-        connection.subscribe(queueConstruct.player);
-
-        await playSong(interaction.guild.id, song);
-        return interaction.followUp(`🎶 Now playing: **${song.title}**`);
-    }
-
-    serverQueue.songs.push(song);
-    return interaction.followUp(`➕ Added **${song.title}** to queue.`);
+    await player.connect();
+    return player;
 }
 
-// Starts playback with the first video (joining VC if needed) and silently
-// pushes the rest of a playlist onto the queue behind it.
-async function queuePlaylist(interaction, member, songs) {
-    await finalizeSongSelection(interaction, member, songs[0]);
-    const rest = songs.slice(1);
+async function finalizeSongSelection(interaction, member, track) {
+    const player = await getOrCreatePlayer({ client: interaction.client, interaction, member, textChannel: interaction.channel });
+
+    player.queue.add(track);
+
+    if (!player.playing && !player.paused) {
+        await player.play();
+        return interaction.followUp(`🎶 Now playing: **${track.info.title}**`);
+    }
+
+    return interaction.followUp(`➕ Added **${track.info.title}** to queue.`);
+}
+
+// Starts playback with the first track (joining VC if needed) and silently
+// queues the rest of a playlist behind it.
+async function queuePlaylist(interaction, member, tracks) {
+    await finalizeSongSelection(interaction, member, tracks[0]);
+    const rest = tracks.slice(1);
     if (!rest.length) return;
 
-    const serverQueue = queue.get(interaction.guild.id);
-    if (!serverQueue) return;
+    const player = getLavalink(interaction.client).getPlayer(interaction.guildId);
+    if (!player) return;
 
-    serverQueue.songs.push(...rest);
+    player.queue.add(rest);
     return interaction.channel?.send(
         `📜 Queued **${rest.length}** more track${rest.length === 1 ? '' : 's'} from the playlist.`
     ).catch(() => { });
 }
 
-function formatDuration(sec) {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-async function music({ interaction, options, db, createEmbed }) {
+async function music({ interaction, options, db, createEmbed, client }) {
     const subcommand = interaction.options.getSubcommand();
-    const serverQueue = queue.get(interaction.guildId);
+    const lavalink = getLavalink(client);
+    attachManagerListeners(lavalink);
+    const player = lavalink.getPlayer(interaction.guildId);
     const member = interaction.member;
 
     switch (subcommand) {
@@ -181,23 +114,17 @@ async function music({ interaction, options, db, createEmbed }) {
             const voiceChannel = member.voice.channel;
             if (!voiceChannel) return interaction.editReply("❌ You must be in a voice channel.");
 
-            joinVoiceChannel({
-                channelId: voiceChannel.id,
-                guildId: interaction.guildId,
-                adapterCreator: interaction.guild.voiceAdapterCreator,
-            });
+            await getOrCreatePlayer({ client, interaction, member, textChannel: interaction.channel });
             return interaction.editReply(`✅ Joined **${voiceChannel.name}**.`);
         }
 
         case 'nowplaying': {
-            // 1. Check if the queue exists
-            if (!serverQueue || !serverQueue.songs.length) {
+            const current = player?.queue?.current;
+            if (!current) {
                 return interaction.editReply("❌ Nothing is currently playing.");
             }
 
-            const song = serverQueue.songs[0];
-
-            // 2. Build the Now Playing Embed
+            const song = trackToSong(current);
             const embed = createEmbed({
                 title: "🎶 Now Playing",
                 description: `**[${song.title}](${song.url})**`,
@@ -210,12 +137,10 @@ async function music({ interaction, options, db, createEmbed }) {
                 ],
             });
 
-            // 3. Finalize the reply
             try {
                 await interaction.editReply({ embeds: [embed] });
             } catch (err) {
                 console.error("❌ Now Playing Error:", err);
-                // Fallback if editReply fails
                 if (!interaction.replied) {
                     await interaction.followUp({ embeds: [embed] }).catch(() => { });
                 }
@@ -230,73 +155,48 @@ async function music({ interaction, options, db, createEmbed }) {
             if (!member.voice.channel) return interaction.editReply("❌ You must be in a voice channel.");
 
             try {
-                let results = [];
                 console.log(`DEBUG: Resolving YouTube query: ${query}`);
 
-                const ytType = play.yt_validate(query); // 'video' | 'playlist' | false
+                // player.search() understands raw URLs (video/playlist) as well as
+                // plain text, which it runs through defaultSearchPlatform (ytsearch).
+                // This replaces play-dl's separate yt_validate()/search() branching.
+                const searchResult = await lavalink.search({ query, source: 'ytsearch' }, interaction.user).catch((err) => {
+                    console.error("❌ YouTube Search Error:", err.message);
+                    return null;
+                });
 
-                if (ytType === 'playlist') {
-                    const playlist = await play.playlist_info(query, { incomplete: true }).catch(() => null);
-                    if (!playlist) return interaction.editReply("❌ Could not load that YouTube playlist.");
+                if (!searchResult || searchResult.loadType === 'error') {
+                    return interaction.editReply(`❌ YouTube search failed — ${searchResult?.exception?.message || "the request to YouTube failed."}`);
+                }
+                if (searchResult.loadType === 'empty') {
+                    return interaction.editReply("❌ No YouTube results found.");
+                }
 
-                    const videos = await playlist.all_videos().catch(() => []);
-                    if (!videos.length) return interaction.editReply("❌ That playlist has no playable videos.");
+                if (searchResult.loadType === 'playlist') {
+                    const tracks = searchResult.tracks;
+                    if (!tracks.length) return interaction.editReply("❌ That playlist has no playable videos.");
 
-                    const songs = videos.map(v => ({
-                        title: v.title,
-                        url: v.url,
-                        artist: v.channel?.name || "Unknown Artist",
-                        duration: v.durationInSec || 0,
-                        thumbnail: v.thumbnails?.[v.thumbnails.length - 1]?.url,
-                    }));
-
-                    await queuePlaylist(interaction, member, songs).catch(err => {
+                    await queuePlaylist(interaction, member, tracks).catch(err => {
                         console.error("❌ STREAM ERROR:", err.message);
                         return interaction.editReply("❌ Couldn't start that playlist.");
                     });
                     return;
                 }
 
-                if (ytType === 'video') {
-                    const info = await play.video_basic_info(query).catch(() => null);
-                    if (!info?.video_details) return interaction.editReply("❌ Could not load that YouTube video.");
-
-                    const v = info.video_details;
-                    results = [{
-                        title: v.title,
-                        url: v.url,
-                        artist: v.channel?.name || "Unknown Artist",
-                        duration: v.durationInSec || 0,
-                        thumbnail: v.thumbnails?.[v.thumbnails.length - 1]?.url,
-                    }];
-                } else {
-                    const searchResults = await play.search(query, {
-                        limit: 5,
-                        source: { youtube: "video" }
+                if (searchResult.loadType === 'track') {
+                    await finalizeSongSelection(interaction, member, searchResult.tracks[0]).catch(err => {
+                        console.error("❌ STREAM ERROR:", err.message);
+                        return interaction.editReply("❌ This video is unavailable. It may be geo-blocked or private.");
                     });
-                    console.log(`DEBUG: Found ${searchResults?.length || 0} results`);
-
-                    if (!searchResults || searchResults.length === 0) {
-                        return interaction.editReply("❌ No YouTube results found.");
-                    }
-
-                    // FIX: Enforce 5 result limit to prevent BASE_TYPE_BAD_LENGTH error
-                    results = searchResults.slice(0, 5).map(v => ({
-                        title: v.title,
-                        url: v.url,
-                        artist: v.channel?.name || "Unknown Artist",
-                        duration: v.durationInSec || 0,
-                        thumbnail: v.thumbnails?.[v.thumbnails.length - 1]?.url,
-                    }));
+                    return;
                 }
+
+                // loadType === 'search': show a 1-5 result picker, same as before.
+                const results = searchResult.tracks.slice(0, 5);
+                console.log(`DEBUG: Found ${results.length} results`);
 
                 if (results.length === 1) {
                     console.log("DEBUG: One result found, jumping to finalization");
-                    if (typeof finalizeSongSelection !== 'function') {
-                        return interaction.editReply("❌ Internal Error: finalizeSongSelection is not defined.");
-                    }
-
-                    // PATCH: Catch 404s during finalization to stop indefinite "thinking"
                     await finalizeSongSelection(interaction, member, results[0]).catch(err => {
                         console.error("❌ STREAM ERROR:", err.message);
                         return interaction.editReply("❌ This video is unavailable. It may be geo-blocked or private.");
@@ -306,7 +206,7 @@ async function music({ interaction, options, db, createEmbed }) {
 
                 const embed = createEmbed({
                     title: "🎧 Choose a YouTube Video",
-                    description: results.map((r, i) => `**${i + 1}.** [${r.title}](${r.url})\n👤 *${r.artist}* • ⏱️ ${formatDuration(r.duration)}`).join("\n\n"),
+                    description: results.map((t, i) => `**${i + 1}.** [${t.info.title}](${t.info.uri})\n👤 *${t.info.author || "Unknown Artist"}* • ⏱️ ${formatDuration(t.info.duration)}`).join("\n\n"),
                     footer: "Select a track using the buttons below",
                     timestamp: false,
                 });
@@ -323,10 +223,9 @@ async function music({ interaction, options, db, createEmbed }) {
                 collector.on("collect", async btn => {
                     const index = parseInt(btn.customId.split("_")[2]);
                     const chosen = results[index];
-                    await btn.update({ content: `🎶 Selected: **${chosen.title}**`, embeds: [], components: [] }).catch(() => { });
+                    await btn.update({ content: `🎶 Selected: **${chosen.info.title}**`, embeds: [], components: [] }).catch(() => { });
                     collector.stop();
 
-                    // PATCH: Catch stream failures for button selections
                     await finalizeSongSelection(interaction, member, chosen).catch(err => {
                         console.error("❌ STREAM ERROR:", err.message);
                         return interaction.editReply("❌ This video is unavailable.");
@@ -346,43 +245,40 @@ async function music({ interaction, options, db, createEmbed }) {
             break;
         }
         case 'skip': {
-            if (!serverQueue || !serverQueue.songs.length) return interaction.editReply("❌ Nothing to skip.");
-            serverQueue.songs.shift();
-            if (!serverQueue.songs.length) {
-                serverQueue.player.stop(true);
-                serverQueue.connection.destroy();
-                queue.delete(interaction.guildId);
-                return interaction.editReply("⏭️ Skipped. Queue is now empty.");
-            }
-            await playSong(interaction.guildId, serverQueue.songs[0]);
-            return interaction.editReply("⏭️ Skipped to the next track.");
+            if (!player || !player.queue.current) return interaction.editReply("❌ Nothing to skip.");
+            const hadNext = player.queue.tracks.length > 0;
+            await player.skip(0, false);
+            return interaction.editReply(hadNext ? "⏭️ Skipped to the next track." : "⏭️ Skipped. Queue is now empty.");
         }
 
         case 'queue': {
-            if (!serverQueue || !serverQueue.songs.length) return interaction.editReply("📜 The queue is empty.");
-            const lines = serverQueue.songs.map((s, i) => `**${i === 0 ? "▶️" : i}.** [${s.title}](${s.url})`).slice(0, 20);
+            if (!player || !player.queue.current) return interaction.editReply("📜 The queue is empty.");
+            const songs = [player.queue.current, ...player.queue.tracks];
+            const lines = songs.map((t, i) => `**${i === 0 ? "▶️" : i}.** [${t.info.title}](${t.info.uri})`).slice(0, 20);
             const embed = createEmbed({
                 title: "📜 Current Queue",
                 description: lines.join("\n"),
-                footer: `Total tracks: ${serverQueue.songs.length}`,
+                footer: `Total tracks: ${songs.length}`,
                 timestamp: false,
             });
             return interaction.editReply({ embeds: [embed] });
         }
 
         case 'pause': {
-            if (!serverQueue) return interaction.editReply("❌ Nothing is playing.");
-            return interaction.editReply(serverQueue.player.pause() ? "⏸️ Paused the music." : "❌ Music is already paused.");
+            if (!player) return interaction.editReply("❌ Nothing is playing.");
+            if (player.paused) return interaction.editReply("❌ Music is already paused.");
+            await player.pause();
+            return interaction.editReply("⏸️ Paused the music.");
         }
 
         case 'resume': {
-            if (!serverQueue) return interaction.editReply("❌ Nothing is playing.");
-            return interaction.editReply(serverQueue.player.unpause() ? "▶️ Resumed the music." : "❌ Music is already playing.");
+            if (!player) return interaction.editReply("❌ Nothing is playing.");
+            if (!player.paused) return interaction.editReply("❌ Music is already playing.");
+            await player.resume();
+            return interaction.editReply("▶️ Resumed the music.");
         }
         case 'volume': {
-            const serverQueue = queue.get(interaction.guild.id);
-
-            if (!serverQueue) {
+            if (!player) {
                 return interaction.editReply("❌ No music is currently playing.");
             }
 
@@ -393,59 +289,47 @@ async function music({ interaction, options, db, createEmbed }) {
                 return interaction.editReply("❌ Please provide a volume between 0 and 1000.");
             }
 
-            const volumeFactor = level / 100; // 1000 becomes 10.0
+            // Lavalink's player volume is already a 0-1000 percentage, so it takes
+            // the slash command's `level` directly (no /100 conversion needed here).
+            await player.setVolume(level);
 
-            // 1. Update the saved volume in your queue object
-            serverQueue.volume = volumeFactor;
-
-            // 2. Apply it immediately to the current song resource
-            const currentResource = serverQueue.player.state.resource;
-
-            if (currentResource && currentResource.volume) {
-                currentResource.volume.setVolume(volumeFactor);
-
-                let response = `🔊 Volume set to **${level}%**`;
-
-                // Dynamic warnings based on how high they push it
-                if (level > 200) {
-                    response += "\n☢️ **WARNING:** Extreme volume levels will cause heavy distortion!";
-                } else if (level > 100) {
-                    response += "\n⚠️ *Note: Volumes above 100% may cause audio distortion.*";
-                }
-
-                return interaction.editReply(response);
-            } else {
-                return interaction.editReply("⚠️ Volume updated for future tracks, but the current stream doesn't support live adjustments.");
+            let response = `🔊 Volume set to **${level}%**`;
+            if (level > 200) {
+                response += "\n☢️ **WARNING:** Extreme volume levels will cause heavy distortion!";
+            } else if (level > 100) {
+                response += "\n⚠️ *Note: Volumes above 100% may cause audio distortion.*";
             }
+
+            return interaction.editReply(response);
         }
 
         case 'leave': {
-            const connection = getVoiceConnection(interaction.guildId);
-            if (!connection) return interaction.editReply("❌ I'm not in a voice channel.");
-            connection.destroy();
-            queue.delete(interaction.guildId);
+            if (!player) return interaction.editReply("❌ I'm not in a voice channel.");
+            stay247.delete(interaction.guildId);
+            await player.destroy();
             return interaction.editReply("👋 Left the voice channel and cleared the queue.");
         }
 
         case 'autoplay': {
-            if (!serverQueue) return interaction.editReply("❌ No active queue.");
-            serverQueue.autoplay = !serverQueue.autoplay;
-            return interaction.editReply(`🔁 Autoplay is now **${serverQueue.autoplay ? 'ENABLED' : 'DISABLED'}**.`);
+            if (!player) return interaction.editReply("❌ No active queue.");
+            player.autoplayEnabled = !player.autoplayEnabled;
+            return interaction.editReply(`🔁 Autoplay is now **${player.autoplayEnabled ? 'ENABLED' : 'DISABLED'}**.`);
         }
 
         case '247': {
-            stayInVC = !stayInVC;
-            return interaction.editReply(`🛰️ 24/7 mode is now **${stayInVC ? 'ENABLED' : 'DISABLED'}**.`);
+            const enabled = !stay247.has(interaction.guildId);
+            if (enabled) stay247.add(interaction.guildId);
+            else stay247.delete(interaction.guildId);
+            return interaction.editReply(`🛰️ 24/7 mode is now **${enabled ? 'ENABLED' : 'DISABLED'}**.`);
         }
 
         case 'clear': {
-            if (!serverQueue) return interaction.editReply("❌ There is no active queue to clear.");
-            serverQueue.songs = [serverQueue.songs[0]];
+            if (!player || !player.queue.tracks.length) return interaction.editReply("❌ There is no active queue to clear.");
+            player.queue.splice(0, player.queue.tracks.length);
             return interaction.editReply("🧹 Cleared all upcoming songs from the queue.");
         }
     }
 
-    // FINAL PATCH: Fallback to ensure the "Thinking" state is cleared if a subcommand ends early
     if (interaction.deferred && !interaction.replied) {
         await interaction.editReply("✅ Command processed.").catch(() => { });
     }
@@ -454,6 +338,4 @@ async function music({ interaction, options, db, createEmbed }) {
 
 module.exports = {
     music,
-    setupPlayDL,
-    queue,
 };
