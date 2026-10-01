@@ -54,6 +54,15 @@ plugins:
       - TVHTML5_SIMPLY
       - ANDROID_VR
       - WEB
+    # YouTube's player scripts changed and the plugin's built-in (local)
+    # signature extraction fails with "Must find sig function". A remote
+    # cipher server does the deciphering instead. This is the public
+    # community instance from the yt-cipher README; self-host kikkia/yt-cipher
+    # (and add `password:` matching its API_TOKEN) if you want to depend on
+    # nothing external.
+    remoteCipher:
+      url: "https://cipher.kikkia.dev/"
+      userAgent: "osqarek-lavalink"
     oauth:
       enabled: true
       # Token comes from the PLUGINS_YOUTUBE_OAUTH_REFRESHTOKEN env var.
