@@ -1,96 +1,29 @@
-# Sample application.yml for a Lavalink v4 server, configured for this bot.
-#
-# This file belongs next to Lavalink.jar on whatever machine/host runs the
-# Lavalink SERVER — it is NOT part of the bot process and doesn't get
-# deployed alongside index.js. Rename it to application.yml once filled in.
-#
-# 1. Get Lavalink.jar (Java 17+ required): https://github.com/lavalink-devs/Lavalink/releases
-# 2. Put this file (renamed to application.yml) next to it.
-# 3. Run: java -jar Lavalink.jar
-# 4. Point the bot at it via the LAVALINK_* env vars below (see ../.env.example).
-
-server:
-  port: 2333
-  address: 0.0.0.0
-
-lavalink:
-  # No `lavalink.plugins:` dependency list here on purpose. Lavalink's own
-  # downloader fetches plugins from maven.lavalink.dev, which has been
-  # unreliable for this artifact (404s even on valid release tags). Instead,
-  # the Dockerfile downloads the youtube-source plugin jar directly from
-  # GitHub Releases and drops it into ./plugins/ — Lavalink auto-loads any
-  # jar it finds there, so nothing else needs to go here.
-  # https://github.com/lavalink-devs/youtube-source/releases
-
-  server:
-    password: "youshallnotpass" # change this, and mirror it in LAVALINK_PASSWORD
-    sources:
-      # The built-in YouTube source is deprecated — youtube-source (above)
-      # replaces it, so it MUST be turned off here or the two will conflict.
-      youtube: false
-      soundcloud: true
-      bandcamp: true
-      twitch: true
-      vimeo: true
-      nico: true
-      http: true # keeping this on without a proxy in front exposes the server's IP
-      local: false
-    filters:
-      volume: true
-      equalizer: true
-      karaoke: true
-      timescale: true
-      tremolo: true
-      vibrato: true
-      distortion: true
-      rotation: true
-      channelMix: true
-      lowPass: true
-    bufferDurationMs: 400
-    frameBufferDurationMs: 5000
-    opusEncodingQuality: 10
-    resamplingQuality: LOW
-    trackStuckThresholdMs: 10000
-    useSeekGhosting: true
-    youtubePlaylistLoadLimit: 6
-    playerUpdateInterval: 5
-    youtubeSearchEnabled: true
-    soundcloudSearchEnabled: true
-
-# youtube-source's own settings — safe to leave at these defaults to start.
-# Full option list: https://github.com/lavalink-devs/youtube-source#plugin
 plugins:
   youtube:
     enabled: true
-    allowSearch: true # lets "ytsearch:"/"ytmsearch:" queries work (used by defaultSearchPlatform in lavalink.js)
+    allowSearch: true
     allowDirectVideoIds: true
     allowDirectPlaylistIds: true
-    # ANDROID/MUSIC/WEB cover most playback; TVHTML5_SIMPLY is a good fallback
-    # for videos the others get blocked on. (TVHTML5EMBEDDED was retired
-    # upstream in plugin 1.18.0 — don't use it.)
     clients:
-      - MUSIC
-      - ANDROID
-      - WEB
+      - MUSIC          # search only
+      - TV
       - TVHTML5_SIMPLY
+      - ANDROID_VR
+      - WEB
     oauth:
-      # Leave this off to start. If you start seeing frequent 429s or "sign
-      # in to confirm you're not a bot" errors, set this to true, redeploy,
-      # and watch the logs — Lavalink prints a youtube.com/device URL and a
-      # code. Open it in any browser, sign in, and Lavalink prints a refresh
-      # token to paste into refreshToken below; redeploy once more.
       enabled: true
-      refreshToken: ""
-
-metrics:
-  prometheus:
-    enabled: false
-    endpoint: /metrics
-
-sentry:
-  dsn: ""
+      refreshToken: ""        # fill after the first login, see below
+      # skipInitialization: true  # uncomment once refreshToken is set
+    # Optional, helps with "confirm you're not a bot":
+    # pot:
+    #   token: "..."
+    #   visitorData: "..."
 
 logging:
   level:
     root: INFO
     lavalink: INFO
+  request:
+    enabled: true
+    includePayload: false
+    includeQueryString: true
