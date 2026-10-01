@@ -14,14 +14,16 @@ server:
   address: 0.0.0.0
 
 lavalink:
-  plugins:
-    # youtube-source replaces Lavalink's deprecated built-in YouTube source.
-    # https://github.com/lavalink-devs/youtube-source
-    # https://github.com/lavalink-devs/youtube-source/releases — re-check this
-    # occasionally and bump it, since YouTube-facing plugins break over time.
-    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.2"
-      repository: "https://maven.lavalink.dev/releases"
-      snapshot: false # set true only if you intentionally want a snapshot build
+  # If you're running this by hand (java -jar Lavalink.jar) rather than via
+  # the Dockerfile in this folder, you'll need Lavalink to fetch the plugin
+  # itself. Uncomment the block below — but note maven.lavalink.dev has been
+  # unreliable for this artifact; if the jar 404s on startup, download it
+  # manually from https://github.com/lavalink-devs/youtube-source/releases
+  # and place it in a ./plugins/ folder next to Lavalink.jar instead.
+  # plugins:
+  #   - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.2"
+  #     repository: "https://maven.lavalink.dev/releases"
+  #     snapshot: false
 
   server:
     password: "youshallnotpass" # change this, and mirror it in LAVALINK_PASSWORD
