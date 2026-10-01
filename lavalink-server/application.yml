@@ -79,7 +79,7 @@ plugins:
       # and watch the logs — Lavalink prints a youtube.com/device URL and a
       # code. Open it in any browser, sign in, and Lavalink prints a refresh
       # token to paste into refreshToken below; redeploy once more.
-      enabled: false
+      enabled: true
       refreshToken: ""
 
 metrics:
