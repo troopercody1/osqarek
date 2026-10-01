@@ -1,3 +1,47 @@
+# Deployed Lavalink config (Render). The youtube-source plugin is fetched by
+# Lavalink itself as a SNAPSHOT build (see lavalink.plugins below) because the
+# tagged 1.18.2 release is broken by YouTube's SABR changes. Because of that,
+# the Dockerfile no longer bakes in a plugin jar — two copies would conflict.
+#
+# To roll back to the tagged release: delete the `plugins:` list below and
+# restore the plugin-downloader stage in the Dockerfile.
+
+server:
+  address: 0.0.0.0
+  # port comes from SERVER_PORT, which the Dockerfile sets from Render's $PORT
+
+lavalink:
+  plugins:
+    - dependency: "dev.lavalink.youtube:youtube-plugin:f45bbb7aebfcbc1c553769e04af6cd43afa8b7c3"
+      repository: "https://maven.lavalink.dev/snapshots"
+      snapshot: true
+
+  server:
+    # Prefer setting this via the LAVALINK_SERVER_PASSWORD env var on Render
+    # (and the same value in the bot's LAVALINK_PASSWORD).
+    password: "youshallnotpass"
+    sources:
+      # MUST be false: the built-in source is deprecated and intercepts
+      # ytsearch: before the plugin, causing "search response: 400".
+      youtube: false
+      soundcloud: true
+      bandcamp: true
+      twitch: true
+      vimeo: true
+      nico: true
+      http: true
+      local: false
+    bufferDurationMs: 400
+    frameBufferDurationMs: 5000
+    opusEncodingQuality: 10
+    resamplingQuality: LOW
+    trackStuckThresholdMs: 10000
+    useSeekGhosting: true
+    youtubePlaylistLoadLimit: 6
+    playerUpdateInterval: 5
+    youtubeSearchEnabled: true
+    soundcloudSearchEnabled: true
+
 plugins:
   youtube:
     enabled: true
@@ -12,12 +56,16 @@ plugins:
       - WEB
     oauth:
       enabled: true
-      refreshToken: ""        # fill after the first login, see below
-      # skipInitialization: true  # uncomment once refreshToken is set
-    # Optional, helps with "confirm you're not a bot":
-    # pot:
-    #   token: "..."
-    #   visitorData: "..."
+      # Token comes from the PLUGINS_YOUTUBE_OAUTH_REFRESHTOKEN env var.
+      # skipInitialization avoids starting a new device flow on every boot.
+      skipInitialization: true
+
+metrics:
+  prometheus:
+    enabled: false
+
+sentry:
+  dsn: ""
 
 logging:
   level:
