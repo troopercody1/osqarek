@@ -444,6 +444,30 @@
     </div>
 
     <!-- ══════════════════════════════════════
+         MODERATOR APPLICATIONS
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Moderator Applications</div>
+        <div class="card">
+            <div class="row clickable" onclick="window.location.href='/mod-applications'">
+                <div class="row-icon" style="background:#1f2030;">
+                    <span style="color:#7aa2f7;">&#128737;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Applicant submissions</div>
+                    <div class="row-desc">
+                        <%= modApplicationCount %> application<%= modApplicationCount === 1 ? '' : 's' %> submitted via /mod-apps/apply
+                    </div>
+                </div>
+                <div class="row-end">
+                    <span class="badge badge-info"><%= modApplicationCount %></span>
+                    <a href="/mod-applications" class="btn btn-primary" onclick="event.stopPropagation();">View All</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
          NOTIFICATIONS
     ══════════════════════════════════════ -->
     <div class="section">

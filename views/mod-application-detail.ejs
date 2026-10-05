@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Moderator Application — <%= application.username %></title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #16161e; color: #a9b1d6; padding: 40px 20px; }
+        .page { max-width: 720px; margin: 0 auto; }
+
+        a.back { color: #7aa2f7; text-decoration: none; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 24px; }
+        a.back:hover { color: #a9c5ff; }
+
+        h1 { color: #7aa2f7; font-size: 22px; font-weight: 600; margin-bottom: 20px; }
+
+        .app-meta { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+        .app-meta .stat { background: #1a1b26; border: 1px solid #2f3549; border-radius: 10px; padding: 12px 16px; flex: 1; min-width: 140px; }
+        .app-meta .label { display: block; color: #565f89; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+        .app-meta .value { color: #c0caf5; font-weight: 600; font-size: 15px; }
+
+        .card { background: #1a1b26; border: 1px solid #2f3549; border-radius: 12px; padding: 4px 20px; }
+
+        .qa-block { padding: 18px 0; border-bottom: 1px solid #2f3549; }
+        .qa-block:last-child { border-bottom: none; }
+        .qa-question { color: #7dcfff; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+        .qa-answer { color: #a9b1d6; line-height: 1.6; white-space: pre-wrap; font-size: 14px; }
+        .qa-answer.mc {
+            display: inline-block; padding: 4px 12px; border-radius: 6px;
+            background: #1a2e1a; color: #9ece6a; font-weight: 700; font-size: 13px;
+        }
+        .qa-answer.mc.incorrect { background: #2e1a1a; color: #f7768e; }
+        .qa-grade-tag {
+            display: inline-block; margin-left: 8px; font-size: 11px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.03em;
+        }
+        .qa-grade-tag.correct { color: #9ece6a; }
+        .qa-grade-tag.incorrect { color: #f7768e; }
+        .header-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+        .header-row h1 { margin-bottom: 0; }
+        .btn-danger-outline { background: transparent; color: #f7768e; border: 1px solid #4a1c1c; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+        .btn-danger-outline:hover { background: rgba(247,118,142,0.1); }
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+        .status-badge.pending { background: #2e2a1a; color: #e0af68; }
+        .status-badge.passed { background: #1a2e1a; color: #9ece6a; }
+        .status-badge.failed { background: #2e1a1a; color: #f7768e; }
+        .decision-row { display: flex; gap: 10px; margin-bottom: 24px; }
+        .btn-pass, .btn-fail { padding: 9px 18px; border-radius: 8px; font-size: 13.5px; font-weight: 700; border: none; cursor: pointer; font-family: inherit; }
+        .btn-pass { background: #1a2e1a; color: #9ece6a; } .btn-pass:hover { background: #234023; }
+        .btn-fail { background: #2e1a1a; color: #f7768e; } .btn-fail:hover { background: #402323; }
+        .qa-answer.pills { display: flex; gap: 6px; flex-wrap: wrap; }
+        .pill { padding: 4px 12px; border-radius: 6px; background: #1f2335; color: #7dcfff; font-weight: 700; font-size: 13px; }
+    </style>
+</head>
+<body>
+<div class="page">
+    <%
+        const essays = [
+            ['why', '5. Why do you want to be a moderator?'],
+            ['experience', '6. Do you have moderating experience, if so where?'],
+            ['modAbuse', '7. What do you do if you see another moderator abusing their power?'],
+            ['trolling', '8. What if someone is trolling, what do you do?']
+        ];
+        const choices = [
+            ['ruleAbuse', '9. What if someone is abusing the rules, what will you do?'],
+            ['pornDms', '10. What if someone sends porn to you in DMs, what do you do?'],
+            ['disabilityBullying', '11. What if someone bullies someone for their disability?']
+        ];
+    %>
+    <a href="/mod-applications" class="back">&#8592; Back to All Applications</a>
+
+    <div class="header-row">
+        <h1>🛡️ <%= application.username %> <span class="status-badge <%= application.status || 'pending' %>"><%= application.status || 'pending' %></span></h1>
+        <form method="POST" action="/mod-applications/<%= application.id %>/delete" onsubmit="return confirm('Delete this application? This cannot be undone.')">
+            <button type="submit" class="btn-danger-outline">🗑 Delete Application</button>
+        </form>
+    </div>
+
+    <div class="decision-row">
+        <form method="POST" action="/mod-applications/<%= application.id %>/status" onsubmit="return confirm('Mark this application as PASSED and DM the applicant?')">
+            <input type="hidden" name="status" value="passed"><button type="submit" class="btn-pass">✅ Pass</button>
+        </form>
+        <form method="POST" action="/mod-applications/<%= application.id %>/status" onsubmit="return confirm('Mark this application as FAILED and DM the applicant?')">
+            <input type="hidden" name="status" value="failed"><button type="submit" class="btn-fail">❌ Fail</button>
+        </form>
+    </div>
+
+    <div class="app-meta">
+        <div class="stat"><span class="label">Discord ID</span><span class="value"><%= application.discordId %></span></div>
+        <div class="stat"><span class="label">Age</span><span class="value"><%= application.age %></span></div>
+        <div class="stat"><span class="label">Joined</span><span class="value"><%= application.joined %></span></div>
+        <div class="stat"><span class="label">Country / Time-zone</span><span class="value"><%= application.countryTimezone %></span></div>
+        <div class="stat"><span class="label">Submitted</span><span class="value"><%= new Date(application.submittedAt).toLocaleString('en-GB') %></span></div>
+    </div>
+
+    <div class="card">
+        <% essays.forEach(([field, text]) => { %>
+        <div class="qa-block">
+            <div class="qa-question"><%= text %></div>
+            <div class="qa-answer"><%= application[field] %></div>
+        </div>
+        <% }) %>
+        <% choices.forEach(([field, text]) => { %>
+        <div class="qa-block">
+            <div class="qa-question"><%= text %></div>
+            <div class="qa-answer pills"><% (application[field] || []).forEach(v => { %><span class="pill"><%= v %></span><% }) %></div>
+        </div>
+        <% }) %>
+        <div class="qa-block">
+            <div class="qa-question">12. Anything else you want to tell us about you?</div>
+            <div class="qa-answer"><%= application.other %></div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
