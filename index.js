@@ -988,6 +988,7 @@ const DASHBOARD_TABS = {
     'reaction-roles': 'roles',
     'banned-words': 'banned-words',
     'system-logs': 'terminal',
+    confessions: 'confessions',
 };
 
 async function renderDashboard(req, res, activeTab, overrides = {}) {
@@ -1021,6 +1022,13 @@ async function renderDashboard(req, res, activeTab, overrides = {}) {
         logs: global.botLogs,
         errors: global.botErrors,
         db,
+        confessionBans: db.confessionBans || [],
+        recentConfessions: (db.confessions || []).slice(-50).reverse(),
+        confessionTotal: db.confessionCount || 0,
+        confessionConfig: (() => {
+            const name = (id) => id ? (guild?.channels?.cache.get(id)?.name ? '#' + guild.channels.cache.get(id).name : id) : null;
+            return { channel: name((process.env.CONFESSION_CHANNEL || '').trim()), logs: name((process.env.CONFESSION_LOGS || '').trim()) };
+        })(),
         activeTab,
         activePage: overrides.activePage || null,
         ...overrides.render,
@@ -1052,6 +1060,39 @@ app.get('/reaction-roles', checkAuth, async (req, res) => {
 
 app.get('/banned-words', checkAuth, async (req, res) => {
     await renderDashboard(req, res, DASHBOARD_TABS['banned-words'], { activePage: 'banned-words' });
+});
+
+app.get('/confessions', checkAuth, async (req, res) => {
+    await renderDashboard(req, res, DASHBOARD_TABS.confessions, { activePage: 'confessions' });
+});
+
+// Disallow / allow a user from /confess, straight from the dashboard.
+app.post('/confessions/disallow', checkAuth, async (req, res) => {
+    const userId = String(req.body.userId || '').trim();
+    if (!/^\d{15,25}$/.test(userId)) return res.redirect('/confessions');
+    if (!Array.isArray(db.confessionBans)) db.confessionBans = [];
+    if (!db.confessionBans.some(b => b.userId === userId)) {
+        const known = (db.confessions || []).slice().reverse().find(c => c.userId === userId);
+        const cached = client?.users?.cache.get(userId);
+        db.confessionBans.push({
+            userId,
+            username: cached?.tag || cached?.username || known?.username || userId,
+            reason: String(req.body.reason || '').trim().slice(0, 300) || 'No reason given',
+            by: (req.session.user?.username || req.session.user?.id || 'dashboard') + ' (dashboard)',
+            at: new Date().toISOString()
+        });
+        await safeSave();
+    }
+    res.redirect('/confessions');
+});
+
+app.post('/confessions/allow', checkAuth, async (req, res) => {
+    const userId = String(req.body.userId || '').trim();
+    if (Array.isArray(db.confessionBans)) {
+        db.confessionBans = db.confessionBans.filter(b => b.userId !== userId);
+        await safeSave();
+    }
+    res.redirect('/confessions');
 });
 
 app.get('/system-logs', checkAuth, async (req, res) => {
@@ -2357,7 +2398,8 @@ client.on('interactionCreate', async (interaction) => {
         try {
             // 2. Use flags: [64] is the modern way to do ephemeral (private) replies.
             await interaction.deferReply({
-                flags: (commandName === 'loa' || commandName === 'help') ? [64] : []
+                // 'confess' MUST be ephemeral or Discord shows "<user> used /confess" publicly.
+                flags: (commandName === 'loa' || commandName === 'help' || commandName === 'confess' || commandName === 'confession') ? [64] : []
             });
         } catch (err) {
             // 3. The "Nuclear" fix: If it's already deferred, just ignore the error and move on.
@@ -2729,7 +2771,7 @@ client.on('interactionCreate', async (interaction) => {
                     fields: [
                         {
                             name: '👤 Public & Fun',
-                            value: '`ping`, `pfp`, `diceroll`, `randomletter`, `ship`, `osqareksocials`, `serverinfo`, `userinfo`, `afk`, `offences`, `random`, `reminder`, `joke`, `dadjoke`, `randomfact`, `cat`, `dog`, `coinflip`, `poll`, `latest-updates`,'
+                            value: '`ping`, `pfp`, `diceroll`, `randomletter`, `ship`, `osqareksocials`, `serverinfo`, `userinfo`, `afk`, `confess`, `offences`, `random`, `reminder`, `joke`, `dadjoke`, `randomfact`, `cat`, `dog`, `coinflip`, `poll`, `latest-updates`,'
                         },
                         {
                             name: '🎮 Game & AI',
@@ -4798,11 +4840,11 @@ if (commandName === 'warn' && options.getSubcommand() === 'clear') {
                 const requirements = [
                     { roleId: '771423764511981599', name: 'Owner', min: 0, promo: 100 },
                     { roleId: '1511810524818440243', name: 'Co-Owner', min: 0, promo: 100 },
-                    { roleId: '850513944329191445', name: 'Head Administrator', min: 750, promo: 99999 },
-                    { roleId: '850513087399329823', name: 'Administrator', min: 500, promo: 1250 },
-                    { roleId: '801828933800296478', name: 'Head Moderator', min: 300, promo: 750 },
-                    { roleId: '772558550555295794', name: 'Moderator', min: 175, promo: 500 },
-                    { roleId: '826829037136510986', name: 'Trial Moderator', min: 100, promo: 400 }
+                    { roleId: '850513944329191445', name: 'Head Administrator', min: 375, promo: 99999 },
+                    { roleId: '850513087399329823', name: 'Administrator', min: 250, promo: 625 },
+                    { roleId: '801828933800296478', name: 'Head Moderator', min: 150, promo: 375 },
+                    { roleId: '772558550555295794', name: 'Moderator', min: 100, promo: 250 },
+                    { roleId: '826829037136510986', name: 'Trial Moderator', min: 50, promo: 200 }
                 ];
 
                 const statsEmbed = new EmbedBuilder()
@@ -4867,11 +4909,11 @@ if (commandName === 'warn' && options.getSubcommand() === 'clear') {
                     const requirements = [
                         { roleId: '771423764511981599', name: 'Owner', min: 0, promo: 100 },
                         { roleId: '1511810524818440243', name: 'Co-Owner', min: 0, promo: 100 },
-                        { roleId: '850513944329191445', name: 'Head Administrator', min: 750, promo: 99999 },
-                        { roleId: '850513087399329823', name: 'Administrator', min: 500, promo: 1250 },
-                        { roleId: '801828933800296478', name: 'Head Moderator', min: 300, promo: 750 },
-                        { roleId: '772558550555295794', name: 'Moderator', min: 175, promo: 500 },
-                        { roleId: '826829037136510986', name: 'Trial Moderator', min: 100, promo: 400 }
+                        { roleId: '850513944329191445', name: 'Head Administrator', min: 375, promo: 99999 },
+                        { roleId: '850513087399329823', name: 'Administrator', min: 250, promo: 625 },
+                        { roleId: '801828933800296478', name: 'Head Moderator', min: 150, promo: 375 },
+                        { roleId: '772558550555295794', name: 'Moderator', min: 100, promo: 250 },
+                        { roleId: '826829037136510986', name: 'Trial Moderator', min: 50, promo: 200 }
                     ];
 
                     const currentReq = requirements.find(r => targetMember.roles.cache.has(r.roleId)) || { name: 'Staff', min: 1, promo: 1 };

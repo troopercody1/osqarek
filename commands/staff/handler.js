@@ -602,11 +602,11 @@ async function staffstatsAll({ interaction, db }) {
     const requirements = [
         { roleId: '771423764511981599', name: 'Owner', min: 0, promo: 100 },
         { roleId: '1511810524818440243', name: 'Co-Owner', min: 0, promo: 100 },
-        { roleId: '850513944329191445', name: 'Head Administrator', min: 750, promo: 99999 },
-        { roleId: '850513087399329823', name: 'Administrator', min: 500, promo: 1250 },
-        { roleId: '801828933800296478', name: 'Head Moderator', min: 300, promo: 750 },
-        { roleId: '772558550555295794', name: 'Moderator', min: 175, promo: 500 },
-        { roleId: '826829037136510986', name: 'Trial Moderator', min: 100, promo: 400 }
+        { roleId: '850513944329191445', name: 'Head Administrator', min: 375, promo: 99999 },
+        { roleId: '850513087399329823', name: 'Administrator', min: 250, promo: 625 },
+        { roleId: '801828933800296478', name: 'Head Moderator', min: 150, promo: 375 },
+        { roleId: '772558550555295794', name: 'Moderator', min: 100, promo: 250 },
+        { roleId: '826829037136510986', name: 'Trial Moderator', min: 50, promo: 200 }
     ];
 
     const statsEmbed = new EmbedBuilder()
@@ -686,11 +686,11 @@ async function staffstatsView({ interaction, options, db }) {
         const requirements = [
             { roleId: '771423764511981599', name: 'Owner', min: 0, promo: 100 },
             { roleId: '1511810524818440243', name: 'Co-Owner', min: 0, promo: 100 },
-            { roleId: '850513944329191445', name: 'Head Administrator', min: 750, promo: 99999 },
-            { roleId: '850513087399329823', name: 'Administrator', min: 500, promo: 1250 },
-            { roleId: '801828933800296478', name: 'Head Moderator', min: 300, promo: 750 },
-            { roleId: '772558550555295794', name: 'Moderator', min: 175, promo: 500 },
-            { roleId: '826829037136510986', name: 'Trial Moderator', min: 100, promo: 400 }
+            { roleId: '850513944329191445', name: 'Head Administrator', min: 375, promo: 99999 },
+            { roleId: '850513087399329823', name: 'Administrator', min: 250, promo: 625 },
+            { roleId: '801828933800296478', name: 'Head Moderator', min: 150, promo: 375 },
+            { roleId: '772558550555295794', name: 'Moderator', min: 100, promo: 250 },
+            { roleId: '826829037136510986', name: 'Trial Moderator', min: 50, promo: 200 }
         ];
 
         const currentReq = requirements.find(r => targetMember.roles.cache.has(r.roleId)) || { name: 'Staff', min: 1, promo: 1 };
