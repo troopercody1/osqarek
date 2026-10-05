@@ -118,7 +118,7 @@ if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) 
 
 global.botErrors = global.botErrors || [];
 global.botLogs = global.botLogs || [];
-global.db = global.db || { settings: {}, reviewedUsers: [], reactionRoles: [], bannedWords: [], cases: [], dmThreads: {}, coOwnerApplications: [], aiEnabled: true, musicEnabled: true, modmailEnabled: true, automodEnabled: true, welcomeEnabled: true, remindersEnabled: true, moderationEnabled: true, utilitiesEnabled: true, funEnabled: true, quizEnabled: true, staffToolsEnabled: true };
+global.db = global.db || { settings: {}, reviewedUsers: [], reactionRoles: [], bannedWords: [], cases: [], dmThreads: {}, coOwnerApplications: [], modApplications: [], aiEnabled: true, musicEnabled: true, modmailEnabled: true, automodEnabled: true, welcomeEnabled: true, remindersEnabled: true, moderationEnabled: true, utilitiesEnabled: true, funEnabled: true, quizEnabled: true, staffToolsEnabled: true };
 
 // Error Handling
 process.on('uncaughtException', (err) => console.error('CRITICAL DASHBOARD ERROR:', err));
@@ -570,6 +570,160 @@ app.post('/apply-co-owner', async (req, res) => {
     }
 });
 
+// --- PUBLIC MODERATOR APPLICATION (/mod-apps/apply) ---
+// Same pattern as the co-owner application above: Discord OAuth fills in the
+// username (so it can't be spoofed), kept on its own session key
+// (req.session.modApplyUser) so it never grants dashboard access.
+// Callback defaults to PUBLIC_BASE_URL + /mod-apps/callback; override with
+// MOD_APPLY_CALLBACK_URL. Whichever is used MUST be added under
+// OAuth2 -> Redirects in the Discord developer portal.
+const MOD_APPLY_CALLBACK_URL = process.env.MOD_APPLY_CALLBACK_URL || `${PUBLIC_BASE_URL}/mod-apps/callback`;
+const MOD_AGE_OPTIONS = ['Under 13', '13-15', '16-17', '18+'];
+const MOD_CHECKBOX_QUESTIONS = {
+    q9_rule_abuse: ['Warn', 'Kick', 'Ban'],
+    q10_porn_dms: ['Nothing', 'Warn', 'Block', 'Kick', 'Ban'],
+    q11_disability_bullying: ['Warn', 'Ban', 'Kick', 'Mute']
+};
+
+app.get('/mod-apps/apply', (req, res) => {
+    res.render('apply-mod', {
+        discordUser: req.session.modApplyUser || null,
+        error: req.query.error || null,
+        success: req.query.success || null,
+        statusUrl: req.query.statusUrl || null,
+        stats: { botName: client?.user?.username || "OsQarek's Universe" }
+    });
+});
+
+app.get('/mod-apps/login', (req, res) => {
+    const params = new URLSearchParams({
+        client_id: process.env.CLIENT_ID,
+        redirect_uri: MOD_APPLY_CALLBACK_URL,
+        response_type: 'code',
+        scope: 'identify'
+    });
+    res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
+});
+
+app.get('/mod-apps/callback', async (req, res) => {
+    const { code } = req.query;
+    if (!code) return res.redirect('/mod-apps/apply?error=' + encodeURIComponent('Discord login was cancelled or failed.'));
+    try {
+        const tokenResponse = await postWithRateLimitRetry(
+            'https://discord.com/api/oauth2/token',
+            new URLSearchParams({
+                client_id: process.env.CLIENT_ID,
+                client_secret: process.env.DISCORD_CLIENT_SECRET,
+                grant_type: 'authorization_code',
+                code,
+                redirect_uri: MOD_APPLY_CALLBACK_URL
+            }),
+            { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+        );
+        const discordUser = (await axios.get('https://discord.com/api/users/@me', {
+            headers: { Authorization: `Bearer ${tokenResponse.data.access_token}` }
+        })).data;
+
+        req.session.modApplyUser = { id: discordUser.id, username: discordUser.username, avatar: discordUser.avatar };
+        res.redirect('/mod-apps/apply');
+    } catch (err) {
+        console.error('❌ [mod-apps oauth] Discord auth failed:', err.response?.data || err.message);
+        if (err.response?.status === 429) {
+            return res.redirect('/mod-apps/apply?error=' + encodeURIComponent('Discord is rate-limiting this server right now. Please wait a bit and try again.'));
+        }
+        res.redirect('/mod-apps/apply?error=' + encodeURIComponent('Discord login failed. Please try again.'));
+    }
+});
+
+app.post('/mod-apps/apply', async (req, res) => {
+    const discordUser = req.session.modApplyUser;
+    if (!discordUser) {
+        return res.redirect('/mod-apps/apply?error=' + encodeURIComponent('Please log in with Discord before submitting.'));
+    }
+
+    const b = req.body || {};
+    const text = (v) => String(v || '').trim();
+    const fail = (msg) => res.redirect('/mod-apps/apply?error=' + encodeURIComponent(msg));
+
+    const requiredText = ['q2_joined', 'q3_country_timezone', 'q5_why', 'q6_experience', 'q7_mod_abuse', 'q8_trolling', 'q12_other'];
+    if (requiredText.some((f) => !text(b[f]))) return fail('Please fill out every question before submitting.');
+
+    if (!MOD_AGE_OPTIONS.includes(text(b.q4_age))) return fail('Please select your age range.');
+
+    // Checkbox questions arrive as a string (one box) or an array (several).
+    // Only accept values that are real options, and require at least one.
+    const checks = {};
+    for (const [field, options] of Object.entries(MOD_CHECKBOX_QUESTIONS)) {
+        const raw = Array.isArray(b[field]) ? b[field] : (b[field] ? [b[field]] : []);
+        checks[field] = options.filter((o) => raw.includes(o));
+        if (checks[field].length === 0) return fail('Please select at least one option for every multiple-choice question.');
+    }
+
+    const application = {
+        id: crypto.randomUUID(),
+        status: 'pending',
+        submittedAt: new Date().toISOString(),
+        discordId: discordUser.id,
+        username: String(discordUser.username).trim().slice(0, 100),
+        joined: text(b.q2_joined).slice(0, 100),
+        countryTimezone: text(b.q3_country_timezone).slice(0, 150),
+        age: text(b.q4_age),
+        why: text(b.q5_why),
+        experience: text(b.q6_experience),
+        modAbuse: text(b.q7_mod_abuse),
+        trolling: text(b.q8_trolling),
+        ruleAbuse: checks.q9_rule_abuse,
+        pornDms: checks.q10_porn_dms,
+        disabilityBullying: checks.q11_disability_bullying,
+        other: text(b.q12_other)
+    };
+
+    try {
+        if (!db.modApplications) db.modApplications = [];
+        db.modApplications.push(application);
+        await safeSave();
+
+        const statusUrl = `${PUBLIC_BASE_URL}/mod-apps/status/${application.discordId}`;
+
+        await sendDiscordWebhook({
+            title: '🛡️ New Moderator Application',
+            message: `**Discord Username:** ${application.username}\n**Age:** ${application.age}\n**Country / Time-zone:** ${application.countryTimezone}\n**Joined:** ${application.joined}\n\nFull answers saved on the dashboard.`,
+            color: 0x5865F2
+        });
+
+        // Best-effort DM with the status link, in case they close the tab.
+        try {
+            const applicantUser = await client?.users?.fetch(application.discordId);
+            if (applicantUser) {
+                const linkEmbed = new EmbedBuilder()
+                    .setTitle('🛡️ Moderator Application Received')
+                    .setDescription(`Thanks for applying! You can check your application status any time here:\n${statusUrl}`)
+                    .setColor(0x5865F2)
+                    .setTimestamp();
+                await applicantUser.send({ embeds: [linkEmbed] }).catch(() => console.log('Applicant DMs closed — status link only shown on-page.'));
+            }
+        } catch (dmErr) {
+            console.error('⚠️ [mod-apps] Could not DM status link:', dmErr.message);
+        }
+
+        delete req.session.modApplyUser;
+        return res.redirect('/mod-apps/apply?success=1&statusUrl=' + encodeURIComponent(statusUrl));
+    } catch (err) {
+        console.error('❌ [mod-apps] Failed to save application:', err.message);
+        return fail('Something went wrong submitting your application. Please try again.');
+    }
+});
+
+// Public status check — only needs the applicant's own Discord user ID.
+app.get('/mod-apps/status/:userId', (req, res) => {
+    const matches = (db.modApplications || []).filter(a => a.discordId === req.params.userId);
+    const application = matches.length ? matches[matches.length - 1] : null;
+    res.render('mod-application-status', {
+        application,
+        stats: { botName: client?.user?.username || "OsQarek's Universe" }
+    });
+});
+
 // --- PUBLIC VERIFICATION GATE ---
 // Lets ordinary members verify via Discord OAuth + CAPTCHA + a rules-agreement
 // checkbox, then the bot adds the configured "verified" role. This is
@@ -754,7 +908,7 @@ app.post('/auth/change-password', async (req, res) => {
 
 app.get('/settings', (req, res) => {
     if (isAdminRank(req.session.user)) {
-        res.render('settings', { user: req.session.user, settings: db.settings || {}, bannedWords: db.bannedWords || [], msg: req.query.msg || null, coOwnerApplicationCount: (db.coOwnerApplications || []).length });
+        res.render('settings', { user: req.session.user, settings: db.settings || {}, bannedWords: db.bannedWords || [], msg: req.query.msg || null, coOwnerApplicationCount: (db.coOwnerApplications || []).length, modApplicationCount: (db.modApplications || []).length });
     } else res.status(403).send("<h1>403 Forbidden</h1><p>Access denied.</p>");
 });
 
@@ -1010,6 +1164,55 @@ app.post('/co-owner-applications/:id/status', checkSettingsAuth, async (req, res
     }
 
     res.redirect('/co-owner-applications/' + req.params.id);
+});
+
+// --- MODERATOR APPLICATIONS (SETTINGS-GATED STAFF VIEW) ---
+app.get('/mod-applications', checkSettingsAuth, async (req, res) => {
+    res.render('mod-applications', { applications: db.modApplications || [], user: req.session.user });
+});
+
+app.get('/mod-applications/:id', checkSettingsAuth, async (req, res) => {
+    const application = (db.modApplications || []).find(a => a.id === req.params.id);
+    if (!application) return res.redirect('/mod-applications');
+    res.render('mod-application-detail', { application, user: req.session.user });
+});
+
+app.post('/mod-applications/:id/delete', checkSettingsAuth, async (req, res) => {
+    if (db.modApplications) {
+        db.modApplications = db.modApplications.filter(a => a.id !== req.params.id);
+        await safeSave();
+    }
+    res.redirect('/mod-applications');
+});
+
+app.post('/mod-applications/:id/status', checkSettingsAuth, async (req, res) => {
+    const newStatus = req.body.status === 'passed' ? 'passed' : req.body.status === 'failed' ? 'failed' : null;
+    if (!newStatus) return res.redirect('/mod-applications/' + req.params.id);
+
+    const application = (db.modApplications || []).find(a => a.id === req.params.id);
+    if (!application) return res.redirect('/mod-applications');
+
+    application.status = newStatus;
+    await safeSave();
+
+    try {
+        const applicantUser = await client?.users?.fetch(application.discordId);
+        if (applicantUser) {
+            const description = newStatus === 'passed'
+                ? 'Your moderator application has been reviewed by our staff team. You have passed.'
+                : 'Your moderator application has been reviewed by our staff team. You have failed. We are sorry that you have failed.';
+            const statusEmbed = new EmbedBuilder()
+                .setTitle('MODERATOR APPLICATION STATUS')
+                .setDescription(description)
+                .setColor(newStatus === 'passed' ? 0x9ece6a : 0xf7768e)
+                .setTimestamp();
+            await applicantUser.send({ embeds: [statusEmbed] }).catch(() => console.log('Applicant DMs closed — could not send status embed.'));
+        }
+    } catch (err) {
+        console.error('⚠️ [mod-applications] Could not DM status update:', err.message);
+    }
+
+    res.redirect('/mod-applications/' + req.params.id);
 });
 
 // --- PUBLIC APPLICATION STATUS CHECK ---
