@@ -236,6 +236,7 @@
         <a href="/risk-manager" class="tab-btn <%= activePage === 'risk-manager' ? 'active' : '' %>">🛡️ Risk Manager</a>
         <a href="/reaction-roles" class="tab-btn <%= activePage === 'reaction-roles' ? 'active' : '' %>">🎭 Reaction Roles</a>
         <a href="/banned-words" class="tab-btn <%= activePage === 'banned-words' ? 'active' : '' %>">🚫 Banned Words</a>
+        <a href="/confessions" class="tab-btn <%= activePage === 'confessions' ? 'active' : '' %>">🤫 Confessions</a>
         <a href="/system-logs" class="tab-btn <%= activePage === 'system-logs' ? 'active' : '' %>">🖥️ System Logs</a>
         <div style="margin-top: auto; display: flex; flex-direction: column; gap: 6px;">
             <% if (user && user.id === 'admin') { %>
@@ -713,6 +714,86 @@
             </div>
         </div>
 
+        <!-- ═══════════════ CONFESSIONS ═══════════════ -->
+        <div id="confessions" class="tab-content<%= (locals.activeTab || 'dashboard') === 'confessions' ? ' active' : '' %>">
+            <div class="panel">
+                <h2>🤫 Confessions</h2>
+                <p style="color:#565f89; font-size:0.85rem; margin-top:-10px;">
+                    Members post with <code>/confess</code>. The public post is anonymous; authors are shown below for staff only.
+                </p>
+                <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:14px;">
+                    <div class="panel" style="flex:1; min-width:160px; margin:0;"><div style="color:#565f89; font-size:11px; text-transform:uppercase;">Total posted</div><div style="font-size:22px; color:#c0caf5; font-weight:700;"><%= confessionTotal %></div></div>
+                    <div class="panel" style="flex:1; min-width:160px; margin:0;"><div style="color:#565f89; font-size:11px; text-transform:uppercase;">Public channel</div><div style="color:<%= confessionConfig.channel ? '#9ece6a' : '#f7768e' %>; font-weight:600;"><%= confessionConfig.channel || 'Not set (CONFESSION_CHANNEL)' %></div></div>
+                    <div class="panel" style="flex:1; min-width:160px; margin:0;"><div style="color:#565f89; font-size:11px; text-transform:uppercase;">Staff log channel</div><div style="color:<%= confessionConfig.logs ? '#9ece6a' : '#f7768e' %>; font-weight:600;"><%= confessionConfig.logs || 'Not set (CONFESSION_LOGS)' %></div></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>🚫 Disallowed Users</h2>
+                <p style="color:#565f89; font-size:0.85rem; margin-top:-10px;">These users can't use <code>/confess</code>. Staff can also use <code>/confession disallow</code> / <code>allow</code> in Discord.</p>
+                <% if (confessionBans.length === 0) { %>
+                    <p style="color:#565f89;">Nobody is disallowed.</p>
+                <% } else { %>
+                <table>
+                    <thead><tr><th>User</th><th>Reason</th><th>By</th><th>Date</th><th></th></tr></thead>
+                    <tbody>
+                    <% confessionBans.forEach(b => { %>
+                        <tr>
+                            <td><%= b.username || b.userId %><br><span style="color:#565f89; font-size:11px;"><%= b.userId %></span></td>
+                            <td><%= b.reason %></td>
+                            <td><%= b.by %></td>
+                            <td><%= new Date(b.at).toLocaleDateString('en-GB') %></td>
+                            <td>
+                                <form action="/confessions/allow" method="POST" style="margin:0;">
+                                    <input type="hidden" name="userId" value="<%= b.userId %>">
+                                    <button type="submit" class="btn-submit" style="margin:0;">Allow</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <% }) %>
+                    </tbody>
+                </table>
+                <% } %>
+                <form action="/confessions/disallow" method="POST" class="add-word-row">
+                    <input name="userId" placeholder="Discord user ID to disallow..." required pattern="\d{15,25}">
+                    <input name="reason" placeholder="Reason (optional)" maxlength="300">
+                    <button type="submit" class="btn-submit">Disallow</button>
+                </form>
+            </div>
+
+            <div class="panel">
+                <h2>📝 Recent Confessions <span style="color:#565f89; font-size:12px; font-weight:400;">(last 50 · staff-only author view)</span></h2>
+                <% if (recentConfessions.length === 0) { %>
+                    <p style="color:#565f89;">No confessions have been posted yet.</p>
+                <% } else { %>
+                <table>
+                    <thead><tr><th>#</th><th>Confession</th><th>Author</th><th>Posted</th><th></th></tr></thead>
+                    <tbody>
+                    <% recentConfessions.forEach(c => { const banned = confessionBans.some(b => b.userId === c.userId); %>
+                        <tr>
+                            <td>#<%= c.number %></td>
+                            <td style="max-width:360px; white-space:pre-wrap; word-break:break-word;"><%= c.text %></td>
+                            <td><%= c.username %><br><span style="color:#565f89; font-size:11px;"><%= c.userId %></span></td>
+                            <td><%= new Date(c.at).toLocaleString('en-GB') %><br><a href="<%= c.url %>" target="_blank" rel="noopener" style="color:#7aa2f7; font-size:12px;">View</a></td>
+                            <td>
+                                <% if (banned) { %>
+                                    <span style="color:#f7768e; font-size:12px;">Disallowed</span>
+                                <% } else { %>
+                                    <form action="/confessions/disallow" method="POST" style="margin:0;" onsubmit="return confirm('Disallow this author from /confess?')">
+                                        <input type="hidden" name="userId" value="<%= c.userId %>">
+                                        <input type="hidden" name="reason" value="Confession #<%= c.number %>">
+                                        <button type="submit" class="btn-submit" style="margin:0; background:#2e1a1a; color:#f7768e;">Disallow</button>
+                                    </form>
+                                <% } %>
+                            </td>
+                        </tr>
+                    <% }) %>
+                    </tbody>
+                </table>
+                <% } %>
+            </div>
+        </div>
+
         <!-- ═══════════════ SYSTEM LOGS ═══════════════ -->
         <div id="terminal" class="tab-content<%= (locals.activeTab || 'dashboard') === 'terminal' ? ' active' : '' %>">
             <div class="panel">
@@ -762,6 +843,7 @@
                 roles: 'reaction-roles',
                 'banned-words': 'banned-words',
                 terminal: 'system-logs',
+                confessions: 'confessions',
             }[tabName] || 'config');
         }
     </script>
