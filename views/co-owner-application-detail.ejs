@@ -80,10 +80,92 @@
         .btn-pass:hover { background: #234023; }
         .btn-fail { background: #2e1a1a; color: #f7768e; }
         .btn-fail:hover { background: #402323; }
+
+        /* ───── Decision summary + reason (shown on screen AND in print) ───── */
+        .decision-summary { border: 1px solid #292e42; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; background: #1a1b26; }
+        .decision-summary .decision-label { font-size: 22px; font-weight: 800; letter-spacing: 0.06em; }
+        .decision-summary.pending { border-color: #4a4020; } .decision-summary.pending .decision-label { color: #e0af68; }
+        .decision-summary.passed  { border-color: #2c4a2c; background: #14211a; } .decision-summary.passed .decision-label { color: #9ece6a; }
+        .decision-summary.failed  { border-color: #4a2c2c; background: #211416; } .decision-summary.failed .decision-label { color: #f7768e; }
+        .decision-summary .decision-reason { margin-top: 10px; color: #c0caf5; font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+        .decision-summary .decision-reason span { display: block; color: #565f89; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+        .decision-summary .decision-meta { margin-top: 8px; color: #565f89; font-size: 12px; }
+
+        .decision-form { margin-bottom: 24px; }
+        .decision-form label { display: block; color: #a9b1d6; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+        .decision-form label span { color: #565f89; font-weight: 400; }
+        .decision-form textarea {
+            width: 100%; min-height: 80px; resize: vertical; box-sizing: border-box;
+            background: #1a1b26; border: 1px solid #292e42; border-radius: 8px;
+            color: #c0caf5; font-family: inherit; font-size: 14px; padding: 10px 12px; margin-bottom: 10px;
+        }
+        .decision-form textarea:focus { outline: none; border-color: #7aa2f7; }
+
+        .header-actions { display: flex; gap: 8px; align-items: center; }
+        .header-actions form { margin: 0; }
+        .btn-print {
+            background: #1f2335; color: #7aa2f7; border: 1px solid #292e42;
+            padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+            cursor: pointer; font-family: inherit;
+        }
+        .btn-print:hover { background: #24283b; }
+
+        .print-only { display: none; }
+
+        /* ───── Print: clean white document (screen view stays dark) ───── */
+        @page { margin: 14mm; }
+        @media print {
+            html, body {
+                background: #fff !important; color: #111 !important;
+                -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+            }
+            body { padding: 0 !important; }
+            .no-print, .back, .header-actions, .decision-form,
+            .mark-btn, .mark-saved-flash, .status-badge { display: none !important; }
+            .print-only { display: block !important; }
+            .page { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+
+            .print-header { color: #555; font-size: 11px; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #bbb; }
+            .print-header strong { color: #111; }
+            h1 { color: #111 !important; font-size: 22px; margin-bottom: 14px !important; }
+            .header-row { margin-bottom: 4px; }
+
+            .decision-summary, .decision-summary.pending, .decision-summary.passed, .decision-summary.failed {
+                background: #fff !important; border: 2px solid #111 !important; border-radius: 6px; margin-bottom: 16px;
+            }
+            .decision-summary .decision-label { color: #111 !important; }
+            .decision-summary.passed  { border-color: #1a7f37 !important; } .decision-summary.passed .decision-label  { color: #1a7f37 !important; }
+            .decision-summary.failed  { border-color: #b42318 !important; } .decision-summary.failed .decision-label  { color: #b42318 !important; }
+            .decision-summary.pending { border-color: #9a6700 !important; } .decision-summary.pending .decision-label { color: #9a6700 !important; }
+            .decision-summary .decision-reason { color: #111 !important; }
+            .decision-summary .decision-reason span, .decision-summary .decision-meta { color: #555 !important; }
+
+            .app-meta .stat { background: #fff !important; border: 1px solid #bbb !important; border-radius: 4px; }
+            .app-meta .label { color: #555 !important; }
+            .app-meta .value { color: #111 !important; }
+
+            .card { background: #fff !important; border: 1px solid #bbb !important; border-radius: 4px; }
+            .qa-block { border-bottom: 1px solid #ddd !important; }
+            .qa-block:last-child { border-bottom: none !important; }
+            .qa-question { color: #111 !important; }
+            .qa-answer { color: #222 !important; }
+            .pill, .qa-answer.mc, .qa-answer.mc.incorrect { background: #fff !important; color: #111 !important; border: 1px solid #888; }
+            .qa-grade-tag.correct { color: #1a7f37 !important; }
+            .qa-grade-tag.incorrect { color: #b42318 !important; }
+            .mark-current { color: #555 !important; }
+            .mark-current.plus { color: #1a7f37 !important; }
+            .mark-current.minus { color: #b42318 !important; }
+
+            .qa-block, .decision-summary, .stat { break-inside: avoid; page-break-inside: avoid; }
+        }
     </style>
 </head>
 <body>
 <div class="page">
+    <div class="print-only print-header">
+        <strong>OsQarek's Universe</strong> — Co-Owner Application · Printed <span id="printed-at"></span>
+    </div>
+
     <%
         const mcOptions = {
             arguingStaff: { A: 'Encourage them', B: 'Temporarily suspend them', C: 'Ignore them', D: 'Join them' },
@@ -106,22 +188,49 @@
 
     <div class="header-row">
         <h1>👑 <%= application.username %> <span class="status-badge <%= application.status || 'pending' %>"><%= application.status || 'pending' %></span></h1>
-        <form method="POST" action="/co-owner-applications/<%= application.id %>/delete" onsubmit="return confirm('Delete this application? This cannot be undone.')">
+        <div class="header-actions no-print">
+            <button type="button" class="btn-print" onclick="window.print()">🖨 Print</button>
+            <form method="POST" action="/co-owner-applications/<%= application.id %>/delete" onsubmit="return confirm('Delete this application? This cannot be undone.')">
             <button type="submit" class="btn-danger-outline">🗑 Delete Application</button>
         </form>
+        </div>
     </div>
 
-    <div class="decision-row">
-        <form method="POST" action="/co-owner-applications/<%= application.id %>/status" onsubmit="return confirm('Mark this application as PASSED and DM the applicant?')">
-            <input type="hidden" name="status" value="passed">
-            <button type="submit" class="btn-pass">✅ Pass</button>
-        </form>
-        <form method="POST" action="/co-owner-applications/<%= application.id %>/status" onsubmit="return confirm('Mark this application as FAILED and DM the applicant?')">
-            <input type="hidden" name="status" value="failed">
-            <button type="submit" class="btn-fail">❌ Fail</button>
-        </form>
+    <%
+        const decisionStatus = application.status || 'pending';
+        const decisionName = decisionStatus === 'passed' ? 'PASSED' : decisionStatus === 'failed' ? 'FAILED' : 'PENDING';
+    %>
+    <div class="decision-summary <%= decisionStatus %>">
+        <div class="decision-label"><%= decisionName %></div>
+        <% if (application.statusReason) { %>
+            <div class="decision-reason"><span>Reason</span><%= application.statusReason %></div>
+            <div class="decision-meta">
+                Decided<% if (application.decidedBy) { %> by <%= application.decidedBy %><% } %><% if (application.decidedAt) { %> on <%= new Date(application.decidedAt).toLocaleString('en-GB') %><% } %>
+            </div>
+        <% } else if (decisionStatus !== 'pending') { %>
+            <div class="decision-meta">No reason was recorded for this decision.</div>
+        <% } else { %>
+            <div class="decision-meta">No decision has been made yet.</div>
+        <% } %>
     </div>
 
+    <form method="POST" action="/co-owner-applications/<%= application.id %>/status" class="decision-form no-print" id="decision-form">
+        <label for="reason">Reason for decision <span>(required — staff only, shown on printouts)</span></label>
+        <textarea name="reason" id="reason" required maxlength="500" placeholder="Why is this application being passed or failed?"><%= application.statusReason || '' %></textarea>
+        <div class="decision-row">
+            <button type="submit" name="status" value="passed" class="btn-pass">✅ Pass</button>
+            <button type="submit" name="status" value="failed" class="btn-fail">❌ Fail</button>
+        </div>
+    </form>
+    <script>
+        document.getElementById('decision-form').addEventListener('submit', (e) => {
+            const choice = (e.submitter && e.submitter.value || '').toUpperCase();
+            if (!confirm('Mark this application as ' + choice + ' and DM the applicant?')) e.preventDefault();
+        });
+        function stampPrintTime() { var el = document.getElementById('printed-at'); if (el) el.textContent = new Date().toLocaleString('en-GB'); }
+        window.addEventListener('beforeprint', stampPrintTime);
+        stampPrintTime();
+    </script>
 
     <div class="app-meta">
         <div class="stat"><span class="label">Time-zone</span><span class="value"><%= application.timezone %></span></div>
