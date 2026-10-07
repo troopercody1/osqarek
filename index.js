@@ -1184,7 +1184,14 @@ app.post('/co-owner-applications/:id/status', checkSettingsAuth, async (req, res
     const application = (db.coOwnerApplications || []).find(a => a.id === req.params.id);
     if (!application) return res.redirect('/co-owner-applications');
 
+    // A reason is required so decisions can be explained later (shown on the print view; staff-only).
+    const reason = String(req.body.reason || '').trim().slice(0, 500);
+    if (!reason) return res.redirect('/co-owner-applications/' + req.params.id);
+
     application.status = newStatus;
+    application.statusReason = reason;
+    application.decidedBy = req.session.user?.username || req.session.user?.id || 'dashboard';
+    application.decidedAt = new Date().toISOString();
     await safeSave();
 
     try {
@@ -1233,7 +1240,14 @@ app.post('/mod-applications/:id/status', checkSettingsAuth, async (req, res) => 
     const application = (db.modApplications || []).find(a => a.id === req.params.id);
     if (!application) return res.redirect('/mod-applications');
 
+    // A reason is required so decisions can be explained later (shown on the print view; staff-only).
+    const reason = String(req.body.reason || '').trim().slice(0, 500);
+    if (!reason) return res.redirect('/mod-applications/' + req.params.id);
+
     application.status = newStatus;
+    application.statusReason = reason;
+    application.decidedBy = req.session.user?.username || req.session.user?.id || 'dashboard';
+    application.decidedAt = new Date().toISOString();
     await safeSave();
 
     try {
