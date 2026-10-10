@@ -2,6 +2,7 @@ process.env.TZ = 'Europe/London';
 const defaultBannedWords = require('./default-banned-words.js');
 const { commandNames: DEPLOYED_COMMAND_NAMES } = require('./commands');
 const commandHandlers = require('./commands/handlers');
+const confessionChannel = require('./commands/confessions/channel');
 const { deployCommands } = require('./deploy-commands.js');
 const { extractUserIds, isTempChannelBlocked, buildTempChannelOverwrites } = require('./commands/tempChannelUtils');
 // Answer key used to auto-grade the multiple-choice section of the
@@ -2432,6 +2433,18 @@ client.on('interactionCreate', async (interaction) => {
     // Buttons should NOT be deferred globally.
     // Each button handler will reply/update itself.
 
+
+    // CONFESSIONS: anonymous "Reply" button + its modal
+    try {
+        if (await confessionChannel.handleReplyButton(interaction)) return;
+        if (await confessionChannel.handleReplyModal(interaction, { client, db, safeSave })) return;
+    } catch (err) {
+        console.error('❌ [confess] reply interaction failed:', err.message);
+        if (!interaction.replied && !interaction.deferred) {
+            interaction.reply({ content: '❌ Something went wrong.', flags: MessageFlags.Ephemeral }).catch(() => { });
+        }
+        return;
+    }
 
     // 3. BUTTON LOGIC
     if (interaction.isButton()) {
@@ -5624,6 +5637,9 @@ client.on('messageDelete', async (msg) => {
     }
     if (!msg.guild || !db.chatLogChannel || msg.author?.bot) return;
 
+    // Confession-channel messages are deleted on purpose; the author is only logged in CONFESSION_LOGS.
+    if (process.env.CONFESSION_CHANNEL && msg.channel.id === process.env.CONFESSION_CHANNEL.trim()) return;
+
     const isIgnored = db.ignoredChannels.some(id => String(id) === String(msg.channel.id));
     if (isIgnored) return;
 
@@ -5723,6 +5739,15 @@ client.on('messageCreate', async (message) => {
             console.error('❌ Failed to post suggestion embed:', err.message);
         }
 
+        return;
+    }
+
+    // --- CONFESSIONS CHANNEL ---
+    // Anything typed here is deleted and reposted as an anonymous confession.
+    try {
+        if (await confessionChannel.handleConfessionChannelMessage(message, { client, db, safeSave })) return;
+    } catch (err) {
+        console.error('❌ [confess] channel message handler failed:', err.message);
         return;
     }
 
