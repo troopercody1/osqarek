@@ -4824,6 +4824,9 @@ if (commandName === 'warn' && options.getSubcommand() === 'clear') {
                             return interaction.editReply(`❌ Could not DM **${target.tag}** (DMs closed or blocked).`);
                         }
 
+                    case 'train':
+                        return require('./commands/moderation/train').handleTrain({ interaction, options, guild, user, isOwner, createEmbed, logAction });
+
                     case 'channel-block':
                         if (!isMod) return interaction.editReply("❌ You need **Moderator+** to use this.");
                         if (!Array.isArray(db.tempChannelBlocked)) db.tempChannelBlocked = [];
