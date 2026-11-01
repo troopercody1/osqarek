@@ -988,6 +988,7 @@ const DASHBOARD_TABS = {
     'risk-manager': 'risk-manager',
     'reaction-roles': 'roles',
     'banned-words': 'banned-words',
+    'nickname-guard': 'nickname-guard',
     'system-logs': 'terminal',
     confessions: 'confessions',
 };
@@ -1061,6 +1062,45 @@ app.get('/reaction-roles', checkAuth, async (req, res) => {
 
 app.get('/banned-words', checkAuth, async (req, res) => {
     await renderDashboard(req, res, DASHBOARD_TABS['banned-words'], { activePage: 'banned-words' });
+});
+
+// --- NICKNAME GUARD (dashboard) ---
+app.get('/nickname-guard', checkAuth, async (req, res) => {
+    await renderDashboard(req, res, DASHBOARD_TABS['nickname-guard'], {
+        activePage: 'nickname-guard',
+        render: {
+            nickGuard: {
+                config: getNickGuardConfig(),
+                log: db.nicknameGuardLog || [],
+                lastScan: global.nickGuardLastScan || null,
+                running: _nickSweepRunning,
+            },
+        },
+    });
+});
+
+app.post('/nickname-guard/settings', checkAuth, async (req, res) => {
+    const b = req.body || {};
+    const min = Math.min(20, Math.max(1, parseInt(b.minTypeableChars, 10) || NICK_GUARD_DEFAULTS.minTypeableChars));
+    db.nicknameGuard = {
+        enabled: b.enabled === 'on',
+        minTypeableChars: min,
+        allowNonLatin: b.allowNonLatin === 'on',
+        checkBannedWords: b.checkBannedWords === 'on',
+        dmUser: b.dmUser === 'on',
+    };
+    await safeSave();
+    res.redirect('/nickname-guard');
+});
+
+// Runs in the background; the page auto-refreshes until it finishes.
+app.post('/nickname-guard/scan', checkAuth, async (req, res) => {
+    const guild = client?.guilds?.cache.get(GUILD_ID);
+    if (guild && !_nickSweepRunning) {
+        runNicknameSweep(guild, { apply: req.body?.apply === '1', source: 'manual' })
+            .catch((err) => console.error('❌ Nickname Guard manual sweep crashed:', err.message));
+    }
+    res.redirect('/nickname-guard');
 });
 
 app.get('/confessions', checkAuth, async (req, res) => {
@@ -1857,6 +1897,158 @@ function formatMsDuration(ms) {
     return minutes > 0 ? `${minutes}m ${remSeconds}s` : `${remSeconds}.${tenths}s`;
 }
 
+// --- NICKNAME GUARD ---
+// Finds nicknames that members can't realistically be @-pinged by (fancy
+// unicode fonts, symbol-only names, etc.) and swaps them for a pingable
+// "ModeratedNickname#1234" (same format the /nickname command already uses).
+//   • Existing members: swept on every startup (see clientReady) and on demand
+//     from the dashboard (/nickname-guard).
+//   • New members: checked in the guildMemberAdd handler.
+// Everything is off until "Enabled" is ticked on the dashboard page.
+const NICK_GUARD_DEFAULTS = {
+    enabled: false,
+    minTypeableChars: 3,    // minimum characters that can be typed to ping them
+    allowNonLatin: false,   // true = Cyrillic/CJK/Arabic/etc. letters count as typeable
+    checkBannedWords: false, // also flag nicknames containing a banned word
+    dmUser: true,           // DM the member when they're renamed
+};
+const NICK_GUARD_LOG_LIMIT = 50;
+let _nickSweepRunning = false;
+
+function getNickGuardConfig() {
+    return { ...NICK_GUARD_DEFAULTS, ...(db.nicknameGuard || {}) };
+}
+
+function isTypeableChar(ch, allowNonLatin) {
+    if (/[A-Za-z0-9]/.test(ch)) return true;
+    if (!allowNonLatin) return false;
+    // Letters/numbers from other scripts count, but "fancy font" lookalikes
+    // (math alphanumerics, fullwidth forms, letterlike symbols) never do.
+    const cp = ch.codePointAt(0);
+    const fancy = (cp >= 0x1D400 && cp <= 0x1D7FF) || (cp >= 0xFF00 && cp <= 0xFFEF) || (cp >= 0x2100 && cp <= 0x214F);
+    return !fancy && /[\p{L}\p{N}]/u.test(ch);
+}
+
+// Returns a human-readable violation reason, or null if the name is fine.
+function evaluateNickname(name, cfg = getNickGuardConfig()) {
+    // NFD + strip combining marks so "José" counts as 4 typeable chars while
+    // zalgo / stacked accents don't inflate the count.
+    const stripped = String(name || '').normalize('NFD').replace(/\p{M}/gu, '');
+    let typeable = 0;
+    for (const ch of stripped) if (isTypeableChar(ch, cfg.allowNonLatin)) typeable++;
+
+    if (typeable < cfg.minTypeableChars) {
+        return `Unpingable (${typeable} typeable character${typeable === 1 ? '' : 's'}, needs ${cfg.minTypeableChars}+)`;
+    }
+    if (cfg.checkBannedWords && db.bannedWords?.length) {
+        const hit = db.bannedWords.find((w) =>
+            new RegExp(`\\b${String(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(stripped)
+        );
+        if (hit) return `Contains banned word (${hit})`;
+    }
+    return null;
+}
+
+function moderatedNickname(member) {
+    return `ModeratedNickname#${member.id.slice(-4)}`;
+}
+
+function recordNickGuardLog(entry) {
+    if (!Array.isArray(db.nicknameGuardLog)) db.nicknameGuardLog = [];
+    db.nicknameGuardLog.unshift(entry);
+    if (db.nicknameGuardLog.length > NICK_GUARD_LOG_LIMIT) db.nicknameGuardLog.length = NICK_GUARD_LOG_LIMIT;
+}
+
+// Renames one member. Throws if Discord rejects the change.
+async function applyNicknameFix(member, reason, cfg, source) {
+    const before = member.displayName;
+    const after = moderatedNickname(member);
+    await member.setNickname(after, `Nickname Guard: ${reason}`.slice(0, 512));
+
+    recordNickGuardLog({ ts: Date.now(), userId: member.id, tag: member.user.tag, before, after, reason, source });
+
+    if (cfg.dmUser) {
+        const dm = new EmbedBuilder()
+            .setTitle('🛡️ Nickname Moderated')
+            .setDescription(`Your nickname in **${member.guild.name}** was changed because it can't be pinged. You're welcome to set a new one that people can type out.`)
+            .addFields(
+                { name: 'New Nickname', value: `\`${after}\``, inline: true },
+                { name: 'Reason', value: reason, inline: true }
+            )
+            .setColor(0xFF0000)
+            .setTimestamp();
+        await member.send({ embeds: [dm] }).catch(() => { /* DMs closed */ });
+    }
+    return { before, after };
+}
+
+// Scans every member. apply=false is a read-only preview.
+async function runNicknameSweep(guild, { apply = true, source = 'startup' } = {}) {
+    if (!guild || _nickSweepRunning) return null;
+    _nickSweepRunning = true;
+
+    const cfg = getNickGuardConfig();
+    const result = {
+        source, apply, status: 'running', startedAt: Date.now(), finishedAt: null,
+        scanned: 0, flagged: [], renamed: 0, unmanageable: 0, failed: 0, error: null,
+    };
+    global.nickGuardLastScan = result;
+
+    try {
+        const members = await getCachedMembers(guild, { force: true });
+
+        for (const member of members.values()) {
+            if (member.user.bot) continue;
+            result.scanned++;
+            const reason = evaluateNickname(member.displayName, cfg);
+            if (!reason) continue;
+            result.flagged.push({
+                id: member.id, tag: member.user.tag, name: member.displayName, reason,
+                outcome: apply ? 'pending' : 'would rename',
+            });
+        }
+
+        if (apply) {
+            for (const entry of result.flagged) {
+                const member = members.get(entry.id);
+                if (!member || !member.manageable) {
+                    entry.outcome = "skipped (can't manage)";
+                    result.unmanageable++;
+                    continue;
+                }
+                try {
+                    await applyNicknameFix(member, entry.reason, cfg, source);
+                    entry.outcome = 'renamed';
+                    result.renamed++;
+                } catch (err) {
+                    entry.outcome = `failed: ${err.message}`;
+                    result.failed++;
+                }
+                await new Promise((r) => setTimeout(r, 750)); // stay well under the nickname rate limit
+            }
+            if (result.flagged.length) {
+                logAction(
+                    guild,
+                    `🛡️ Nickname Guard | ${source === 'startup' ? 'Startup' : 'Manual'} Sweep`,
+                    `Scanned **${result.scanned}** members.\nRenamed: **${result.renamed}**\nCouldn't manage: **${result.unmanageable}**\nFailed: **${result.failed}**`,
+                    0xFF9900
+                );
+            }
+            await safeSave();
+        }
+        result.status = 'done';
+        console.log(`🏷️ Nickname Guard (${source}${apply ? '' : ', preview'}): scanned ${result.scanned}, flagged ${result.flagged.length}, renamed ${result.renamed}.`);
+    } catch (err) {
+        result.status = 'error';
+        result.error = err.message;
+        console.error('❌ Nickname Guard sweep failed:', err.message);
+    } finally {
+        result.finishedAt = Date.now();
+        _nickSweepRunning = false;
+    }
+    return result;
+}
+
 // --- VERIFY CHANNEL EMBED ---
 // Posts (or refreshes) a standing embed + Link button in VERIFY_CHANNEL that
 // points members at the /verify website page. A Link-style button just opens
@@ -2350,6 +2542,16 @@ client.once('clientReady', async () => {
             console.error("❌ Startup sync crashed:", err.message);
         });
     }
+
+    // 7b. Nickname Guard sweep — runs on every startup (independent of the
+    // stats-sync's 6h cooldown) and does nothing unless it's enabled on the
+    // dashboard. Fire-and-forget; it logs its own summary to the mod log.
+    const nickGuardGuild = client.guilds.cache.get(GUILD_ID) || client.guilds.cache.first();
+    if (nickGuardGuild && getNickGuardConfig().enabled) {
+        runNicknameSweep(nickGuardGuild, { apply: true, source: 'startup' }).catch((err) => {
+            console.error("❌ Nickname Guard startup sweep crashed:", err.message);
+        });
+    }
 });
 
 // --- AUTOMATIC ACCOUNT AGE GUARD ---
@@ -2390,6 +2592,29 @@ client.on('guildMemberAdd', async (member) => {
         }
     } catch (err) {
         console.error("❌ Auto-Guard Error:", err.message);
+    }
+});
+
+// --- NICKNAME GUARD: NEW MEMBERS ---
+client.on('guildMemberAdd', async (member) => {
+    try {
+        const cfg = getNickGuardConfig();
+        if (!cfg.enabled || member.user.bot || member.guild.id !== GUILD_ID) return;
+
+        const reason = evaluateNickname(member.displayName, cfg);
+        if (!reason || !member.manageable) return;
+
+        const { before, after } = await applyNicknameFix(member, reason, cfg, 'join');
+        logAction(
+            member.guild,
+            '🛡️ Nickname Guard | New Member',
+            `**User:** ${member.user.tag} (${member.id})\n**Was:** \`${before}\`\n**Now:** \`${after}\`\n**Reason:** ${reason}`,
+            0xFF9900
+        );
+        await safeSave();
+    } catch (err) {
+        // Member may already have been kicked by the account-age guard, etc.
+        console.error('❌ Nickname Guard (join) error:', err.message);
     }
 });
 
