@@ -1,0 +1,331 @@
+<% if (locals.fx) { const fx_ = locals.fx; const E = fx_.esc; const when = (ms) => ms ? new Date(ms).toLocaleString('en-GB') : '—'; const tab = locals.activeTab;
+const chanSel = (name) => '<select name="' + name + '" required>' + (fx_.channels || []).map(c => '<option value="' + E(c.id) + '">#' + E(c.name) + '</option>').join('') + '</select>';
+const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? '' : ' required') + '>' + (optional ? '<option value="">— none —</option>' : '') + (fx_.roles || []).map(r => '<option value="' + E(r.id) + '">' + E(r.name) + '</option>').join('') + '</select>'; %>
+<style>
+    .fx-msg { background:#1f2a1f; border:1px solid #2e5c2e; color:#9ece6a; padding:10px 14px; border-radius:6px; margin-bottom:18px; }
+    .fx-err { background:#2a1f1f; border:1px solid #5c2e2e; color:#f7768e; padding:10px 14px; border-radius:6px; margin-bottom:18px; }
+    .fx-sub { color:#565f89; font-size:.85rem; margin-top:-10px; }
+    .fx-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:0 28px; }
+    .fx-field { padding:10px 0; border-bottom:1px solid #2f3549; }
+    .fx-field label { display:block; color:#c0caf5; font-weight:600; margin-bottom:4px; }
+    .fx-field .d { color:#565f89; font-size:.8rem; margin-top:3px; }
+    .fx-field select, .fx-field textarea { background:#16161e; border:1px solid #2f3549; color:#fff; padding:9px; border-radius:4px; width:100%; box-sizing:border-box; font-family:inherit; }
+    .fx-inline { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    .fx-inline form { margin:0; }
+    .fx-inline input, .fx-inline select { width:auto; background:#16161e; border:1px solid #2f3549; color:#fff; padding:9px; border-radius:4px; }
+    .fx-btn { background:#2f3549; color:#7aa2f7; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; }
+    .fx-btn.danger { color:#f7768e; }
+    .fx-pill { display:inline-block; padding:2px 8px; border-radius:99px; font-size:11px; background:#2f3549; color:#c0caf5; }
+    .fx-pill.on { background:#1f2a1f; color:#9ece6a; } .fx-pill.off { background:#2a1f1f; color:#f7768e; } .fx-pill.warn { background:#2e2a1a; color:#e0af68; }
+    .fx-stat { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:18px; }
+    .fx-stat div { background:#16161e; border:1px solid #2f3549; border-radius:6px; padding:12px; } .fx-stat b { display:block; font-size:1.4rem; color:#c0caf5; } .fx-stat span { font-size:.72rem; color:#7dcfff; text-transform:uppercase; }
+    .fx-pager a { color:#7aa2f7; margin-right:14px; }
+    .fx-chart h3 { color:#c0caf5; font-size:1rem; margin:18px 0 6px; }
+    .fx-small { font-size:.8rem; color:#a9b1d6; }
+    .fx-form { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; align-items:end; margin:14px 0 4px; padding:14px; background:#16161e; border:1px solid #2f3549; border-radius:6px; }
+    .fx-form h3 { grid-column:1/-1; margin:0; font-size:.95rem; color:#c0caf5; }
+    .fx-form label { display:block; font-size:.75rem; color:#7dcfff; text-transform:uppercase; margin-bottom:3px; }
+    .fx-form input, .fx-form select, .fx-form textarea { width:100%; box-sizing:border-box; background:#1a1b26; border:1px solid #2f3549; color:#fff; padding:9px; border-radius:4px; font-family:inherit; }
+    .fx-form .wide { grid-column:1/-1; } .fx-form .chk { display:flex; gap:8px; align-items:center; } .fx-form .chk input { width:auto; }
+    .fx-form button { margin:0; }
+</style>
+<% const banner = () => { %>
+    <% if (fx_.msg) { %><div class="fx-msg"><%= fx_.msg %></div><% } %>
+<% }; %>
+
+<!-- ═══════════════ FEATURES (per-feature settings) ═══════════════ -->
+<div id="fx-features" class="tab-content<%= tab === 'fx-features' ? ' active' : '' %>">
+<% if (tab === 'fx-features') { banner(); %>
+    <% (fx_.errors || []).forEach(e => { %><div class="fx-err"><%= e %></div><% }) %>
+    <% fx_.forms.forEach(f => { %>
+    <div class="panel">
+        <h2><%= f.def.icon %> <%= f.def.label %> <span class="fx-pill <%= f.cfg.enabled ? 'on' : 'off' %>"><%= f.cfg.enabled ? 'enabled' : 'disabled' %></span></h2>
+        <p class="fx-sub"><%= f.def.description %></p>
+        <form action="/features/<%= f.name %>" method="POST">
+            <label class="ng-row"><input type="checkbox" name="enabled" <%= f.cfg.enabled ? 'checked' : '' %>><div><div class="ng-title">Enabled</div></div></label>
+            <div class="fx-grid">
+            <% f.def.settings.forEach(s => { const v = f.cfg[s.key]; %>
+                <div class="fx-field">
+                    <% if (s.type === 'bool') { %>
+                        <label class="ng-row" style="border:none;padding:0"><input type="checkbox" name="<%= s.key %>" <%= v ? 'checked' : '' %>><div><div class="ng-title"><%= s.label %></div></div></label>
+                    <% } else { %>
+                        <label for="<%= f.name %>-<%= s.key %>"><%= s.label %></label>
+                        <% if (s.type === 'int') { %>
+                            <input id="<%= f.name %>-<%= s.key %>" type="number" name="<%= s.key %>" min="<%= s.min %>" max="<%= s.max %>" value="<%= v %>">
+                        <% } else if (s.type === 'enum') { %>
+                            <select id="<%= f.name %>-<%= s.key %>" name="<%= s.key %>"><% s.options.forEach(o => { %><option value="<%= o %>" <%= v === o ? 'selected' : '' %>><%= o %></option><% }) %></select>
+                        <% } else if (s.type === 'channel') { %>
+                            <select id="<%= f.name %>-<%= s.key %>" name="<%= s.key %>"><option value="">— none —</option><% fx_.channels.forEach(c => { %><option value="<%= c.id %>" <%= v === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %></select>
+                        <% } else if (s.type === 'role') { %>
+                            <select id="<%= f.name %>-<%= s.key %>" name="<%= s.key %>"><option value="">— none —</option><% fx_.roles.forEach(r => { %><option value="<%= r.id %>" <%= v === r.id ? 'selected' : '' %>><%= r.name %></option><% }) %></select>
+                        <% } else if (s.type === 'list') { %>
+                            <textarea id="<%= f.name %>-<%= s.key %>" name="<%= s.key %>" rows="2"><%= (v || []).join(', ') %></textarea>
+                        <% } %>
+                    <% } %>
+                    <% if (s.desc) { %><div class="d"><%= s.desc %></div><% } %>
+                </div>
+            <% }) %>
+            </div>
+            <div class="fx-inline" style="margin-top:14px"><button type="submit" class="btn-submit" style="margin:0">Save <%= f.def.label %></button></div>
+        </form>
+        <form action="/features/<%= f.name %>/reset" method="POST" onsubmit="return confirm('Reset <%= f.def.label %> to defaults?');" style="margin-top:8px"><button class="fx-btn danger" type="submit">Reset to defaults</button></form>
+    </div>
+    <% }) %>
+<% } %>
+</div>
+
+<!-- ═══════════════ PROTECTION ═══════════════ -->
+<div id="fx-protection" class="tab-content<%= tab === 'fx-protection' ? ' active' : '' %>">
+<% if (tab === 'fx-protection') { banner(); const st = fx_.raid.state; %>
+    <div class="panel">
+        <h2>🚨 Raid Protection <span class="fx-pill <%= fx_.raidCfg.enabled ? 'on' : 'off' %>"><%= fx_.raidCfg.enabled ? 'enabled' : 'disabled' %></span></h2>
+        <p class="fx-sub">Trigger: <b><%= fx_.raidCfg.joinThreshold %></b> joins in <b><%= fx_.raidCfg.windowSeconds %>s</b> → action <b><%= fx_.raidCfg.action %></b>. Edit on the Features page.</p>
+        <div class="fx-stat">
+            <div><span>Raid mode</span><b><%= st.active ? '🚨 ON' : '🟢 off' %></b></div>
+            <% if (st.active) { %><div><span>Ends</span><b style="font-size:1rem"><%= when(st.until) %></b></div><% } %>
+            <div><span>Joins in window</span><b><%= fx_.raid.recentJoins %></b></div>
+        </div>
+        <div class="fx-inline">
+            <% if (st.active) { %><form action="/protection/raid/end" method="POST"><button class="btn-submit" style="margin:0">End raid mode</button></form>
+            <% } else { %><form action="/protection/raid/start" method="POST" onsubmit="return confirm('Turn raid mode on now?');"><button class="btn-submit" style="margin:0">Start raid mode</button></form><% } %>
+        </div>
+        <% if (fx_.raid.incidents.length) { %>
+        <table><tr><th>#</th><th>Started</th><th>Trigger</th><th>Joins</th><th>Actioned</th><th>Old accts skipped</th><th>Ended</th></tr>
+            <% fx_.raid.incidents.slice(0, 10).forEach(i => { %><tr><td><%= i.id %></td><td><%= when(i.startedAt) %></td><td><%= i.trigger %></td><td><%= i.joins %></td><td><%= i.actioned %><%= i.failed ? ' (' + i.failed + ' failed)' : '' %></td><td><%= i.flaggedOnly || 0 %></td><td><%= i.endedAt ? when(i.endedAt) : 'ongoing' %></td></tr><% }) %>
+        </table><% } else { %><p class="fx-sub" style="margin-top:14px">No incidents yet.</p><% } %>
+    </div>
+
+    <div class="panel">
+        <h2>🕵️ Ban Evasion Flags <span class="fx-pill <%= fx_.evCfg.enabled ? 'on' : 'off' %>"><%= fx_.evCfg.enabled ? 'enabled' : 'disabled' %></span></h2>
+        <p class="fx-sub">Tracking <b><%= fx_.trackedBans %></b> banned users • flag score <b><%= fx_.evCfg.flagScore %></b> • automatic action <b><%= fx_.evCfg.autoAction %></b></p>
+        <div class="fx-inline" style="margin:10px 0">
+            <form method="GET" action="/protection" class="fx-inline"><input name="evUser" placeholder="Check a user ID against bans" pattern="\d{15,25}" style="min-width:260px" value="<%= (locals.fx.evCheck && locals.fx.evCheck.target && locals.fx.evCheck.target.id) || '' %>"><button class="fx-btn">Check user</button></form>
+            <form action="/protection/evasion/sync" method="POST"><button class="fx-btn">Re-sync ban list &amp; invites</button></form>
+        </div>
+        <% if (fx_.evCheck) { %><div class="fx-form" style="display:block"><h3>Result for <%= fx_.evCheck.target.tag %></h3>
+            <% if (!fx_.evCheck.ranked.length) { %><p class="fx-small">No similarities found against <%= fx_.evCheck.tracked %> tracked bans.</p><% } %>
+            <% fx_.evCheck.ranked.forEach(x => { %><p class="fx-small"><b><%= x.score %>/100</b> vs <b><%= x.b.tag %></b> (<%= x.b.id %>)<br><%= x.reasons.join(' • ') %></p><% }) %></div><% } %>
+        <% if (fx_.flags.length) { %>
+        <table><tr><th>#</th><th>When</th><th>Member</th><th>Score</th><th>Matches</th><th>Why</th><th>Status</th><th></th></tr>
+            <% fx_.flags.forEach(f => { %><tr>
+                <td><%= f.id %></td><td><%= when(f.createdAt) %></td><td><%= f.tag %><br><span class="fx-small"><%= f.userId %></span></td><td><b><%= f.score %></b></td><td><%= f.matchTag %></td>
+                <td class="fx-small"><%= f.reasons.join(' • ') %></td>
+                <td><span class="fx-pill <%= f.status === 'open' ? 'warn' : '' %>"><%= f.status %><%= f.action ? ' (' + f.action + ')' : '' %></span></td>
+                <td><% if (f.status === 'open') { %><div class="fx-inline">
+                    <form action="/protection/evasion/<%= f.id %>/dismiss" method="POST"><button class="fx-btn">Dismiss</button></form>
+                    <form action="/protection/evasion/<%= f.id %>/kick" method="POST" onsubmit="return confirm('Kick this member?');"><button class="fx-btn">Kick</button></form>
+                    <form action="/protection/evasion/<%= f.id %>/ban" method="POST" onsubmit="return confirm('Ban this member?');"><button class="fx-btn danger">Ban</button></form></div><% } %></td>
+            </tr><% }) %>
+        </table><% } else { %><p class="fx-sub" style="margin-top:14px">No flags yet.</p><% } %>
+    </div>
+
+    <div class="panel">
+        <h2>🎭 Impersonation Guard <span class="fx-pill <%= fx_.impCfg.enabled ? 'on' : 'off' %>"><%= fx_.impCfg.enabled ? 'enabled' : 'disabled' %></span></h2>
+        <div class="fx-inline" style="margin:10px 0">
+            <form action="/protection/impersonation/add" method="POST" class="fx-inline"><input name="name" placeholder="Protect a name…" required maxlength="100"><button class="fx-btn">Add</button></form>
+            <form action="/protection/impersonation/remove" method="POST" class="fx-inline"><input name="name" placeholder="Remove a custom name…" required maxlength="100"><button class="fx-btn danger">Remove</button></form>
+            <form method="GET" action="/protection" class="fx-inline"><input name="impName" placeholder="Test a name…" maxlength="100" value="<%= (fx_.impTest && fx_.impTest.name) || '' %>"><button class="fx-btn">Would it be flagged?</button></form>
+        </div>
+        <% if (fx_.impTest) { %><p class="fx-small"><%= fx_.impTest.match ? '⚠️ "' + fx_.impTest.name + '" would be flagged: ' + fx_.impTest.match.kind + ' to ' + fx_.impTest.match.protectedLabel + ' (' + fx_.impTest.match.score + '%)' : '✅ "' + fx_.impTest.name + '" would not be flagged.' %></p><% } %>
+        <div class="fx-inline" style="margin:10px 0">
+            <form action="/protection/impersonation/scan" method="POST"><input type="hidden" name="rename" value="0"><button class="fx-btn">Scan all members (preview)</button></form>
+            <form action="/protection/impersonation/scan" method="POST" onsubmit="return confirm('Rename every matching member now?');"><input type="hidden" name="rename" value="1"><button class="fx-btn danger">Scan &amp; rename</button></form>
+            <span class="fx-small">Staff names protected: <%= fx_.impSummary.staffMembers %> staff members</span>
+        </div>
+        <% if (fx_.lastScan) { %><p class="fx-small">Last scan (<%= when(fx_.lastScan.at) %>): scanned <%= fx_.lastScan.scanned %>, <%= fx_.lastScan.hits.length %> match(es)<%= fx_.lastScan.rename ? ', renamed ' + fx_.lastScan.renamed + ', failed ' + fx_.lastScan.failed : ' (preview only)' %></p>
+            <% if (fx_.lastScan.hits.length) { %><table><tr><th>Member</th><th>Field</th><th>Name</th><th>Resembles</th><th>Score</th></tr><% fx_.lastScan.hits.forEach(h => { %><tr><td><%= h.tag %></td><td><%= h.field %></td><td><%= h.name %></td><td><%= h.label %></td><td><%= h.score %>%</td></tr><% }) %></table><% } %><% } %>
+        <p class="fx-sub">Threshold <b><%= fx_.impCfg.threshold %>%</b> • action <b><%= fx_.impCfg.action %></b> • staff names protected: <b><%= fx_.impCfg.protectStaff ? 'yes' : 'no' %></b> • extra names: <b><%= fx_.impCfg.protectedNames.length ? fx_.impCfg.protectedNames.join(', ') : 'none' %></b> (manage with <code>/impersonation add</code> or the Features page)</p>
+        <% if (fx_.impHits.length) { %>
+        <table><tr><th>When</th><th>Member</th><th>Field</th><th>Name</th><th>Resembles</th><th>Score</th><th>Result</th></tr>
+            <% fx_.impHits.forEach(h => { %><tr><td><%= when(h.ts) %></td><td><%= h.tag %></td><td><%= h.field %></td><td><%= h.name %></td><td><%= h.protectedLabel %></td><td><%= h.score %>%</td><td><%= h.outcome %></td></tr><% }) %>
+        </table><% } else { %><p class="fx-sub" style="margin-top:14px">No detections yet.</p><% } %>
+    </div>
+<% } %>
+</div>
+
+<!-- ═══════════════ CASE SEARCH ═══════════════ -->
+<div id="fx-cases" class="tab-content<%= tab === 'fx-cases' ? ' active' : '' %>">
+<% if (tab === 'fx-cases') { banner(); const q = fx_.q; %>
+    <div class="panel">
+        <h2>🔎 Case Search</h2>
+        <form method="GET" action="/cases" class="fx-inline">
+            <input name="user" placeholder="User tag or ID" value="<%= q.user || '' %>">
+            <input name="type" placeholder="Type (warn, ban…)" value="<%= q.type || '' %>">
+            <input name="moderator" placeholder="Moderator" value="<%= q.moderator || '' %>">
+            <input name="keyword" placeholder="Reason contains" value="<%= q.keyword || '' %>">
+            <input name="days" type="number" min="1" placeholder="Last N days" value="<%= q.days || '' %>" style="width:120px">
+            <button class="btn-submit" style="margin:0">Search</button> <a class="fx-small" href="/cases">reset</a>
+        </form>
+        <p class="fx-sub" style="margin-top:14px"><%= fx_.result.total %> case<%= fx_.result.total === 1 ? '' : 's' %> • page <%= fx_.result.page %> of <%= fx_.result.pages %></p>
+        <% if (fx_.rows.length) { %>
+        <table><tr><th>#</th><th>Type</th><th>User</th><th>Moderator</th><th>Reason</th><th>When</th></tr>
+            <% fx_.rows.forEach(c => { %><tr><td><%= c.id %></td><td><%= c.type %></td><td><% if (c.userId) { %><a href="/admin/user/<%= c.userId %>" style="color:#7aa2f7"><%= c.user %></a><% } else { %><%= c.user %><% } %></td><td><%= c.moderator %></td><td class="fx-small"><%= c.reason %></td><td><%= when(c.at) %></td></tr><% }) %>
+        </table>
+        <div class="fx-pager" style="margin-top:12px">
+            <% if (fx_.result.page > 1) { %><a href="/cases?<%= fx_.qs %>&page=<%= fx_.result.page - 1 %>">← Newer</a><% } %>
+            <% if (fx_.result.page < fx_.result.pages) { %><a href="/cases?<%= fx_.qs %>&page=<%= fx_.result.page + 1 %>">Older →</a><% } %>
+        </div>
+        <% } %>
+    </div>
+<% } %>
+</div>
+
+<!-- ═══════════════ AUDIT LOG ═══════════════ -->
+<div id="fx-audit" class="tab-content<%= tab === 'fx-audit' ? ' active' : '' %>">
+<% if (tab === 'fx-audit') { banner(); const q = fx_.q; %>
+    <div class="panel">
+        <h2>📜 Server Audit Log</h2>
+        <form method="GET" action="/audit" class="fx-inline">
+            <select name="type"><option value="">All events</option><% fx_.filters.forEach(f => { %><option value="<%= f %>" <%= q.type === f ? 'selected' : '' %>><%= f %></option><% }) %></select>
+            <input name="executor" placeholder="Executor user ID" value="<%= q.executor || '' %>">
+            <input name="target" placeholder="Target user ID (filters this page)" value="<%= q.target || '' %>">
+            <button class="btn-submit" style="margin:0">Filter</button> <a class="fx-small" href="/audit">reset</a>
+        </form>
+        <% if (!fx_.cfg.enabled) { %><p class="fx-err" style="margin-top:14px">The Audit Log Viewer feature is disabled.</p>
+        <% } else if (!fx_.discord.ok) { %><p class="fx-err" style="margin-top:14px"><%= fx_.discord.error.replace(/\*\*/g, '') %></p>
+        <% } else if (!fx_.discord.entries.length) { %><p class="fx-sub" style="margin-top:14px">No entries.</p>
+        <% } else { %>
+        <table><tr><th>When</th><th>Action</th><th>By</th><th>Target</th><th>Reason / changes</th></tr>
+            <% fx_.discord.entries.forEach(e => { %><tr><td><%= when(e.at) %></td><td><b><%= e.actionLabel %></b></td><td><%= e.executor %></td><td class="fx-small"><%= e.target %></td>
+                <td class="fx-small"><%= e.reason %><% e.changes.forEach(c => { %><div><%= c.key %>: <%= c.from %> → <%= c.to %></div><% }) %></td></tr><% }) %>
+        </table>
+        <% if (fx_.discord.hasMore && fx_.discord.lastId) { %><div class="fx-pager" style="margin-top:12px"><a href="/audit?<%= fx_.qs %>&before=<%= fx_.discord.lastId %>">Older entries →</a></div><% } %>
+        <% } %>
+    </div>
+    <div class="panel">
+        <h2>🤖 Bot Activity</h2>
+        <p class="fx-sub">Automatic actions and events from the feature bundle (raids, flags, impersonation, timed actions, giveaways, polls).</p>
+        <% if (fx_.events.length) { %>
+        <table><tr><th>When</th><th>Type</th><th>Event</th></tr>
+            <% fx_.events.forEach(e => { %><tr><td><%= when(e.ts) %></td><td><span class="fx-pill"><%= e.type %></span></td><td class="fx-small"><%= e.text %></td></tr><% }) %>
+        </table><% } else { %><p class="fx-sub">Nothing recorded yet.</p><% } %>
+    </div>
+<% } %>
+</div>
+
+<!-- ═══════════════ ANALYTICS ═══════════════ -->
+<div id="fx-analytics" class="tab-content<%= tab === 'fx-analytics' ? ' active' : '' %>">
+<% if (tab === 'fx-analytics') { banner(); const r = fx_.r; %>
+    <div class="panel">
+        <h2>📈 Analytics <span class="fx-pill <%= fx_.cfg.enabled ? 'on' : 'off' %>"><%= fx_.cfg.enabled ? 'collecting' : 'disabled' %></span></h2>
+        <form method="GET" action="/analytics" class="fx-inline"><% [7,14,30,90].forEach(n => { %><a class="fx-btn" style="text-decoration:none;<%= fx_.days === n ? 'color:#fff' : '' %>" href="/analytics?days=<%= n %>"><%= n %>d</a><% }) %></form>
+        <p class="fx-sub" style="margin-top:12px"><%= r.trackedDays %> of <%= r.days %> days have data. Counts only — no message content is stored. "Active users" is a per-day floor that restarts after a bot restart.</p>
+        <div class="fx-stat">
+            <div><span>Messages</span><b><%= r.totals.messages.toLocaleString() %></b></div>
+            <div><span>Joins</span><b><%= r.totals.joins %></b></div>
+            <div><span>Leaves</span><b><%= r.totals.leaves %></b></div>
+            <div><span>Bans</span><b><%= r.totals.bans %></b></div>
+            <div><span>Mod cases</span><b><%= r.totals.cases %></b></div>
+            <div><span>Raids</span><b><%= r.totals.raids %></b></div>
+            <div><span>Busiest hour</span><b><%= r.peakHour === null ? '—' : fx_.hourLabel(r.peakHour) %></b></div>
+        </div>
+        <div class="fx-chart"><h3>Messages per day</h3><%- fx_.charts.messages %>
+            <h3>Joins per day</h3><%- fx_.charts.joins %>
+            <h3>Leaves per day</h3><%- fx_.charts.leaves %>
+            <h3>Moderation cases per day</h3><%- fx_.charts.mod %>
+            <h3>Messages by hour of day</h3><%- fx_.charts.hourly %></div>
+    </div>
+    <div class="panel">
+        <h2>Top channels</h2>
+        <% if (fx_.topChannels.length) { %><table><tr><th>Channel</th><th>Messages</th></tr><% fx_.topChannels.forEach(c => { %><tr><td>#<%= c.name %></td><td><%= c.count.toLocaleString() %></td></tr><% }) %></table>
+        <% } else { %><p class="fx-sub">No channel data (tracking may be off).</p><% } %>
+        <% if (Object.keys(r.casesByType).length) { %><h2 style="margin-top:22px">Cases by type</h2><table><% Object.entries(r.casesByType).sort((a,b)=>b[1]-a[1]).forEach(([k,n]) => { %><tr><td><%= k %></td><td><%= n %></td></tr><% }) %></table><% } %>
+    </div>
+<% } %>
+</div>
+
+<!-- ═══════════════ COMMUNITY (giveaways + polls) ═══════════════ -->
+<div id="fx-community" class="tab-content<%= tab === 'fx-community' ? ' active' : '' %>">
+<% if (tab === 'fx-community') { banner(); %>
+    <div class="panel">
+        <h2>🎉 Giveaways</h2>
+        <p class="fx-sub">Start one here or with <code>/giveaway start</code>. <% if (!fx_.cfgG.enabled) { %><b style="color:#f7768e">Giveaways are disabled — enable them on the Features page.</b><% } %></p>
+        <form class="fx-form" action="/community/giveaway/start" method="POST">
+            <h3>Start a giveaway</h3>
+            <div class="wide"><label>Prize</label><input name="prize" required maxlength="200" placeholder="Discord Nitro"></div>
+            <div><label>Duration</label><input name="duration" required placeholder="e.g. 12h, 3d"></div>
+            <div><label>Winners</label><input name="winners" type="number" min="1" max="<%= fx_.cfgG.maxWinners %>" value="1"></div>
+            <div><label>Channel</label><%- chanSel('channelId') %></div>
+            <div><label>Required role</label><%- roleSel('roleId', true) %></div>
+            <div><button class="btn-submit">Start giveaway</button></div>
+        </form>
+        <% if (fx_.giveaways.length) { %>
+        <table><tr><th>#</th><th>Prize</th><th>Status</th><th>Ends</th><th>Entries</th><th>Winners</th><th></th></tr>
+            <% fx_.giveaways.forEach(g => { %><tr><td><%= g.id %></td><td><%= g.prize %></td><td><span class="fx-pill <%= g.status === 'active' ? 'on' : '' %>"><%= g.status %></span></td><td><%= when(g.endsAt) %></td><td><%= g.entries.length %></td><td class="fx-small"><%= g.winners.length ? g.winners.join(', ') : '—' %></td>
+                <td><div class="fx-inline">
+                <% if (g.status === 'active') { %><form action="/community/giveaway/<%= g.id %>/end" method="POST"><button class="fx-btn">End now</button></form><form action="/community/giveaway/<%= g.id %>/cancel" method="POST" onsubmit="return confirm('Cancel this giveaway?');"><button class="fx-btn danger">Cancel</button></form>
+                <% } else if (g.status === 'ended') { %><form action="/community/giveaway/<%= g.id %>/reroll" method="POST"><button class="fx-btn">Reroll 1</button></form><% } %></div></td></tr><% }) %>
+        </table><% } else { %><p class="fx-sub">No giveaways yet.</p><% } %>
+    </div>
+    <div class="panel">
+        <h2>📊 Polls</h2>
+        <p class="fx-sub">Create one here or with <code>/poll create</code>. <% if (!fx_.cfgP.enabled) { %><b style="color:#f7768e">Polls are disabled — enable them on the Features page.</b><% } %></p>
+        <form class="fx-form" action="/community/poll/create" method="POST">
+            <h3>Create a poll</h3>
+            <div class="wide"><label>Question</label><input name="question" required maxlength="250"></div>
+            <div class="wide"><label>Options — separate with | (2 to <%= fx_.cfgP.maxOptions %>)</label><input name="options" required placeholder="Pizza | Tacos | Sushi"></div>
+            <div><label>Channel</label><%- chanSel('channelId') %></div>
+            <div><label>Auto-close after (optional)</label><input name="duration" placeholder="e.g. 1h, 2d"></div>
+            <div><label>Voters</label><select name="anonymity"><option value="default">Default (<%= fx_.cfgP.defaultAnonymous ? 'anonymous' : 'public' %>)</option><option value="anonymous">Anonymous</option><option value="public">Public</option></select></div>
+            <div class="chk"><input type="checkbox" name="multi" id="pollmulti"><label for="pollmulti" style="margin:0;text-transform:none;color:#c0caf5">Allow multiple choices</label></div>
+            <div><button class="btn-submit">Post poll</button></div>
+        </form>
+        <% if (fx_.polls.length) { %>
+        <table><tr><th>#</th><th>Question</th><th>Status</th><th>Closes</th><th>Voters</th><th>Type</th><th></th></tr>
+            <% fx_.polls.forEach(p => { %><tr><td><%= p.id %></td><td><%= p.question %><div class="fx-small"><%= p.options.map((o, i) => o + ' (' + p.tally.counts[i] + ')').join(' • ') %></div></td><td><span class="fx-pill <%= p.status === 'active' ? 'on' : '' %>"><%= p.status %></span></td><td><%= p.endsAt ? when(p.endsAt) : 'manual' %></td><td><%= p.tally.voters %></td><td class="fx-small"><%= p.multi ? 'multi' : 'single' %>, <%= p.anonymous ? 'anonymous' : 'public' %></td>
+                <td><% if (p.status === 'active') { %><form action="/community/poll/<%= p.id %>/end" method="POST"><button class="fx-btn danger">Close</button></form><% } %></td></tr><% }) %>
+        </table><% } else { %><p class="fx-sub">No polls yet.</p><% } %>
+    </div>
+<% } %>
+</div>
+
+<!-- ═══════════════ TIMED ACTIONS ═══════════════ -->
+<div id="fx-timed" class="tab-content<%= tab === 'fx-timed' ? ' active' : '' %>">
+<% if (tab === 'fx-timed') { banner(); %>
+    <div class="panel">
+        <h2>⏲️ Scheduled Actions</h2>
+        <p class="fx-sub">Schedule here or with <code>/timed …</code>. Durations look like <code>30m</code>, <code>12h</code>, <code>3d</code>, <code>1w</code> (max <%= fx_.cfgT.maxDays %> days). <% if (!fx_.cfgT.enabled) { %><b style="color:#f7768e">Timed Actions are disabled — enable them on the Features page.</b><% } %></p>
+        <form class="fx-form" action="/timed/ban" method="POST" onsubmit="return confirm('Ban this user now and unban automatically later?');">
+            <h3>⏰ Temp-ban</h3>
+            <div><label>User ID</label><input name="userId" required pattern="\d{15,25}"></div>
+            <div><label>Duration</label><input name="duration" required placeholder="3d"></div>
+            <div><label>Delete msgs (days 0-7)</label><input name="deleteDays" type="number" min="0" max="7" value="0"></div>
+            <div class="wide"><label>Reason</label><input name="reason" maxlength="400"></div>
+            <div><button class="btn-submit">Temp-ban</button></div>
+        </form>
+        <form class="fx-form" action="/timed/role" method="POST">
+            <h3>🎭 Temporary role</h3>
+            <div><label>User ID</label><input name="userId" required pattern="\d{15,25}"></div>
+            <div><label>Role</label><%- roleSel('roleId') %></div>
+            <div><label>Duration</label><input name="duration" required placeholder="2h"></div>
+            <div><label>Mode</label><select name="mode"><option value="grant">Give now, remove later</option><option value="revoke">Remove now, restore later</option></select></div>
+            <div><button class="btn-submit">Apply</button></div>
+        </form>
+        <form class="fx-form" action="/timed/unban" method="POST">
+            <h3>🔓 Scheduled unban</h3>
+            <div><label>User ID</label><input name="userId" required pattern="\d{15,25}"></div>
+            <div><label>In</label><input name="duration" required placeholder="1d"></div>
+            <div><button class="btn-submit">Schedule unban</button></div>
+        </form>
+        <form class="fx-form" action="/timed/message" method="POST">
+            <h3>💬 Delayed message</h3>
+            <div><label>Channel</label><%- chanSel('channelId') %></div>
+            <div><label>In</label><input name="duration" required placeholder="2h"></div>
+            <div class="wide"><label>Message (no @everyone / @here)</label><textarea name="text" required rows="2" maxlength="1800"></textarea></div>
+            <div><button class="btn-submit">Schedule message</button></div>
+        </form>
+        <% if (fx_.pending.length) { %>
+        <table><tr><th>#</th><th>Type</th><th>Action</th><th>Runs</th><th>By</th><th></th></tr>
+            <% fx_.pending.forEach(i => { %><tr><td><%= i.id %></td><td><%= fx_.typeLabel[i.type] || i.type %></td><td class="fx-small"><%= i.text %></td><td><%= when(i.dueAt) %></td><td><%= i.createdBy %></td><td><form action="/timed/<%= i.id %>/cancel" method="POST"><button class="fx-btn danger">Cancel</button></form></td></tr><% }) %>
+        </table><% } else { %><p class="fx-sub">Nothing scheduled.</p><% } %>
+    </div>
+    <div class="panel">
+        <h2>History</h2>
+        <% if (fx_.history.length) { %>
+        <table><tr><th>#</th><th>Type</th><th>Action</th><th>Status</th><th>Finished</th><th>Note</th></tr>
+            <% fx_.history.forEach(i => { %><tr><td><%= i.id %></td><td><%= fx_.typeLabel[i.type] || i.type %></td><td class="fx-small"><%= i.text %></td><td><span class="fx-pill <%= i.status === 'done' ? 'on' : (i.status === 'failed' ? 'off' : '') %>"><%= i.status %></span></td><td><%= when(i.finishedAt) %></td><td class="fx-small"><%= i.note %></td></tr><% }) %>
+        </table><% } else { %><p class="fx-sub">Nothing yet.</p><% } %>
+    </div>
+<% } %>
+</div>
+<% } %>

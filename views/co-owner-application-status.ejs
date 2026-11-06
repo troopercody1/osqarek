@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Status — <%= stats.botName %></title>
+    <style>
+        :root {
+            --bg: #0e0f13;
+            --panel: #16181f;
+            --panel-border: #262a35;
+            --accent: #5865F2;
+            --text: #e7e9ee;
+            --text-dim: #9aa0ac;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, #1b1e28 0%, var(--bg) 60%);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text);
+            padding: 24px;
+        }
+        .card {
+            width: 100%;
+            max-width: 420px;
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 32px 28px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+            text-align: center;
+        }
+        .card h1 { font-size: 20px; margin: 0 0 6px; }
+        .card p.sub { color: var(--text-dim); margin: 0 0 24px; font-size: 14px; }
+
+        .status-pill {
+            display: inline-block;
+            padding: 8px 22px;
+            border-radius: 99px;
+            font-size: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 18px;
+        }
+        .status-pill.pending { background: rgba(224,175,104,0.12); color: #e0af68; }
+        .status-pill.passed  { background: rgba(59,165,92,0.12); color: #3ba55c; }
+        .status-pill.failed  { background: rgba(237,66,69,0.12); color: #ed4245; }
+
+        .status-desc { color: var(--text-dim); font-size: 14px; line-height: 1.6; margin-bottom: 6px; }
+        .not-found { color: var(--text-dim); font-size: 14px; line-height: 1.6; }
+
+        .footer-note { font-size: 12px; color: #565b66; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <% if (!application) { %>
+            <h1>No Application Found</h1>
+            <p class="not-found">We couldn't find a co-owner application submitted with that Discord user ID. Double-check the link, or make sure you've applied at <strong>/apply-co-owner</strong>.</p>
+        <% } else { %>
+            <h1>Co-Owner Application Status</h1>
+            <p class="sub">Applying as <strong><%= application.username %></strong></p>
+
+            <% const status = application.status || 'pending'; %>
+            <div class="status-pill <%= status %>"><%= status %></div>
+
+            <% if (status === 'pending') { %>
+                <p class="status-desc">Your application is still being reviewed by our ownership team. Check back later, or watch your Discord DMs for an update.</p>
+            <% } else if (status === 'passed') { %>
+                <p class="status-desc">Your application has been reviewed by our ownership team. You have passed. Congratulations!</p>
+            <% } else { %>
+                <p class="status-desc">Your application has been reviewed by our ownership team. You have failed. We are sorry that you have failed.</p>
+            <% } %>
+        <% } %>
+
+        <p class="footer-note">Questions about the process? Ask in the server.</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify — <%= stats.botName %></title>
+    <% if (hcaptchaSiteKey) { %>
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+    <% } %>
+    <style>
+        :root {
+            --bg: #0e0f13;
+            --panel: #16181f;
+            --panel-border: #262a35;
+            --accent: #5865F2;
+            --accent-hover: #4752c4;
+            --text: #e7e9ee;
+            --text-dim: #9aa0ac;
+            --danger: #ed4245;
+            --danger-bg: rgba(237, 66, 69, 0.12);
+            --success: #3ba55c;
+            --success-bg: rgba(59, 165, 92, 0.12);
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, #1b1e28 0%, var(--bg) 60%);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text);
+            padding: 24px;
+        }
+        .card {
+            width: 100%;
+            max-width: 420px;
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 32px 28px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+        }
+        .card h1 {
+            font-size: 22px;
+            margin: 0 0 6px;
+            text-align: center;
+        }
+        .card p.sub {
+            text-align: center;
+            color: var(--text-dim);
+            margin: 0 0 24px;
+            font-size: 14px;
+        }
+        .banner {
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 13.5px;
+            margin-bottom: 18px;
+            line-height: 1.4;
+        }
+        .banner.error { background: var(--danger-bg); color: #ff7b7d; border: 1px solid rgba(237,66,69,0.35); }
+        .banner.success { background: var(--success-bg); color: #7ee2a0; border: 1px solid rgba(59,165,92,0.35); }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: #1c1f28;
+            border: 1px solid var(--panel-border);
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        .step .dot {
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 700;
+            background: #2a2e39; color: var(--text-dim);
+        }
+        .step.done .dot { background: var(--success); color: #0e0f13; }
+        .step.done { opacity: 0.75; }
+
+        .discord-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #1c1f28;
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 18px;
+        }
+        .discord-user img {
+            width: 32px; height: 32px; border-radius: 50%;
+        }
+        .discord-user span {
+            font-size: 14px;
+            color: var(--text-dim);
+        }
+        .discord-user strong { color: var(--text); }
+
+        .btn {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.15s ease;
+        }
+        .btn-discord {
+            background: var(--accent);
+            color: #fff;
+        }
+        .btn-discord:hover { background: var(--accent-hover); }
+        .btn-verify {
+            background: var(--success);
+            color: #0e0f13;
+            margin-top: 16px;
+        }
+        .btn-verify:hover { background: #329653; }
+        .btn-verify:disabled {
+            background: #2a2e39;
+            color: var(--text-dim);
+            cursor: not-allowed;
+        }
+
+        .rules-box {
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 13px;
+            color: var(--text-dim);
+            background: #1c1f28;
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            padding: 12px;
+            margin: 16px 0 12px;
+            line-height: 1.5;
+        }
+        .rules-box ol { margin: 0; padding-left: 18px; }
+        .rules-box li { margin-bottom: 6px; }
+
+        label.agree {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 13.5px;
+            color: var(--text-dim);
+            cursor: pointer;
+            margin-bottom: 16px;
+        }
+        label.agree input { margin-top: 3px; }
+
+        .h-captcha { display: flex; justify-content: center; margin: 16px 0; }
+
+        .footer-note {
+            text-align: center;
+            font-size: 12px;
+            color: #565b66;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Verify to join OsQarek's Universe!</h1>
+        <p class="sub">Complete the steps below to unlock the rest of the server.</p>
+
+        <% if (error) { %>
+            <div class="banner error"><%= error %></div>
+        <% } %>
+        <% if (success) { %>
+            <div class="banner success">✅ You're verified! Head back to Discord — your access has been unlocked.</div>
+        <% } %>
+
+        <% if (!success) { %>
+            <div class="step <%= discordUser ? 'done' : '' %>">
+                <div class="dot"><%= discordUser ? '✓' : '1' %></div>
+                <div>Log in with Discord</div>
+            </div>
+            <div class="step">
+                <div class="dot">2</div>
+                <div>Complete the CAPTCHA</div>
+            </div>
+            <div class="step">
+                <div class="dot">3</div>
+                <div>Agree to the server rules</div>
+            </div>
+
+            <% if (!discordUser) { %>
+                <a class="btn btn-discord" href="/verify/login" style="margin-top: 18px;">Log in with Discord</a>
+            <% } else { %>
+                <div class="discord-user" style="margin-top: 18px;">
+                    <% if (discordUser.avatar) { %>
+                        <img src="https://cdn.discordapp.com/avatars/<%= discordUser.id %>/<%= discordUser.avatar %>.png?size=64" alt="">
+                    <% } %>
+                    <span>Logged in as <strong><%= discordUser.username %></strong></span>
+                </div>
+
+                <form method="POST" action="/verify/submit" id="verifyForm">
+                    <div class="rules-box">
+                        <ol>
+                            <li><strong>Respectful Communication</strong> — engage in respectful, polite conversation. No harassment, hate speech, or bullying.</li>
+                            <li><strong>No Spam</strong> — avoid spamming text or voice channels, including excessive messages, irrelevant content, and unnecessary @mentions (unless in ❰✍❱spam).</li>
+                            <li><strong>Respect Privacy</strong> — don't share personal information about yourself or others without explicit consent (addresses, phone numbers, emails, etc).</li>
+                            <li><strong>No Self-Promotion or Advertising</strong> — no unsolicited promotion of other servers, social media, or products (unless in ❰💵❱self-promotion). Not allowed in DMs either.</li>
+                            <li><strong>Follow Discord's Terms of Service</strong> — adhere to Discord's official Terms of Service and Community Guidelines.</li>
+                            <li><strong>No NSFW</strong> — no explicitly pornographic content, depictions of sexual acts, or nudity.</li>
+                            <li><strong>Consequences</strong> — violations may result in a warning, mute, kick, or ban depending on severity.</li>
+                            <li><strong>Report Issues</strong> — reach out to a moderator or server admin with any concerns.</li>
+                        </ol>
+                    </div>
+
+                    <label class="agree">
+                        <input type="checkbox" name="agree" id="agreeCheck">
+                        I have read and agree to the server rules.
+                    </label>
+
+                    <% if (hcaptchaSiteKey) { %>
+                        <div class="h-captcha" data-sitekey="<%= hcaptchaSiteKey %>"></div>
+                    <% } else { %>
+                        <div class="banner error">CAPTCHA is not configured (missing HCAPTCHA_SITE_KEY).</div>
+                    <% } %>
+
+                    <button class="btn btn-verify" type="submit" id="verifyBtn" disabled>Verify & Join</button>
+                </form>
+            <% } %>
+        <% } %>
+
+        <p class="footer-note">Having trouble? Ask a staff member for help in the server.</p>
+    </div>
+
+    <script>
+        const agreeCheck = document.getElementById('agreeCheck');
+        const verifyBtn = document.getElementById('verifyBtn');
+        if (agreeCheck && verifyBtn) {
+            const updateBtnState = () => { verifyBtn.disabled = !agreeCheck.checked; };
+            agreeCheck.addEventListener('change', updateBtnState);
+            updateBtnState();
+        }
+    </script>
+</body>
+</html>

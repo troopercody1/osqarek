@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moderator Application — <%= stats.botName %></title>
+    <style>
+        :root {
+            --bg: #0e0f13;
+            --panel: #16181f;
+            --panel-border: #262a35;
+            --accent: #5865F2;
+            --accent-hover: #4752c4;
+            --text: #e7e9ee;
+            --text-dim: #9aa0ac;
+            --danger: #ed4245;
+            --danger-bg: rgba(237, 66, 69, 0.12);
+            --success: #3ba55c;
+            --success-bg: rgba(59, 165, 92, 0.12);
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, #1b1e28 0%, var(--bg) 60%);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text);
+            padding: 24px;
+        }
+        .card {
+            width: 100%;
+            max-width: 640px;
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 36px 34px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+        }
+        .card h1 {
+            font-size: 22px;
+            margin: 0 0 6px;
+            text-align: center;
+        }
+        .card p.sub {
+            text-align: center;
+            color: var(--text-dim);
+            margin: 0 0 24px;
+            font-size: 14px;
+        }
+        .banner {
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 13.5px;
+            margin-bottom: 18px;
+            line-height: 1.4;
+        }
+        .banner.error { background: var(--danger-bg); color: #ff7b7d; border: 1px solid rgba(237,66,69,0.35); }
+        .banner.success { background: var(--success-bg); color: #7ee2a0; border: 1px solid rgba(59,165,92,0.35); }
+
+        .req-box {
+            background: #1c1f28;
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 24px;
+        }
+        .req-box h3 {
+            margin: 0 0 10px;
+            font-size: 12px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #7dcfff;
+        }
+        .req-box ul {
+            margin: 0;
+            padding-left: 18px;
+            font-size: 13.5px;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+        .req-box strong { color: var(--text); }
+
+        form .field { margin-bottom: 20px; }
+        .field label {
+            display: block;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        .field label .num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            background: #2a2e39;
+            color: var(--text-dim);
+            font-size: 11px;
+            font-weight: 700;
+            margin-right: 8px;
+        }
+        .field .hint {
+            font-size: 12px;
+            color: #565b66;
+            margin-top: 6px;
+        }
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            background: #1c1f28;
+            border: 1px solid var(--panel-border);
+            color: var(--text);
+            padding: 11px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+        }
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        textarea { min-height: 80px; line-height: 1.5; }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .option {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            background: #1c1f28;
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 13.5px;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: border-color 0.15s ease, background 0.15s ease;
+        }
+        .option:hover { border-color: #3a3f4d; }
+        .option input { margin-top: 3px; accent-color: var(--accent); }
+        .option span.letter { color: var(--text); font-weight: 700; margin-right: 2px; }
+        .option:has(input:checked) {
+            border-color: var(--accent);
+            background: rgba(88, 101, 242, 0.08);
+            color: var(--text);
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid var(--panel-border);
+            margin: 28px 0;
+        }
+        .section-title {
+            font-size: 12px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #7dcfff;
+            margin: 0 0 16px;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 13px 16px;
+            border-radius: 10px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.15s ease;
+        }
+        .btn-submit {
+            background: var(--accent);
+            color: #fff;
+            margin-top: 8px;
+        }
+        .btn-submit:hover { background: var(--accent-hover); }
+
+        .footer-note {
+            text-align: center;
+            font-size: 12px;
+            color: #565b66;
+            margin-top: 20px;
+        }
+
+        .btn-discord {
+            background: #5865F2;
+            color: #fff;
+        }
+        .btn-discord:hover { background: #4752c4; }
+
+        .discord-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #1c1f28;
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 22px;
+        }
+        .discord-user img {
+            width: 32px; height: 32px; border-radius: 50%;
+        }
+        .discord-user span {
+            font-size: 14px;
+            color: var(--text-dim);
+        }
+        .discord-user strong { color: var(--text); }
+
+        .field.readonly-username {
+            background: #1c1f28;
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 11px 12px;
+            color: var(--text);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Moderator Application</h1>
+        <p class="sub">Try and become a moderator in OsQarek's Universe.</p>
+
+        <% if (error) { %>
+            <div class="banner error"><%= error %></div>
+        <% } %>
+        <% if (success) { %>
+            <div class="banner success">
+                ✅ Your application has been submitted! The staff team will review it and reach out on Discord.
+                <% if (typeof statusUrl !== 'undefined' && statusUrl) { %>
+                    <br><br>You can check your application status any time at:<br>
+                    <a href="<%= statusUrl %>" style="color:#7ee2a0; word-break: break-all;"><%= statusUrl %></a>
+                <% } %>
+            </div>
+        <% } %>
+
+        <% if (!success) { %>
+            <div class="req-box">
+                <h3>Requirements</h3>
+                <ul>
+                    <li>Must have <strong>AT LEAST 1,000 messages</strong></li>
+                    <li>Must be <strong>AT LEAST Level 10</strong></li>
+                    <li>Must be in the server for <strong>AT LEAST 2 weeks</strong></li>
+                    <li>Must have <strong>less than 3 warnings</strong></li>
+                </ul>
+            </div>
+
+            <% if (!discordUser) { %>
+                <a class="btn btn-discord" href="/mod-apps/login">Log in with Discord to apply</a>
+            <% } else { %>
+                <div class="discord-user">
+                    <% if (discordUser.avatar) { %>
+                        <img src="https://cdn.discordapp.com/avatars/<%= discordUser.id %>/<%= discordUser.avatar %>.png?size=64" alt="">
+                    <% } %>
+                    <span>Applying as <strong><%= discordUser.username %></strong></span>
+                </div>
+
+            <%
+                const checkbox = (name, opts) => opts.map(o => `<label class="option"><input type="checkbox" name="${name}" value="${o}"><span>${o}</span></label>`).join('');
+            %>
+
+            <form method="POST" action="/mod-apps/apply" id="mod-form">
+                <p class="section-title">About You</p>
+
+                <div class="field">
+                    <label><span class="num">1</span>Discord username? (not nickname)</label>
+                    <div class="field readonly-username"><%= discordUser.username %></div>
+                    <div class="hint">Pulled automatically from your Discord login above.</div>
+                </div>
+
+                <div class="field">
+                    <label><span class="num">2</span>When did you join?</label>
+                    <input type="text" name="q2_joined" required maxlength="100" placeholder="e.g. March 2024">
+                </div>
+
+                <div class="field">
+                    <label><span class="num">3</span>What country do you live in and the time zone?</label>
+                    <input type="text" name="q3_country_timezone" required maxlength="150" placeholder="e.g. United States, EST">
+                </div>
+
+                <div class="field">
+                    <label><span class="num">4</span>How old are you?</label>
+                    <div class="options">
+                        <% ['Under 13', '13-15', '16-17', '18+'].forEach((o, i) => { %>
+                            <label class="option"><input type="radio" name="q4_age" value="<%= o %>" <%= i === 0 ? 'required' : '' %>><span><%= o %></span></label>
+                        <% }) %>
+                    </div>
+                </div>
+
+                <hr class="divider">
+                <p class="section-title">Experience & Judgment</p>
+
+                <div class="field">
+                    <label><span class="num">5</span>Why do you want to be a moderator?</label>
+                    <textarea name="q5_why" required></textarea>
+                </div>
+
+                <div class="field">
+                    <label><span class="num">6</span>Do you have moderating experience, if so where? (if none, say N/A)</label>
+                    <textarea name="q6_experience" required></textarea>
+                </div>
+
+                <div class="field">
+                    <label><span class="num">7</span>What do you do if you see another moderator abusing their power?</label>
+                    <textarea name="q7_mod_abuse" required></textarea>
+                </div>
+
+                <div class="field">
+                    <label><span class="num">8</span>What if someone is trolling, what do you do?</label>
+                    <textarea name="q8_trolling" required></textarea>
+                </div>
+
+                <hr class="divider">
+                <p class="section-title">Scenarios</p>
+
+                <div class="field">
+                    <label><span class="num">9</span>What if someone is abusing the rules, what will you do?</label>
+                    <div class="hint" style="margin:-4px 0 8px;">Check all that apply.</div>
+                    <div class="options group" data-group="q9_rule_abuse"><%- checkbox('q9_rule_abuse', ['Warn', 'Kick', 'Ban']) %></div>
+                </div>
+
+                <div class="field">
+                    <label><span class="num">10</span>What if someone sends porn to you in DMs, what do you do?</label>
+                    <div class="hint" style="margin:-4px 0 8px;">Check all that apply.</div>
+                    <div class="options group" data-group="q10_porn_dms"><%- checkbox('q10_porn_dms', ['Nothing', 'Warn', 'Block', 'Kick', 'Ban']) %></div>
+                </div>
+
+                <div class="field">
+                    <label><span class="num">11</span>What if someone bullies someone for their disability?</label>
+                    <div class="hint" style="margin:-4px 0 8px;">Check all that apply.</div>
+                    <div class="options group" data-group="q11_disability_bullying"><%- checkbox('q11_disability_bullying', ['Warn', 'Ban', 'Kick', 'Mute']) %></div>
+                </div>
+
+                <hr class="divider">
+
+                <div class="field">
+                    <label><span class="num">12</span>Anything else you want to tell us about you?</label>
+                    <textarea name="q12_other" required></textarea>
+                </div>
+
+                <button class="btn btn-submit" type="submit">Submit Application</button>
+            </form>
+            <script>
+                // Browsers can't natively require "at least one checkbox", so check it here
+                // (the server re-validates too).
+                document.getElementById('mod-form').addEventListener('submit', (e) => {
+                    for (const group of document.querySelectorAll('.options.group')) {
+                        if (!group.querySelector('input:checked')) {
+                            e.preventDefault();
+                            group.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            alert('Please select at least one option for question ' + group.closest('.field').querySelector('.num').textContent + '.');
+                            return;
+                        }
+                    }
+                });
+            </script>
+            <% } %>
+        <% } %>
+
+        <p class="footer-note">Questions about the process? Ask in the server.</p>
+    </div>
+</body>
+</html>
