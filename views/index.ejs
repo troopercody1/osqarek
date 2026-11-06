@@ -248,6 +248,14 @@
         <a href="/nickname-guard" class="tab-btn <%= activePage === 'nickname-guard' ? 'active' : '' %>">🏷️ Nickname Guard</a>
         <a href="/confessions" class="tab-btn <%= activePage === 'confessions' ? 'active' : '' %>">🤫 Confessions</a>
         <a href="/system-logs" class="tab-btn <%= activePage === 'system-logs' ? 'active' : '' %>">🖥️ System Logs</a>
+        <div style="color:#565f89;font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin:14px 15px 6px">Features</div>
+        <a href="/features" class="tab-btn <%= activePage === 'fx-features' ? 'active' : '' %>">🧩 Feature Settings</a>
+        <a href="/protection" class="tab-btn <%= activePage === 'fx-protection' ? 'active' : '' %>">🚨 Protection</a>
+        <a href="/cases" class="tab-btn <%= activePage === 'fx-cases' ? 'active' : '' %>">🔎 Case Search</a>
+        <a href="/audit" class="tab-btn <%= activePage === 'fx-audit' ? 'active' : '' %>">📜 Audit Log</a>
+        <a href="/analytics" class="tab-btn <%= activePage === 'fx-analytics' ? 'active' : '' %>">📈 Analytics</a>
+        <a href="/community" class="tab-btn <%= activePage === 'fx-community' ? 'active' : '' %>">🎉 Giveaways &amp; Polls</a>
+        <a href="/timed" class="tab-btn <%= activePage === 'fx-timed' ? 'active' : '' %>">⏲️ Timed Actions</a>
         <div style="margin-top: auto; display: flex; flex-direction: column; gap: 6px;">
             <% if (user && user.id === 'admin') { %>
             <a href="/settings" class="sidebar-link">🔧 Site Settings</a>
@@ -805,6 +813,8 @@
                 <% } %>
             </div>
         </div>
+
+        <%- include('partials/features') %>
 
         <!-- ═══════════════ CONFESSIONS ═══════════════ -->
         <div id="confessions" class="tab-content<%= (locals.activeTab || 'dashboard') === 'confessions' ? ' active' : '' %>">

@@ -1687,7 +1687,8 @@ client = new Client({
         GatewayIntentBits.GuildInvites,
         GatewayIntentBits.GuildVoiceStates,
         GatewayIntentBits.DirectMessages,
-        GatewayIntentBits.GuildMessageReactions
+        GatewayIntentBits.GuildMessageReactions,
+        GatewayIntentBits.GuildModeration // needed for guildBanAdd/guildBanRemove (ban-evasion tracking, analytics)
     ],
     partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
@@ -2618,6 +2619,10 @@ client.on('guildMemberAdd', async (member) => {
     }
 });
 
+// Staff-only feature commands reply privately (their output includes user/mod data).
+const FEATURE_EPHEMERAL_COMMANDS = new Set(['raid', 'evasion', 'impersonation', 'timed', 'case-search', 'audit', 'analytics', 'feature', 'giveaway']);
+const features = require('./features');
+
 // --- COMMAND HANDLER ---
 client.on('interactionCreate', async (interaction) => {
     // 1. FIREWALL: Check if user is banned from bot
@@ -2639,7 +2644,7 @@ client.on('interactionCreate', async (interaction) => {
             // 2. Use flags: [64] is the modern way to do ephemeral (private) replies.
             await interaction.deferReply({
                 // 'confess' MUST be ephemeral or Discord shows "<user> used /confess" publicly.
-                flags: (commandName === 'loa' || commandName === 'help' || commandName === 'confess' || commandName === 'confession') ? [64] : []
+                flags: (commandName === 'loa' || commandName === 'help' || commandName === 'confess' || commandName === 'confession' || FEATURE_EPHEMERAL_COMMANDS.has(commandName)) ? [64] : []
             });
         } catch (err) {
             // 3. The "Nuclear" fix: If it's already deferred, just ignore the error and move on.
@@ -2670,6 +2675,9 @@ client.on('interactionCreate', async (interaction) => {
         }
         return;
     }
+
+    // FEATURES: giveaway entry, poll votes, ban-evasion review buttons
+    if (await features.handleInteraction(interaction)) return;
 
     // 3. BUTTON LOGIC
     if (interaction.isButton()) {
@@ -3036,6 +3044,10 @@ client.on('interactionCreate', async (interaction) => {
                         {
                             name: '👮 Staff (Trial+)',
                             value: '`warn`, `mute`, `unmute`, `kick`, `softban`, `purge`, `notes`, `warnings`, `loa`, `case`, `dm`, `addnote`'
+                        },
+                        {
+                            name: '🧩 Feature Suite',
+                            value: '`raid`, `evasion`, `impersonation`, `timed`, `giveaway`, `poll`, `case-search`, `audit`, `analytics`, `feature`'
                         },
                         {
                             name: '⚔️ Moderation & Stats',
@@ -6595,6 +6607,15 @@ client.on('guildMemberRemove', async (member) => {
     }
 });
 
+
+// --- FEATURE BUNDLE (raid protection, ban-evasion flags, impersonation guard,
+// timed actions, giveaways, polls, case search, audit viewer, analytics, per-feature settings) ---
+features.init({
+    client, db, app, GUILD_ID,
+    safeSave, logAction, createEmbed,
+    STAFF_ROLE_IDS, isStaffMember, getCachedMembers,
+    checkAuth, renderDashboard,
+});
 
 // --- BOT STARTUP ---
 (async () => {
