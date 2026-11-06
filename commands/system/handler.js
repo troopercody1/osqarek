@@ -35,14 +35,34 @@ async function restart({ interaction, guild, user, isHeadAdmin, logAction }) {
     process.exit(0);
 }
 
+const MAX_DB_UPLOAD_BYTES = 8 * 1024 * 1024;
+
 async function reloaddb({ interaction, options, user, guild, isHeadAdmin, reloadDatabase, logAction }) {
     if (!isHeadAdmin) return interaction.editReply('❌ You need **Head Admin+** to reload the database.');
     const source = options.getString('source') || 'auto';
+    const attachment = options.getAttachment('file');
     try {
-        const r = await reloadDatabase(source);
+        let uploaded = null;
+        if (attachment) {
+            if (!/\.(txt|json)$/i.test(attachment.name || '')) return interaction.editReply('❌ Upload a `.txt` or `.json` file.');
+            if (attachment.size > MAX_DB_UPLOAD_BYTES) return interaction.editReply('❌ That file is too large (8 MB max).');
+            const res = await require('axios').get(attachment.url, {
+                responseType: 'text',
+                transformResponse: (d) => d,
+                timeout: 15000,
+                maxContentLength: MAX_DB_UPLOAD_BYTES,
+            });
+            try {
+                uploaded = JSON.parse(String(res.data).replace(/^\uFEFF/, ''));
+            } catch (err) {
+                return interaction.editReply(`❌ That file isn't valid JSON (${err.message.slice(0, 120)}). Live database left unchanged.`);
+            }
+        }
+        const r = await reloadDatabase(source, uploaded);
         const backup = r.backupFile ? `\nPrevious in-memory state saved to \`${r.backupFile}\`.` : '\n⚠️ Could not write a backup of the previous state.';
+        const persisted = r.saved === true ? '\n💾 Saved to the persistent database.' : (r.saved === false ? '\n⚠️ Loaded in memory, but saving to the persistent database failed — run it again or check the logs.' : '');
         logAction(guild, '🔄 Database Reloaded', `**By:** ${user.tag}\n**Source:** ${r.source}\n**Top-level keys:** ${r.keys}\n**Cases:** ${r.cases}`, 0x3498DB);
-        return interaction.editReply(`✅ Database reloaded from **${r.source}** (${r.keys} top-level keys, ${r.cases} cases).${backup}`);
+        return interaction.editReply(`✅ Database reloaded from **${r.source}** (${r.keys} top-level keys, ${r.cases} cases).${persisted}${backup}`);
     } catch (err) {
         console.error('❌ /reloaddb failed:', err);
         return interaction.editReply(`❌ Reload failed, live database left unchanged: ${err.message}`);

@@ -1841,24 +1841,28 @@ const DB_DEFAULTS = JSON.parse(JSON.stringify(db));
 // object itself is never replaced. Reads and validates first, so a bad source
 // leaves the running db untouched.
 // source: 'auto' (Redis if configured, else the local file) | 'redis' | 'file'
+// uploaded: optional already-parsed object (e.g. from an uploaded .txt/.json file);
+// when given it is used instead of any source and is saved to the persistent store.
 let dbReloading = false;
-async function reloadDatabase(source = 'auto') {
+async function reloadDatabase(source = 'auto', uploaded = null) {
     if (dbReloading) throw new Error('A reload is already in progress.');
     dbReloading = true;
     try {
-        const useRedis = source === 'redis' || (source === 'auto' && !!redis);
+        const useRedis = !uploaded && (source === 'redis' || (source === 'auto' && !!redis));
         if (useRedis && !redis) throw new Error('Redis is not configured (UPSTASH_REDIS_REST_URL / TOKEN missing).');
 
         // 1. Read the source.
         let loaded;
-        if (useRedis) {
+        if (uploaded) {
+            loaded = uploaded;
+        } else if (useRedis) {
             loaded = await redis.get('bot_db');
             if (typeof loaded === 'string') loaded = JSON.parse(loaded);
         } else {
             if (!fs.existsSync('./database.json')) throw new Error('database.json does not exist.');
             loaded = JSON.parse(fs.readFileSync('./database.json', 'utf8'));
         }
-        const label = useRedis ? 'Redis' : 'database.json';
+        const label = uploaded ? 'uploaded file' : (useRedis ? 'Redis' : 'database.json');
 
         // 2. Validate before touching anything live.
         if (!loaded || typeof loaded !== 'object' || Array.isArray(loaded)) {
@@ -1890,8 +1894,15 @@ async function reloadDatabase(source = 'auto') {
         if (!Array.isArray(db.bannedWords) || db.bannedWords.length === 0) db.bannedWords = [...defaultBannedWords];
         global.db = db;
 
+        // An uploaded file only exists in memory until saved, so persist it now
+        // (otherwise a restart would silently revert to the old Redis/file copy).
+        let saved = null;
+        if (uploaded) {
+            try { await db.save(); saved = true; } catch (err) { console.error('❌ Save after upload failed:', err.message); saved = false; }
+        }
+
         console.log(`🔄 Database reloaded from ${label} (${Object.keys(loaded).length} top-level keys).`);
-        return { source: label, keys: Object.keys(loaded).length, cases: Array.isArray(db.cases) ? db.cases.length : 0, backupFile };
+        return { source: label, keys: Object.keys(loaded).length, cases: Array.isArray(db.cases) ? db.cases.length : 0, backupFile, saved };
     } finally {
         dbReloading = false;
     }

@@ -15,6 +15,11 @@ module.exports = [
                 { name: 'Redis (Upstash)', value: 'redis' },
                 { name: 'Local database.json', value: 'file' },
             ],
+        }, {
+            name: 'file',
+            description: 'Upload a .txt/.json database file to load instead (overrides source)',
+            type: 11,
+            required: false,
         }],
     },
     {
