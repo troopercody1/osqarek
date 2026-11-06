@@ -1795,6 +1795,10 @@ let db = {
     }
 };
 
+// Pristine copy of the defaults above (JSON-safe, so the save() method is dropped).
+// reloadDatabase() uses it so keys missing from the loaded data fall back to defaults.
+const DB_DEFAULTS = JSON.parse(JSON.stringify(db));
+
 // --- INITIAL LOAD FROM REDIS ---
 (async () => {
     try {
@@ -1829,6 +1833,69 @@ let db = {
     // Always point global.db at the live db object so all mutations are shared
     global.db = db;
 })();
+
+// --- LIVE DATABASE RELOAD ---
+// Re-reads the database from Redis or ./database.json and swaps it into the
+// EXISTING `db` object in place. Everything that captured a reference to db
+// (features.init, command handlers, the dashboard) keeps working because the
+// object itself is never replaced. Reads and validates first, so a bad source
+// leaves the running db untouched.
+// source: 'auto' (Redis if configured, else the local file) | 'redis' | 'file'
+let dbReloading = false;
+async function reloadDatabase(source = 'auto') {
+    if (dbReloading) throw new Error('A reload is already in progress.');
+    dbReloading = true;
+    try {
+        const useRedis = source === 'redis' || (source === 'auto' && !!redis);
+        if (useRedis && !redis) throw new Error('Redis is not configured (UPSTASH_REDIS_REST_URL / TOKEN missing).');
+
+        // 1. Read the source.
+        let loaded;
+        if (useRedis) {
+            loaded = await redis.get('bot_db');
+            if (typeof loaded === 'string') loaded = JSON.parse(loaded);
+        } else {
+            if (!fs.existsSync('./database.json')) throw new Error('database.json does not exist.');
+            loaded = JSON.parse(fs.readFileSync('./database.json', 'utf8'));
+        }
+        const label = useRedis ? 'Redis' : 'database.json';
+
+        // 2. Validate before touching anything live.
+        if (!loaded || typeof loaded !== 'object' || Array.isArray(loaded)) {
+            throw new Error(`${label} did not contain a valid database object.`);
+        }
+        if (Object.keys(loaded).length === 0) {
+            throw new Error(`${label} is empty; refusing to replace the live database with nothing.`);
+        }
+
+        // 3. Best-effort backup of what is currently in memory.
+        let backupFile = null;
+        try {
+            backupFile = `./database.pre-reload-${Date.now()}.json`;
+            fs.writeFileSync(backupFile, JSON.stringify(db, null, 4));
+        } catch (err) {
+            console.warn(`⚠️ Could not write pre-reload backup: ${err.message}`);
+            backupFile = null;
+        }
+
+        // 4. Drop any queued save so stale data can't be written over the reload.
+        if (_saveTimeout) { clearTimeout(_saveTimeout); _saveTimeout = null; }
+
+        // 5. Swap in place (synchronous, so nothing can interleave). Keep save().
+        const fresh = { ...JSON.parse(JSON.stringify(DB_DEFAULTS)), ...loaded };
+        for (const key of Object.keys(db)) { if (key !== 'save') delete db[key]; }
+        Object.assign(db, fresh);
+        if (!db.dmThreads) db.dmThreads = {};
+        if (!db.spamOffences) db.spamOffences = {};
+        if (!Array.isArray(db.bannedWords) || db.bannedWords.length === 0) db.bannedWords = [...defaultBannedWords];
+        global.db = db;
+
+        console.log(`🔄 Database reloaded from ${label} (${Object.keys(loaded).length} top-level keys).`);
+        return { source: label, keys: Object.keys(loaded).length, cases: Array.isArray(db.cases) ? db.cases.length : 0, backupFile };
+    } finally {
+        dbReloading = false;
+    }
+}
 
 // --- LOGGING SYSTEM ---
 // Sends a DM to the affected member (with evidence attached) and posts the
@@ -3017,6 +3084,7 @@ client.on('interactionCreate', async (interaction) => {
                     logAction,
                     safeSave,
                     queueSave,
+                    reloadDatabase,
                     getCachedMembers,
                 });
             }
