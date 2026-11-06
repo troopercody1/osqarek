@@ -3,6 +3,21 @@ module.exports = [
     { name: 'ping', description: "Check the bot's latency" },
     { name: 'restart', description: 'Refreshes the bot session (Admin Only)' },
     {
+        name: 'reloaddb',
+        description: 'Reload the database without restarting the bot (Head Admin+)',
+        options: [{
+            name: 'source',
+            description: 'Where to load from (default: Redis if configured, else local file)',
+            type: 3,
+            required: false,
+            choices: [
+                { name: 'Auto', value: 'auto' },
+                { name: 'Redis (Upstash)', value: 'redis' },
+                { name: 'Local database.json', value: 'file' },
+            ],
+        }],
+    },
+    {
         name: 'status',
         description: 'Set bot status',
         options: [{

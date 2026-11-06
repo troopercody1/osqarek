@@ -12,7 +12,7 @@ async function help({ interaction, client, createEmbed }) {
             { name: '🎵 Music Engine', value: '`play`, `skip`, `queue`, `clearqueue`, `pause`, `resume`, `volume`, `nowplaying`, `autoplay`, `247`' },
             { name: '👮 Staff (Trial+)', value: '`warn`, `mute`, `unmute`, `kick`, `softban`, `purge`, `notes`, `warnings`, `loa`, `case`, `dm`, `addnote`' },
             { name: '⚔️ Moderation & Stats', value: '`lockdown`, `slowmode`, `reason`, `staffstats`, `allstaffstats`, `staff-leaderboard`' },
-            { name: '⚙️ Admin', value: '`ban`, `unban`, `banlist`, `modlog`, `setloachannel`, `setchatlog`, `togglecommand`, `delwarn`, `clearwarns`, `ignorechannel`, `addmod`, `deletemod`, `announce`, `globalannounce`, `role`, `messagereset`, `restart`, `reactionrole`, `userignore`, `staffdm`, `latest-action`' },
+            { name: '⚙️ Admin', value: '`ban`, `unban`, `banlist`, `modlog`, `setloachannel`, `setchatlog`, `togglecommand`, `delwarn`, `clearwarns`, `ignorechannel`, `addmod`, `deletemod`, `announce`, `globalannounce`, `role`, `messagereset`, `restart`, `reloaddb`, `reactionrole`, `userignore`, `staffdm`, `latest-action`' },
             { name: '👑 Owners', value: '`strike remove`, `strike add`, `strikes`, `aitoggle`, `staff-reset`' },
         ],
     });
@@ -33,6 +33,20 @@ async function restart({ interaction, guild, user, isHeadAdmin, logAction }) {
     logAction(guild, '🚀 Restart', `By: ${user.tag}`, 0xFF0000);
     await interaction.editReply('🚀 Restarting...');
     process.exit(0);
+}
+
+async function reloaddb({ interaction, options, user, guild, isHeadAdmin, reloadDatabase, logAction }) {
+    if (!isHeadAdmin) return interaction.editReply('❌ You need **Head Admin+** to reload the database.');
+    const source = options.getString('source') || 'auto';
+    try {
+        const r = await reloadDatabase(source);
+        const backup = r.backupFile ? `\nPrevious in-memory state saved to \`${r.backupFile}\`.` : '\n⚠️ Could not write a backup of the previous state.';
+        logAction(guild, '🔄 Database Reloaded', `**By:** ${user.tag}\n**Source:** ${r.source}\n**Top-level keys:** ${r.keys}\n**Cases:** ${r.cases}`, 0x3498DB);
+        return interaction.editReply(`✅ Database reloaded from **${r.source}** (${r.keys} top-level keys, ${r.cases} cases).${backup}`);
+    } catch (err) {
+        console.error('❌ /reloaddb failed:', err);
+        return interaction.editReply(`❌ Reload failed, live database left unchanged: ${err.message}`);
+    }
 }
 
 async function status({ interaction, options, guild, member, user, client, db, logAction }) {
@@ -90,6 +104,7 @@ module.exports = {
     help,
     ping,
     restart,
+    reloaddb,
     status,
     'latest-update': latestUpdate,
 };
