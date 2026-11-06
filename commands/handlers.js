@@ -8,6 +8,7 @@ const quiz = require('./quiz');
 const utilities = require('./utilities');
 const channels = require('./channels');
 const confessions = require('./confessions');
+const features = require('./features');
 
 module.exports = {
     ...system.handlers,
@@ -20,4 +21,5 @@ module.exports = {
     ...utilities.handlers,
     ...channels.handlers,
     ...confessions.handlers,
+    ...features.handlers,
 };

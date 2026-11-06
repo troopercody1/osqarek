@@ -8,6 +8,7 @@ const quiz = require('./quiz');
 const utilities = require('./utilities');
 const channels = require('./channels');
 const confessions = require('./confessions');
+const features = require('./features');
 
 const commandGroups = {
     system,
@@ -20,6 +21,7 @@ const commandGroups = {
     utilities,
     channels,
     confessions,
+    features,
 };
 
 const commands = Object.values(commandGroups).flat();

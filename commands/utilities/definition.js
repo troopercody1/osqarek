@@ -3,7 +3,6 @@ module.exports = [
     { name: 'afk', description: 'Set AFK', options: [{ name: 'reason', description: 'Reason for AFK', type: 3, required: false }] },
     { name: 'ask-rules', description: 'Ask the AI about rules', options: [{ name: 'question', description: 'Question', type: 3, required: true }] },
     { name: 'summarize', description: 'AI summarizes last 50 messages' },
-    { name: 'poll', description: 'Create a poll', options: [{ name: 'question', description: 'The question to ask', type: 3, required: true }] },
     { name: 'pfp', description: 'View PFP', options: [{ name: 'target', description: 'User', type: 6 }] },
     { name: 'osqareksocials', description: 'Official links' },
     { name: 'userinfo', description: 'User details', options: [{ name: 'target', description: 'User', type: 6 }] },
