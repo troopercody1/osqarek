@@ -2358,6 +2358,11 @@ async function runStartupStatsSync(guild) {
     let channelsDone = 0;
     let pagesFetchedInChannel = 0;
     let skippedChannels = [];
+    // Analytics rides along on this scan (no extra API calls): every message is tallied per day / hour /
+    // channel and merged into the analytics store once the sync finishes. Never allowed to break the sync.
+    let analyticsHistory = null;
+    try { analyticsHistory = require('./features').modules.analytics.createHistoryCollector(); }
+    catch (err) { console.error(`⚠️ Startup sync: analytics collector unavailable: ${err.message}`); }
     let lastReportedPercent = 0;
     let lastHeartbeatAt = Date.now();
     const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000; // console every 5min — cheap, no Discord API cost
@@ -2389,6 +2394,7 @@ async function runStartupStatsSync(guild) {
                 pagesFetchedInChannel++;
                 if (messages.size === 0) break;
                 for (const msg of messages.values()) {
+                    analyticsHistory?.add(msg);
                     if (staffIds.includes(msg.author.id)) {
                         db.stats[msg.author.id].allTime++;
                         allTimeScannedCount++;
@@ -2460,8 +2466,23 @@ async function runStartupStatsSync(guild) {
         console.error(`❌ Startup sync: final save failed/stalled: ${saveErr.message}`);
     }
 
+    // Sync finished: update analytics from the history we just scanned.
+    let analyticsLine = '';
+    if (analyticsHistory) {
+        try {
+            const a = await analyticsHistory.apply(guild);
+            analyticsLine = a.enabled
+                ? `\n📈 Analytics updated: **${a.messages.toLocaleString()}** messages across **${a.days}** days merged into the dashboard stats.`
+                : '\n📈 Analytics not updated (the Analytics feature is disabled).';
+            console.log(`📈 Startup sync: analytics ${a.enabled ? `updated (${a.messages} messages / ${a.days} days)` : 'skipped (disabled)'}.`);
+        } catch (err) {
+            analyticsLine = '\n⚠️ Analytics update failed (see console).';
+            console.error(`❌ Startup sync: analytics update failed: ${err.message}`);
+        }
+    }
+
     let summary = `✅ Done in **${formatMsDuration(Date.now() - startedAt)}**.\n` +
-        `Found **${allTimeScannedCount}** staff messages all-time, **${scannedCount}** this week.`;
+        `Found **${allTimeScannedCount}** staff messages all-time, **${scannedCount}** this week.` + analyticsLine;
     if (skippedChannels.length > 0) {
         summary += `\n⚠️ Skipped ${skippedChannels.length} channel(s) after repeated failures: \`${skippedChannels.join(', ')}\``;
     }

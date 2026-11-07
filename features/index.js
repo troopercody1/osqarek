@@ -6,6 +6,7 @@ const { makeDebouncedSaver } = require('./util');
 
 const modules = {
     raid: require('./raid'),
+    lockdown: require('./lockdown'),
     evasion: require('./evasion'),
     impersonation: require('./impersonation'),
     timed: require('./timed'),
@@ -57,6 +58,8 @@ function init(ctx) {
     client.on('inviteCreate', safe('invite+', async (inv) => evasion.cacheInvite(inv)));
     client.on('inviteDelete', safe('invite-', async (inv) => evasion.dropInvite(inv.code)));
     context.bus.on('raid:start', () => analytics.onRaid());
+    context.bus.on('drill:start', () => analytics.onDrill());
+    context.bus.on('lockdown:start', () => analytics.onLockdown());
 
     const onReady = safe('ready', async () => {
         const guild = client.guilds.cache.get(ctx.GUILD_ID) || client.guilds.cache.first();
@@ -64,7 +67,7 @@ function init(ctx) {
         await evasion.cacheInvites(guild);
         await evasion.backfillBans(guild);
         analytics.snapshot(guild);
-        console.log('🧩 Features online: raid, evasion, impersonation, timed, giveaways, polls, audit, analytics.');
+        console.log('🧩 Features online: raid, lockdown, drills, evasion, impersonation, timed, giveaways, polls, audit, analytics.');
     });
     if (client.isReady()) onReady(); else client.once('clientReady', onReady);
 
@@ -74,7 +77,7 @@ function init(ctx) {
         if (busy || !client.isReady()) return;
         busy = true;
         try {
-            for (const [label, fn] of [['raid', raid.tick], ['timed', modules.timed.tick], ['giveaways', modules.giveaways.tick], ['polls', modules.polls.tick], ['evasion', evasion.tick], ['analytics', analytics.tick]]) {
+            for (const [label, fn] of [['raid', raid.tick], ['lockdown', modules.lockdown.tick], ['timed', modules.timed.tick], ['giveaways', modules.giveaways.tick], ['polls', modules.polls.tick], ['evasion', evasion.tick], ['analytics', analytics.tick]]) {
                 try { await fn(); } catch (err) { console.error(`❌ [features:${label}] tick failed:`, err.message); }
             }
         } finally { busy = false; }

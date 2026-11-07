@@ -14,7 +14,7 @@ function data() {
 }
 
 function newDay() {
-    return { m: 0, a: 0, j: 0, l: 0, b: 0, r: 0, h: Array(24).fill(0), ch: {}, mc: null };
+    return { m: 0, a: 0, j: 0, l: 0, b: 0, r: 0, dr: 0, lk: 0, h: Array(24).fill(0), ch: {}, mc: null };
 }
 
 function day(key = dayKey()) {
@@ -57,6 +57,56 @@ function onLeave(member) {
 }
 function onBan() { if (!enabled()) return; day().b++; touch(); }
 function onRaid() { if (!enabled()) return; day().r++; touch(); }
+function onDrill() { if (!enabled()) return; day().dr = (day().dr || 0) + 1; touch(); }
+function onLockdown() { if (!enabled()) return; day().lk = (day().lk || 0) + 1; touch(); }
+
+// ---------- startup-sync backfill ----------
+// The startup stats sync already pages through every message in the server. This collector rides along on that
+// scan (no extra API calls), tallies per-day / per-hour / per-channel message counts, and when the sync finishes
+// merges them into the analytics store. Merging takes the larger of "live count" and "scanned count" per field,
+// so it's idempotent and never double-counts messages the bot also saw live. Bot messages are ignored, same as live.
+function createHistoryCollector() {
+    const cfg = getConfig(context.get().db, 'analytics');
+    const cutoff = new Date();
+    cutoff.setHours(0, 0, 0, 0);
+    cutoff.setDate(cutoff.getDate() - cfg.retentionDays);
+    const cutoffMs = cutoff.getTime();
+    const days = {};
+    let counted = 0;
+
+    return {
+        add(msg) {
+            try {
+                if (!cfg.enabled || msg.author?.bot || msg.createdTimestamp < cutoffMs) return;
+                const key = dayKey(msg.createdTimestamp);
+                const rec = days[key] || (days[key] = { m: 0, h: Array(24).fill(0), ch: {}, users: new Set() });
+                rec.m++;
+                rec.h[new Date(msg.createdTimestamp).getHours()]++;
+                if (cfg.trackChannels) rec.ch[msg.channelId] = (rec.ch[msg.channelId] || 0) + 1;
+                rec.users.add(msg.author.id);
+                counted++;
+            } catch { /* never let analytics break the sync */ }
+        },
+        // Merge into the store. Returns { enabled, days, messages } for the sync summary.
+        async apply(guild) {
+            if (!cfg.enabled) return { enabled: false, days: 0, messages: 0 };
+            const live = data();
+            for (const [key, scanned] of Object.entries(days)) {
+                const rec = day(key);
+                rec.m = Math.max(rec.m || 0, scanned.m);
+                rec.a = Math.max(rec.a || 0, scanned.users.size);
+                scanned.h.forEach((n, i) => { rec.h[i] = Math.max(rec.h[i] || 0, n); });
+                for (const [id, n] of Object.entries(scanned.ch)) rec.ch[id] = Math.max(rec.ch[id] || 0, n);
+                const entries = Object.entries(rec.ch);
+                if (key < dayKey() && entries.length > CHANNELS_KEPT_PER_DAY) rec.ch = Object.fromEntries(entries.sort((a, b) => b[1] - a[1]).slice(0, CHANNELS_KEPT_PER_DAY));
+            }
+            snapshot(guild);
+            live.lastSync = { at: Date.now(), days: Object.keys(days).length, messages: counted };
+            await (context.get().saveLater?.flush ? context.get().saveLater.flush() : context.get().safeSave());
+            return { enabled: true, days: live.lastSync.days, messages: counted };
+        },
+    };
+}
 
 function snapshot(guild) {
     if (!enabled() || !guild) return;
@@ -127,13 +177,16 @@ function report(days = 7) {
         leaves: recs.map((r) => r.l || 0),
         bans: recs.map((r) => r.b || 0),
         raids: recs.map((r) => r.r || 0),
+        drills: recs.map((r) => r.dr || 0),
+        lockdowns: recs.map((r) => r.lk || 0),
+        lastSync: d.lastSync || null,
         modActions: keys.map((k) => casesPerDay[k]),
         members,
         hourly,
         peakHour,
         topChannels: Object.entries(channels).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([id, count]) => ({ id, count })),
         casesByType: caseRes.byType,
-        totals: { messages: sum((r) => r.m), joins: sum((r) => r.j), leaves: sum((r) => r.l), bans: sum((r) => r.b), raids: sum((r) => r.r), cases: caseRes.total },
+        totals: { messages: sum((r) => r.m), joins: sum((r) => r.j), leaves: sum((r) => r.l), bans: sum((r) => r.b), raids: sum((r) => r.r), drills: sum((r) => r.dr), lockdowns: sum((r) => r.lk), cases: caseRes.total },
         trackedDays: keys.filter((k) => d.days[k]).length,
     };
 }
@@ -168,6 +221,7 @@ const commands = {
                     { name: 'Bans', value: String(r.totals.bans), inline: true },
                     { name: 'Mod cases', value: String(r.totals.cases), inline: true },
                     { name: 'Raid incidents', value: String(r.totals.raids), inline: true },
+                    { name: 'Drills / Lockdowns', value: `${r.totals.drills} / ${r.totals.lockdowns}`, inline: true },
                     { name: 'Busiest hour', value: r.peakHour === null ? '—' : `${hourLabel(r.peakHour)}–${hourLabel((r.peakHour + 1) % 24)}`, inline: true },
                     { name: 'Top channels', value: chans },
                 ],
@@ -185,4 +239,4 @@ const definitions = [
     },
 ];
 
-module.exports = { onMessage, onJoin, onLeave, onBan, onRaid, snapshot, tick, report, spark, hourLabel, commands, definitions };
+module.exports = { onMessage, onJoin, onLeave, onBan, onRaid, onDrill, onLockdown, createHistoryCollector, snapshot, tick, report, spark, hourLabel, commands, definitions };

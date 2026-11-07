@@ -143,6 +143,95 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
 <% } %>
 </div>
 
+<!-- ═══════════════ LOCKDOWN & DRILLS ═══════════════ -->
+<div id="fx-lockdown" class="tab-content<%= tab === 'fx-lockdown' ? ' active' : '' %>">
+<% if (tab === 'fx-lockdown') { banner(); const sv = fx_.server; const dr = sv.active && sv.drill; %>
+    <div class="panel">
+        <h2>🔒 Server Lockdown
+            <span class="fx-pill <%= sv.active ? 'off' : 'on' %>"><%= dr ? 'drill running' : (sv.active ? 'LOCKED' : 'unlocked') %></span>
+            <% if (fx_.busy) { %><span class="fx-pill warn">working…</span><% } %>
+        </h2>
+        <p class="fx-sub">Locks every text &amp; announcement channel for @everyone. Each channel's previous permissions are saved and restored exactly on unlock. Roles with their own "Send Messages" allow can still talk.</p>
+        <div class="fx-stat">
+            <div><span>Status</span><b><%= dr ? '🧪 DRILL' : (sv.active ? '🔒 LOCKED' : '🟢 open') %></b></div>
+            <% if (sv.active) { %>
+                <div><span>Since</span><b style="font-size:1rem"><%= when(sv.since) %></b></div>
+                <div><span>By</span><b style="font-size:1rem"><%= sv.by %></b></div>
+                <div><span>Channels locked</span><b><%= sv.lockedCount %></b></div>
+                <% if (dr) { %><div><span>Drill ends</span><b style="font-size:1rem"><%= when(dr.endsAt) %></b></div><% } %>
+            <% } %>
+        </div>
+        <% if (sv.active && sv.reason && !dr) { %><p class="fx-small">Reason: <%= sv.reason %></p><% } %>
+        <% if (dr) { %>
+            <p class="fx-small">A <b><%= (fx_.drills.find(d => d.kind === dr.kind) || {}).label %></b> is running (<%= dr.messages %> notices posted). It unlocks and deletes the notices automatically at the time above.</p>
+            <form action="/lockdown/drill/end" method="POST" onsubmit="return confirm('End the drill now? The server will unlock and the drill notices will be deleted.');"><button class="btn-submit" style="margin:0">End drill now</button></form>
+        <% } else if (sv.active) { %>
+            <form action="/lockdown/server/unlock" method="POST"><button class="btn-submit" style="margin:0">🔓 Unlock server</button></form>
+        <% } else { %>
+            <form action="/lockdown/server/lock" method="POST" class="fx-form" onsubmit="return confirm('Lock EVERY text channel for @everyone now?');">
+                <div class="wide"><label>Reason (optional, goes in the log)</label><input name="reason" maxlength="200" placeholder="e.g. raid in progress"></div>
+                <div><button class="fx-btn danger" style="padding:10px 14px">🔒 Lock server</button></div>
+            </form>
+        <% } %>
+    </div>
+
+    <div class="panel">
+        <h2>🔒 Channel Lockdown</h2>
+        <p class="fx-sub">Lock or unlock a single channel for @everyone.</p>
+        <form method="POST" class="fx-form" id="fx-chan-form">
+            <div><label>Channel</label><select name="channel" required><% fx_.lockable.forEach(c => { %><option value="<%= c.id %>">#<%= c.name %></option><% }) %></select></div>
+            <div><label>Reason (optional)</label><input name="reason" maxlength="200"></div>
+            <div class="fx-inline">
+                <button class="fx-btn danger" type="submit" formaction="/lockdown/channel/lock">🔒 Lock</button>
+                <button class="fx-btn" type="submit" formaction="/lockdown/channel/unlock">🔓 Unlock</button>
+            </div>
+        </form>
+        <% if (fx_.lockedChannels.length) { %>
+        <table><tr><th>Channel</th><th>Locked by</th><th>Since</th><th>Reason</th><th></th></tr>
+            <% fx_.lockedChannels.forEach(c => { %><tr><td>#<%= c.name %></td><td><%= c.by %></td><td><%= when(c.since) %></td><td class="fx-small"><%= c.reason || '—' %></td>
+                <td><form action="/lockdown/channel/unlock" method="POST" style="margin:0"><input type="hidden" name="channel" value="<%= c.id %>"><button class="fx-btn">Unlock</button></form></td></tr><% }) %>
+        </table><% } else { %><p class="fx-sub" style="margin-top:14px">No channels are individually locked.</p><% } %>
+    </div>
+
+    <div class="panel">
+        <h2>🧪 Drills</h2>
+        <p class="fx-sub">A drill posts a clearly-labelled "this is only a drill" notice in every channel the bot can post in <b>and locks the server</b>. When the time is up (or you end it) the server is unlocked and the notices are <b>deleted</b>. If you're logged in with Discord, the bot also DMs you a copy of the message.</p>
+        <% fx_.drills.forEach(d => { %>
+        <div class="fx-form" style="display:block;margin-top:14px">
+            <h3><%= d.label %></h3>
+            <p class="fx-small" style="margin:6px 0 4px">What it says (preview):</p>
+            <div style="background:#1a1b26;border:1px solid #2f3549;border-radius:6px;padding:12px;white-space:pre-wrap;color:#c0caf5;font-size:.85rem"><b><%= d.title %></b>
+
+<%= d.preview %></div>
+            <form action="/lockdown/drill/<%= d.kind %>" method="POST" class="fx-inline" style="margin-top:12px" onsubmit="return confirm('Start the <%= d.label.toLowerCase() %>? It will post in every channel and lock the server until it ends.');">
+                <label class="fx-small">Length (minutes)</label>
+                <input type="number" name="minutes" min="1" max="<%= fx_.maxMinutes %>" value="<%= fx_.defaultMinutes %>" style="width:90px">
+                <button class="fx-btn" <%= (sv.active || fx_.busy) ? 'disabled' : '' %>>▶ Start <%= d.label.toLowerCase() %></button>
+            </form>
+        </div>
+        <% }) %>
+    </div>
+
+    <div class="panel">
+        <h2>🕘 Last action</h2>
+        <% const l = fx_.last; if (l) { %>
+            <div class="fx-stat">
+                <div><span>What</span><b style="font-size:1rem"><%= l.label %></b></div>
+                <div><span>When</span><b style="font-size:1rem"><%= when(l.at) %></b></div>
+                <div><span>By</span><b style="font-size:1rem"><%= l.by %></b></div>
+                <% if (l.type === 'drill') { %><div><span>Posted to</span><b><%= l.sent %>/<%= l.total %></b></div><% } %>
+                <div><span>Channels locked</span><b><%= l.locked %></b></div>
+                <div><span>State</span><b style="font-size:1rem"><%= l.ended ? '✅ ended ' + when(l.endedAt) : '⏳ active' %></b></div>
+                <% if (l.type === 'drill' && l.ended) { %><div><span>Notices deleted</span><b><%= l.deleted || 0 %></b></div><% } %>
+            </div>
+            <% if (l.failed && l.failed.length) { %><p class="fx-small">⚠️ Problems: <%= l.failed.join(', ') %></p><% } %>
+            <% if (l.text) { %><p class="fx-small" style="margin-bottom:4px">The message that was posted:</p>
+            <div style="background:#1a1b26;border:1px solid #2f3549;border-radius:6px;padding:12px;white-space:pre-wrap;color:#c0caf5;font-size:.85rem"><%= l.text %></div><% } %>
+        <% } else { %><p class="fx-sub">Nothing has been run yet.</p><% } %>
+    </div>
+<% } %>
+</div>
+
 <!-- ═══════════════ CASE SEARCH ═══════════════ -->
 <div id="fx-cases" class="tab-content<%= tab === 'fx-cases' ? ' active' : '' %>">
 <% if (tab === 'fx-cases') { banner(); const q = fx_.q; %>
@@ -210,6 +299,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
         <h2>📈 Analytics <span class="fx-pill <%= fx_.cfg.enabled ? 'on' : 'off' %>"><%= fx_.cfg.enabled ? 'collecting' : 'disabled' %></span></h2>
         <form method="GET" action="/analytics" class="fx-inline"><% [7,14,30,90].forEach(n => { %><a class="fx-btn" style="text-decoration:none;<%= fx_.days === n ? 'color:#fff' : '' %>" href="/analytics?days=<%= n %>"><%= n %>d</a><% }) %></form>
         <p class="fx-sub" style="margin-top:12px"><%= r.trackedDays %> of <%= r.days %> days have data. Counts only — no message content is stored. "Active users" is a per-day floor that restarts after a bot restart.</p>
+        <% if (r.lastSync) { %><p class="fx-sub">📈 Last startup-sync update: <%= when(r.lastSync.at) %> — <%= r.lastSync.messages.toLocaleString() %> messages across <%= r.lastSync.days %> days merged from channel history.</p><% } %>
         <div class="fx-stat">
             <div><span>Messages</span><b><%= r.totals.messages.toLocaleString() %></b></div>
             <div><span>Joins</span><b><%= r.totals.joins %></b></div>
@@ -217,6 +307,8 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
             <div><span>Bans</span><b><%= r.totals.bans %></b></div>
             <div><span>Mod cases</span><b><%= r.totals.cases %></b></div>
             <div><span>Raids</span><b><%= r.totals.raids %></b></div>
+            <div><span>Drills</span><b><%= r.totals.drills %></b></div>
+            <div><span>Lockdowns</span><b><%= r.totals.lockdowns %></b></div>
             <div><span>Busiest hour</span><b><%= r.peakHour === null ? '—' : fx_.hourLabel(r.peakHour) %></b></div>
         </div>
         <div class="fx-chart"><h3>Messages per day</h3><%- fx_.charts.messages %>

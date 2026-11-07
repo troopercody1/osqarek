@@ -105,6 +105,96 @@ function register(ctx, modules) {
         back(res, '/protection', `Flag #${flag.id} ${flag.status}`);
     });
 
+    // ---------- Lockdown & Drills ----------
+    // Long operations (posting to / locking every channel) run in the background so the request returns at once;
+    // progress and the result show up on the page (and in the audit log).
+    const plain = (text) => String(text || '')
+        .replace(/<#(\d+)>/g, (_, id) => `#${guild()?.channels.cache.get(id)?.name || id}`)
+        .replace(/<t:(\d+):[a-zA-Z]>/g, (_, n) => new Date(Number(n) * 1000).toLocaleString('en-GB'))
+        .replace(/\*\*|__|(?<![\w])_(?=\S)|(?<=\S)_(?![\w])/g, '')
+        .replace(/\*(?=\S)|(?<=\S)\*/g, '');
+    const bg = (label, fn) => { Promise.resolve().then(fn).catch((err) => console.error(`❌ [dashboard] ${label} failed:`, err)); };
+    const L = modules.lockdown;
+
+    app.get('/lockdown', checkAuth, async (req, res) => {
+        const g = guild();
+        const st = L.status();
+        const server = { ...st.server };
+        if (server.drill) server.drill = { ...server.drill, messages: Object.keys(server.drill.messages || {}).length };
+        delete server.saved;
+        server.lockedCount = Object.keys(st.server.saved || {}).length;
+        const lockedChannels = Object.entries(st.channels).map(([id, c]) => ({ id, name: g?.channels.cache.get(id)?.name || id, by: c.by, since: c.since, reason: c.reason }));
+        const drills = Object.entries(L.DRILLS).map(([kind, d]) => ({
+            kind, label: d.label, title: d.title,
+            preview: plain(L.drillText(kind, Date.now() + L.DEFAULT_DRILL_MINUTES * 60000)).replace(/\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}:\d{2}/, `${L.DEFAULT_DRILL_MINUTES} minutes after it starts (set below)`),
+        }));
+        const last = st.last && { ...st.last, text: st.last.text ? plain(st.last.text) : null };
+        await page(req, res, 'fx-lockdown', 'fx-lockdown', {
+            server, busy: st.busy, lockedChannels, drills, last,
+            lockable: g ? L.lockableChannels(g).map((c) => ({ id: c.id, name: c.name })) : [],
+            defaultMinutes: L.DEFAULT_DRILL_MINUTES, maxMinutes: L.MAX_DRILL_MINUTES,
+        });
+    });
+
+    app.post('/lockdown/drill/end', checkAuth, async (req, res) => {
+        const g = guild();
+        const st = L.status();
+        if (!g) return back(res, '/lockdown', 'Guild unavailable');
+        if (!st.server.drill) return back(res, '/lockdown', 'No drill is running');
+        if (st.busy) return back(res, '/lockdown', 'Another action is still running — try again shortly');
+        bg('drill end', () => L.endDrill({ guild: g, by: actorOf(req).tag }));
+        back(res, '/lockdown', 'Ending the drill — unlocking and deleting the notices in the background');
+    });
+    app.post('/lockdown/drill/:kind', checkAuth, async (req, res) => {
+        const g = guild();
+        const kind = req.params.kind;
+        const st = L.status();
+        if (!g) return back(res, '/lockdown', 'Guild unavailable');
+        if (!L.DRILLS[kind]) return res.status(400).send('Unknown drill');
+        if (st.busy) return back(res, '/lockdown', 'Another action is still running — try again shortly');
+        if (st.server.active) return back(res, '/lockdown', st.server.drill ? 'A drill is already running' : 'The server is already locked down — unlock it first');
+        const minutes = parseInt(req.body?.minutes, 10) || L.DEFAULT_DRILL_MINUTES;
+        const actor = actorOf(req);
+        bg('drill start', async () => {
+            const u = isSnowflake(actor.id) && actor.id !== client.user?.id ? await client.users.fetch(actor.id).catch(() => null) : null;
+            await L.startDrill({ guild: g, kind, minutes, actor: { tag: actor.tag }, dm: u });
+        });
+        back(res, '/lockdown', `${L.DRILLS[kind].label} starting — posting the notice and locking the server in the background. Refresh in a few seconds.`);
+    });
+
+    app.post('/lockdown/server/:act', checkAuth, async (req, res) => {
+        const g = guild();
+        const st = L.status();
+        if (!g) return back(res, '/lockdown', 'Guild unavailable');
+        if (st.busy) return back(res, '/lockdown', 'Another action is still running — try again shortly');
+        const actor = actorOf(req).tag;
+        if (req.params.act === 'lock') {
+            if (st.server.active) return back(res, '/lockdown', st.server.drill ? 'A drill is running — end it first' : 'The server is already locked down');
+            const reason = String(req.body?.reason || '').slice(0, 200) || null;
+            bg('server lock', () => L.lockServer({ guild: g, actor, reason }));
+            return back(res, '/lockdown', 'Locking the server in the background. Refresh in a few seconds.');
+        }
+        if (req.params.act === 'unlock') {
+            if (!st.server.active) return back(res, '/lockdown', 'The server isn\'t locked down');
+            bg('server unlock', () => L.unlockServer({ guild: g, actor }));
+            return back(res, '/lockdown', 'Unlocking the server in the background. Refresh in a few seconds.');
+        }
+        res.status(400).send('Bad action');
+    });
+
+    app.post('/lockdown/channel/:act', checkAuth, async (req, res) => {
+        const g = guild();
+        const id = String(req.body?.channel || '');
+        const channel = g && /^\d{15,25}$/.test(id) ? g.channels.cache.get(id) : null;
+        if (!channel) return back(res, '/lockdown', 'Pick a channel');
+        const actor = actorOf(req).tag;
+        let r;
+        if (req.params.act === 'lock') r = await L.lockChannel({ guild: g, channel, actor, reason: String(req.body?.reason || '').slice(0, 200) || null });
+        else if (req.params.act === 'unlock') r = await L.unlockChannel({ guild: g, channel, actor });
+        else return res.status(400).send('Bad action');
+        back(res, '/lockdown', plain(r.msg).slice(0, 300));
+    });
+
     // ---------- Case search ----------
     app.get('/cases', checkAuth, async (req, res) => {
         const q = req.query;
