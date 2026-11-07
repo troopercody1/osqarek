@@ -323,6 +323,36 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
         <% } else { %><p class="fx-sub">No channel data (tracking may be off).</p><% } %>
         <% if (Object.keys(r.casesByType).length) { %><h2 style="margin-top:22px">Cases by type</h2><table><% Object.entries(r.casesByType).sort((a,b)=>b[1]-a[1]).forEach(([k,n]) => { %><tr><td><%= k %></td><td><%= n %></td></tr><% }) %></table><% } %>
     </div>
+
+    <% const v = fx_.voice; %>
+    <div class="panel">
+        <h2>🎙️ Voice Time <span class="fx-pill <%= v.cfg.enabled ? 'on' : 'off' %>"><%= v.cfg.enabled ? 'tracking' : 'disabled' %></span></h2>
+        <p class="fx-sub">Time members spent in voice channels over the last <%= fx_.days %> days. Counts only — no audio. Stats start from when tracking was enabled<%= v.cfg.excludeAfk ? '; the AFK channel is excluded' : '' %>. Settings are on the Features page.</p>
+        <div class="fx-stat">
+            <div><span>Total voice time</span><b style="font-size:1.1rem"><%= v.fmt(v.totalMs) %></b></div>
+            <div><span>Unique members</span><b><%= v.uniqueUsers %></b></div>
+            <div><span>Avg per member</span><b style="font-size:1.1rem"><%= v.fmt(v.avgPerUser) %></b></div>
+            <div><span>In voice now</span><b><%= v.liveNow %></b></div>
+        </div>
+        <div class="fx-chart"><h3>Voice hours per day</h3><%- v.chart %></div>
+        <div class="fx-grid" style="margin-top:14px">
+            <div>
+                <h3 style="color:#c0caf5;font-size:1rem">Top members (last <%= fx_.days %>d)</h3>
+                <% if (v.topUsers.length) { %><table><tr><th>#</th><th>Member</th><th>Time</th></tr><% v.topUsers.forEach((u, i) => { %><tr><td><%= i + 1 %></td><td><%= u.name %></td><td><%= v.fmt(u.ms) %></td></tr><% }) %></table>
+                <% } else { %><p class="fx-sub">No voice time yet.</p><% } %>
+            </div>
+            <div>
+                <h3 style="color:#c0caf5;font-size:1rem">Top voice channels</h3>
+                <% if (v.topChannels.length) { %><table><tr><th>Channel</th><th>Time</th></tr><% v.topChannels.forEach(c => { %><tr><td>🔊 <%= c.name %></td><td><%= v.fmt(c.ms) %></td></tr><% }) %></table>
+                <% } else { %><p class="fx-sub">No voice time yet.</p><% } %>
+            </div>
+            <div>
+                <h3 style="color:#c0caf5;font-size:1rem">All-time leaderboard</h3>
+                <% if (v.allTime.length) { %><table><tr><th>#</th><th>Member</th><th>Time</th></tr><% v.allTime.forEach((u, i) => { %><tr><td><%= i + 1 %></td><td><%= u.name %></td><td><%= v.fmt(u.ms) %></td></tr><% }) %></table>
+                <% } else { %><p class="fx-sub">No voice time yet.</p><% } %>
+            </div>
+        </div>
+    </div>
 <% } %>
 </div>
 

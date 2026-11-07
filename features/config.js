@@ -116,6 +116,16 @@ const FEATURES = {
             { key: 'trackChannels', type: 'bool', default: true, label: 'Track per-channel counts', desc: 'Top-channels chart. Stores channel IDs and counts only.' },
         ],
     },
+    voice: {
+        label: 'Voice Time Stats',
+        icon: '🎙️',
+        description: 'Tracks how long members spend in voice channels (per member, per channel, per day). Counts only — no audio or content. Stats start from when tracking is enabled.',
+        defaultEnabled: true,
+        settings: [
+            { key: 'excludeAfk', type: 'bool', default: true, label: 'Ignore the AFK channel', desc: 'Time in the server\'s AFK voice channel is not counted.' },
+            { key: 'retentionDays', type: 'int', min: 7, max: 365, default: 90, label: 'Keep daily voice stats for (days)', desc: 'All-time totals are kept forever; per-day detail older than this is dropped.' },
+        ],
+    },
 };
 
 const FEATURE_NAMES = Object.keys(FEATURES);

@@ -222,6 +222,7 @@ const commands = {
                     { name: 'Mod cases', value: String(r.totals.cases), inline: true },
                     { name: 'Raid incidents', value: String(r.totals.raids), inline: true },
                     { name: 'Drills / Lockdowns', value: `${r.totals.drills} / ${r.totals.lockdowns}`, inline: true },
+                    { name: 'Voice time', value: (() => { try { return require('./voice').fmt(require('./voice').report(days).totalMs); } catch { return '—'; } })(), inline: true },
                     { name: 'Busiest hour', value: r.peakHour === null ? '—' : `${hourLabel(r.peakHour)}–${hourLabel((r.peakHour + 1) % 24)}`, inline: true },
                     { name: 'Top channels', value: chans },
                 ],

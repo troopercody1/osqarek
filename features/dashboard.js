@@ -230,7 +230,19 @@ function register(ctx, modules) {
             hourly: barChart(r.hourly, r.hourly.map((_, i) => modules.analytics.hourLabel(i)), { color: '#bb9af7' }),
         };
         const topChannels = r.topChannels.map((c) => ({ name: guild()?.channels.cache.get(c.id)?.name || c.id, count: c.count }));
-        await page(req, res, 'fx-analytics', 'fx-analytics', { days, r, charts, topChannels, cfg: getConfig(db(), 'analytics'), hourLabel: modules.analytics.hourLabel });
+        // Voice time stats (shown as a section on the Analytics page)
+        const vr = modules.voice.report(days);
+        const g = guild();
+        const nameOf = (id) => g?.members.cache.get(id)?.displayName || id;
+        const voice = {
+            cfg: getConfig(db(), 'voice'), fmt: modules.voice.fmt,
+            totalMs: vr.totalMs, uniqueUsers: vr.uniqueUsers, avgPerUser: vr.avgPerUser, liveNow: vr.liveNow, trackedDays: vr.trackedDays,
+            chart: barChart(vr.perDay.map(modules.voice.hours), labels, { color: '#7dcfff' }),
+            topUsers: vr.topUsers.map((u) => ({ name: nameOf(u.id), id: u.id, ms: u.ms })),
+            topChannels: vr.topChannels.map((c) => ({ name: g?.channels.cache.get(c.id)?.name || c.id, ms: c.ms })),
+            allTime: modules.voice.leaderboard(null, 10).map((u) => ({ name: nameOf(u.id), ms: u.ms })),
+        };
+        await page(req, res, 'fx-analytics', 'fx-analytics', { days, r, charts, topChannels, voice, cfg: getConfig(db(), 'analytics'), hourLabel: modules.analytics.hourLabel });
     });
 
     // ---------- Community: giveaways + polls ----------

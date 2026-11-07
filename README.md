@@ -24,6 +24,7 @@ file under `features/`; `index.js` only calls `features.init(...)` and routes bu
 | Case search | `/case-search` | Case Search | on |
 | Audit log viewer | `/audit` | Audit Log | on |
 | Analytics | `/analytics` | Analytics | on |
+| Voice time stats | `/vc stats\|top\|server\|now` | Analytics | on |
 | Per-feature settings | `/feature list\|show\|enable\|disable\|set\|reset` | Feature Settings | — |
 
 Settings are defined once in `features/config.js` (the slash command and dashboard both read it).
@@ -51,3 +52,9 @@ log in with Discord, otherwise the bot.
 
 ### Analytics + startup sync
 When the startup stats sync finishes, the message counts it tallied while scanning history (per day / hour / channel, active users) are merged into Analytics, and the member-count snapshot is refreshed (merge = max of live vs scanned, so it never double-counts). Drills and lockdowns are counted per day too. The sync summary in the mod log says how much was merged.
+
+### Voice time stats (`features/voice.js`)
+- Tracks time in voice channels per member, per channel and per day (counts only). Bots and the AFK channel are ignored (AFK is configurable under **Features → Voice Time Stats**). Stats start from when tracking was enabled — Discord keeps no voice history to backfill.
+- Moves between channels count as one session; time is split correctly across midnight. Live sessions are saved every minute and re-synced on startup, so restarts lose at most ~1 minute.
+- `/vc stats [user]` all-time / 7d / 30d, sessions, longest + average session, rank, favourite channel (viewing others is Moderator+). `/vc top [days]` leaderboard (empty = all-time). `/vc server [days]` summary (Moderator+). `/vc now` who's in voice.
+- Dashboard: **Analytics → Voice Time** (hours per day chart, top members, top channels, all-time leaderboard). `/analytics` also shows total voice time.

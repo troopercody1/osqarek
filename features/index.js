@@ -15,6 +15,7 @@ const modules = {
     cases: require('./cases'),
     audit: require('./audit'),
     analytics: require('./analytics'),
+    voice: require('./voice'),
     featurecmd: require('./featurecmd'),
 };
 
@@ -48,6 +49,7 @@ function init(ctx) {
     client.on('guildMemberRemove', safe('leave', async (member) => { if (guildOk(member.guild)) analytics.onLeave(member); }));
     client.on('guildMemberUpdate', safe('update', (o, n) => impersonation.onMemberUpdate(o, n)));
     client.on('messageCreate', safe('message', async (m) => analytics.onMessage(m)));
+    client.on('voiceStateUpdate', safe('voice', async (o, n) => { if (guildOk(n.guild || o.guild)) modules.voice.onVoiceState(o, n); }));
     client.on('guildBanAdd', safe('ban', async (ban) => {
         if (!guildOk(ban.guild)) return;
         analytics.onBan();
@@ -67,7 +69,8 @@ function init(ctx) {
         await evasion.cacheInvites(guild);
         await evasion.backfillBans(guild);
         analytics.snapshot(guild);
-        console.log('🧩 Features online: raid, lockdown, drills, evasion, impersonation, timed, giveaways, polls, audit, analytics.');
+        modules.voice.reconcile(guild, { resume: true });
+        console.log('🧩 Features online: raid, lockdown, drills, evasion, impersonation, timed, giveaways, polls, audit, analytics, voice.');
     });
     if (client.isReady()) onReady(); else client.once('clientReady', onReady);
 
@@ -77,7 +80,7 @@ function init(ctx) {
         if (busy || !client.isReady()) return;
         busy = true;
         try {
-            for (const [label, fn] of [['raid', raid.tick], ['lockdown', modules.lockdown.tick], ['timed', modules.timed.tick], ['giveaways', modules.giveaways.tick], ['polls', modules.polls.tick], ['evasion', evasion.tick], ['analytics', analytics.tick]]) {
+            for (const [label, fn] of [['raid', raid.tick], ['lockdown', modules.lockdown.tick], ['timed', modules.timed.tick], ['giveaways', modules.giveaways.tick], ['polls', modules.polls.tick], ['evasion', evasion.tick], ['analytics', analytics.tick], ['voice', modules.voice.tick]]) {
                 try { await fn(); } catch (err) { console.error(`❌ [features:${label}] tick failed:`, err.message); }
             }
         } finally { busy = false; }
