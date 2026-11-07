@@ -146,6 +146,17 @@ function lastNDayKeys(n) {
     return keys;
 }
 
+// Older/partial saved lastSync objects may lack fields; never hand the template undefined numbers.
+function normalizeLastSync(ls) {
+    if (!ls || typeof ls !== 'object') return null;
+    const messages = Number(ls.messages ?? ls.counted ?? ls.total ?? ls.scanned);
+    return {
+        at: Number(ls.at) || null,
+        days: Number(ls.days) || 0,
+        messages: Number.isFinite(messages) ? messages : 0,
+    };
+}
+
 function report(days = 7) {
     const { db } = context.get();
     const d = data();
@@ -186,7 +197,7 @@ function report(days = 7) {
         raids: recs.map((r) => r.r || 0),
         drills: recs.map((r) => r.dr || 0),
         lockdowns: recs.map((r) => r.lk || 0),
-        lastSync: d.lastSync || null,
+        lastSync: normalizeLastSync(d.lastSync),
         modActions: keys.map((k) => casesPerDay[k]),
         members,
         hourly,
