@@ -299,10 +299,10 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
         <h2>📈 Analytics <span class="fx-pill <%= fx_.cfg.enabled ? 'on' : 'off' %>"><%= fx_.cfg.enabled ? 'collecting' : 'disabled' %></span></h2>
         <form method="GET" action="/analytics" class="fx-inline"><% [7,14,30,90].forEach(n => { %><a class="fx-btn" style="text-decoration:none;<%= fx_.days === n ? 'color:#fff' : '' %>" href="/analytics?days=<%= n %>"><%= n %>d</a><% }) %></form>
         <p class="fx-sub" style="margin-top:12px"><%= r.trackedDays %> of <%= r.days %> days have data. Counts only — no message content is stored. "Active users" is a per-day floor that restarts after a bot restart.</p>
-        <% if (r.lastSync) { %><p class="fx-sub">📈 Last startup-sync update: <%= when(r.lastSync.at) %> — <%= r.lastSync.messages.toLocaleString() %> messages across <%= r.lastSync.days %> days merged from channel history.</p><% } %>
+        <% if (r.lastSync) { %><p class="fx-sub">📈 Last startup-sync update: <%= when(r.lastSync.at) %> — <%= Number(r.lastSync.messages || 0).toLocaleString() %> messages across <%= r.lastSync.days %> days merged from channel history.</p><% } %>
         <div class="fx-stat">
-            <div><span>Messages (bot + human)</span><b><%= r.totals.messages.toLocaleString() %></b></div>
-            <div><span>Human messages</span><b><%= r.totals.humanMessages.toLocaleString() %></b></div>
+            <div><span>Messages (bot + human)</span><b><%= Number(r.totals && r.totals.messages || 0).toLocaleString() %></b></div>
+            <div><span>Human messages</span><b><%= Number(r.totals && r.totals.humanMessages || 0).toLocaleString() %></b></div>
             <div><span>Joins</span><b><%= r.totals.joins %></b></div>
             <div><span>Leaves</span><b><%= r.totals.leaves %></b></div>
             <div><span>Bans</span><b><%= r.totals.bans %></b></div>
@@ -321,7 +321,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
     </div>
     <div class="panel">
         <h2>Top channels</h2>
-        <% if (fx_.topChannels.length) { %><table><tr><th>Channel</th><th>Messages</th></tr><% fx_.topChannels.forEach(c => { %><tr><td>#<%= c.name %></td><td><%= c.count.toLocaleString() %></td></tr><% }) %></table>
+        <% if (fx_.topChannels.length) { %><table><tr><th>Channel</th><th>Messages</th></tr><% fx_.topChannels.forEach(c => { %><tr><td>#<%= c.name %></td><td><%= Number(c.count || 0).toLocaleString() %></td></tr><% }) %></table>
         <% } else { %><p class="fx-sub">No channel data (tracking may be off).</p><% } %>
         <% if (Object.keys(r.casesByType).length) { %><h2 style="margin-top:22px">Cases by type</h2><table><% Object.entries(r.casesByType).sort((a,b)=>b[1]-a[1]).forEach(([k,n]) => { %><tr><td><%= k %></td><td><%= n %></td></tr><% }) %></table><% } %>
     </div>
