@@ -301,7 +301,8 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
         <p class="fx-sub" style="margin-top:12px"><%= r.trackedDays %> of <%= r.days %> days have data. Counts only — no message content is stored. "Active users" is a per-day floor that restarts after a bot restart.</p>
         <% if (r.lastSync) { %><p class="fx-sub">📈 Last startup-sync update: <%= when(r.lastSync.at) %> — <%= r.lastSync.messages.toLocaleString() %> messages across <%= r.lastSync.days %> days merged from channel history.</p><% } %>
         <div class="fx-stat">
-            <div><span>Messages</span><b><%= r.totals.messages.toLocaleString() %></b></div>
+            <div><span>Messages (bot + human)</span><b><%= r.totals.messages.toLocaleString() %></b></div>
+            <div><span>Human messages</span><b><%= r.totals.humanMessages.toLocaleString() %></b></div>
             <div><span>Joins</span><b><%= r.totals.joins %></b></div>
             <div><span>Leaves</span><b><%= r.totals.leaves %></b></div>
             <div><span>Bans</span><b><%= r.totals.bans %></b></div>
@@ -311,11 +312,12 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
             <div><span>Lockdowns</span><b><%= r.totals.lockdowns %></b></div>
             <div><span>Busiest hour</span><b><%= r.peakHour === null ? '—' : fx_.hourLabel(r.peakHour) %></b></div>
         </div>
-        <div class="fx-chart"><h3>Messages per day</h3><%- fx_.charts.messages %>
+        <div class="fx-chart"><h3>Bot + Human messages per day</h3><%- fx_.charts.messages %>
+            <h3>Human messages per day</h3><%- fx_.charts.humanMessages %>
             <h3>Joins per day</h3><%- fx_.charts.joins %>
             <h3>Leaves per day</h3><%- fx_.charts.leaves %>
             <h3>Moderation cases per day</h3><%- fx_.charts.mod %>
-            <h3>Messages by hour of day</h3><%- fx_.charts.hourly %></div>
+            <h3>Messages by hour of day (bot + human)</h3><%- fx_.charts.hourly %></div>
     </div>
     <div class="panel">
         <h2>Top channels</h2>

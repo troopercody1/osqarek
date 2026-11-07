@@ -224,6 +224,7 @@ function register(ctx, modules) {
         const labels = r.keys.map((k) => k.slice(5));
         const charts = {
             messages: barChart(r.messages, labels),
+            humanMessages: barChart(r.humanMessages, labels, { color: '#73daca' }),
             joins: barChart(r.joins, labels, { color: '#9ece6a' }),
             leaves: barChart(r.leaves, labels, { color: '#f7768e' }),
             mod: barChart(r.modActions, labels, { color: '#e0af68' }),

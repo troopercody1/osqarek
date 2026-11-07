@@ -109,7 +109,7 @@ const FEATURES = {
     analytics: {
         label: 'Analytics',
         icon: '📈',
-        description: 'Daily message, join/leave, ban and busiest-hour stats. Counts only; no message content is stored.',
+        description: 'Daily message (bot + human, and human-only), join/leave, ban and busiest-hour stats. Counts only; no message content is stored.',
         defaultEnabled: true,
         settings: [
             { key: 'retentionDays', type: 'int', min: 7, max: 365, default: 90, label: 'Keep daily stats for (days)', desc: 'Older days are dropped to keep the database small.' },

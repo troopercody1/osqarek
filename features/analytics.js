@@ -14,7 +14,7 @@ function data() {
 }
 
 function newDay() {
-    return { m: 0, a: 0, j: 0, l: 0, b: 0, r: 0, dr: 0, lk: 0, h: Array(24).fill(0), ch: {}, mc: null };
+    return { m: 0, hm: 0, a: 0, j: 0, l: 0, b: 0, r: 0, dr: 0, lk: 0, h: Array(24).fill(0), ch: {}, mc: null };
 }
 
 function day(key = dayKey()) {
@@ -33,17 +33,21 @@ function enabled() {
 function touch() { context.get().saveLater?.(); }
 
 function onMessage(message) {
-    if (!enabled() || message.author.bot || !message.guild) return;
+    if (!enabled() || !message.guild) return;
     if (message.guild.id !== actions.getGuild()?.id) return;
     const cfg = getConfig(context.get().db, 'analytics');
     const key = dayKey();
     if (todaySets.key !== key) { todaySets.key = key; todaySets.users = new Set(); }
     const rec = day(key);
-    rec.m++;
+    const human = !message.author.bot;
+    rec.m++; // all messages (bot + human)
+    if (human) rec.hm = (rec.hm || 0) + 1; // human messages only
     rec.h[new Date().getHours()]++;
     if (cfg.trackChannels) rec.ch[message.channel.id] = (rec.ch[message.channel.id] || 0) + 1;
-    todaySets.users.add(message.author.id);
-    rec.a = Math.max(rec.a, todaySets.users.size); // survives restarts as a floor
+    if (human) {
+        todaySets.users.add(message.author.id);
+        rec.a = Math.max(rec.a, todaySets.users.size); // survives restarts as a floor
+    }
     touch();
 }
 
@@ -64,7 +68,7 @@ function onLockdown() { if (!enabled()) return; day().lk = (day().lk || 0) + 1; 
 // The startup stats sync already pages through every message in the server. This collector rides along on that
 // scan (no extra API calls), tallies per-day / per-hour / per-channel message counts, and when the sync finishes
 // merges them into the analytics store. Merging takes the larger of "live count" and "scanned count" per field,
-// so it's idempotent and never double-counts messages the bot also saw live. Bot messages are ignored, same as live.
+// so it's idempotent and never double-counts messages the bot also saw live. Bot messages count toward the all-messages total but not the human total or active users, same as live.
 function createHistoryCollector() {
     const cfg = getConfig(context.get().db, 'analytics');
     const cutoff = new Date();
@@ -77,13 +81,14 @@ function createHistoryCollector() {
     return {
         add(msg) {
             try {
-                if (!cfg.enabled || msg.author?.bot || msg.createdTimestamp < cutoffMs) return;
+                if (!cfg.enabled || msg.createdTimestamp < cutoffMs) return;
                 const key = dayKey(msg.createdTimestamp);
-                const rec = days[key] || (days[key] = { m: 0, h: Array(24).fill(0), ch: {}, users: new Set() });
+                const rec = days[key] || (days[key] = { m: 0, hm: 0, h: Array(24).fill(0), ch: {}, users: new Set() });
+                const human = !msg.author?.bot;
                 rec.m++;
+                if (human) { rec.hm++; rec.users.add(msg.author.id); }
                 rec.h[new Date(msg.createdTimestamp).getHours()]++;
                 if (cfg.trackChannels) rec.ch[msg.channelId] = (rec.ch[msg.channelId] || 0) + 1;
-                rec.users.add(msg.author.id);
                 counted++;
             } catch { /* never let analytics break the sync */ }
         },
@@ -94,6 +99,7 @@ function createHistoryCollector() {
             for (const [key, scanned] of Object.entries(days)) {
                 const rec = day(key);
                 rec.m = Math.max(rec.m || 0, scanned.m);
+                rec.hm = Math.max(rec.hm || 0, scanned.hm);
                 rec.a = Math.max(rec.a || 0, scanned.users.size);
                 scanned.h.forEach((n, i) => { rec.h[i] = Math.max(rec.h[i] || 0, n); });
                 for (const [id, n] of Object.entries(scanned.ch)) rec.ch[id] = Math.max(rec.ch[id] || 0, n);
@@ -171,7 +177,8 @@ function report(days = 7) {
     const peakHour = hourly.some((n) => n > 0) ? hourly.indexOf(Math.max(...hourly)) : null;
     return {
         days, keys,
-        messages: recs.map((r) => r.m || 0),
+        messages: recs.map((r) => r.m || 0), // bot + human
+        humanMessages: recs.map((r) => r.hm ?? r.m ?? 0), // legacy days (before bot counting) only had human counts in m
         active: recs.map((r) => r.a || 0),
         joins: recs.map((r) => r.j || 0),
         leaves: recs.map((r) => r.l || 0),
@@ -186,7 +193,7 @@ function report(days = 7) {
         peakHour,
         topChannels: Object.entries(channels).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([id, count]) => ({ id, count })),
         casesByType: caseRes.byType,
-        totals: { messages: sum((r) => r.m), joins: sum((r) => r.j), leaves: sum((r) => r.l), bans: sum((r) => r.b), raids: sum((r) => r.r), drills: sum((r) => r.dr), lockdowns: sum((r) => r.lk), cases: caseRes.total },
+        totals: { messages: sum((r) => r.m), humanMessages: sum((r) => r.hm ?? r.m), joins: sum((r) => r.j), leaves: sum((r) => r.l), bans: sum((r) => r.b), raids: sum((r) => r.r), drills: sum((r) => r.dr), lockdowns: sum((r) => r.lk), cases: caseRes.total },
         trackedDays: keys.filter((k) => d.days[k]).length,
     };
 }
@@ -213,9 +220,10 @@ const commands = {
         return interaction.editReply({
             embeds: [brandEmbed({
                 title: `📈 Server analytics — last ${days} day${days === 1 ? '' : 's'}`,
-                description: `\`${spark(r.messages)}\` messages per day`,
+                description: `\`${spark(r.messages)}\` bot + human messages per day\n\`${spark(r.humanMessages)}\` human messages per day`,
                 fields: [
-                    { name: 'Messages', value: r.totals.messages.toLocaleString(), inline: true },
+                    { name: 'Messages (bot + human)', value: r.totals.messages.toLocaleString(), inline: true },
+                    { name: 'Human messages', value: r.totals.humanMessages.toLocaleString(), inline: true },
                     { name: 'Members', value: `${guild.memberCount.toLocaleString()} (${net >= 0 ? '+' : ''}${net})`, inline: true },
                     { name: 'Joins / Leaves', value: `${r.totals.joins} / ${r.totals.leaves}`, inline: true },
                     { name: 'Bans', value: String(r.totals.bans), inline: true },
