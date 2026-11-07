@@ -12,7 +12,12 @@ module.exports = [
             { name: 'unmute', description: 'Remove a timeout from a member', type: 1, options: [{ name: 'target', description: 'User to unmute', type: 6, required: true }] },
             { name: 'softban', description: 'Ban and immediately unban to clear messages', type: 1, options: [{ name: 'target', description: 'User to softban', type: 6, required: true }, { name: 'reason', description: 'Reason', type: 3, required: false }] },
             { name: 'purge', description: 'Mass delete messages from the channel', type: 1, options: [{ name: 'amount', description: 'Number of messages (1-100)', type: 4, required: true }] },
-            { name: 'lockdown', description: 'Quick lock/unlock of the current channel (see /lockdown for server or other channels)', type: 1, options: [{ name: 'status', description: 'True to lock, False to unlock', type: 5, required: true }] },
+            { name: 'lockdown', description: 'Lock or unlock the whole server or one channel (Admin+)', type: 1, options: [
+                { name: 'scope', description: 'What to lock', type: 3, required: true, choices: [{ name: 'Server', value: 'server' }, { name: 'Channel', value: 'channel' }] },
+                { name: 'status', description: 'True to lock, False to unlock', type: 5, required: true },
+                { name: 'channel', description: 'Channel to lock (Channel scope only; default: this one)', type: 7, required: false, channel_types: [0, 5] },
+                { name: 'reason', description: 'Why (shown in the log)', type: 3, required: false },
+            ] },
             { name: 'dm', description: 'Send an official staff DM to a member', type: 1, options: [{ name: 'target', description: 'User to message', type: 6, required: true }, { name: 'message', description: 'The message content', type: 3, required: true }] },
             { name: 'channel-block', description: 'Block (or unblock) a member from using temp channels', type: 1, options: [{ name: 'target', description: 'User to block/unblock', type: 6, required: true }] },
             { name: 'train', description: 'DM a staff member their rank training (Owner/Co-Owner only)', type: 1, options: [{ name: 'rank', description: 'Rank to train them on', type: 3, required: true, choices: RANK_CHOICES }, { name: 'user', description: 'Who to send the training to', type: 6, required: true }] },

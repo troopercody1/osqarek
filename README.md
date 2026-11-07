@@ -15,7 +15,7 @@ file under `features/`; `index.js` only calls `features.init(...)` and routes bu
 |---|---|---|---|
 | Raid protection | `/raid status\|start\|end` | Protection | **off** |
 | Drills (raid + server lockdown) | `/drill raid\|lockdown` | — | on |
-| Server / channel lockdown | `/lockdown server\|channel` | — | on |
+| Server / channel lockdown | `/mod lockdown scope:Server\|Channel` | Lockdown & Drills | on |
 | Ban-evasion flags | `/evasion check\|flags\|dismiss\|sync` | Protection | **off** |
 | Impersonation guard | `/impersonation list\|check\|add\|remove\|scan` | Protection | **off** |
 | Timed actions | `/timed ban\|role\|unban\|message\|list\|cancel` | Timed Actions | on |
@@ -45,8 +45,8 @@ log in with Discord, otherwise the bot.
 ### Drills & lockdowns (`features/lockdown.js`)
 - `/drill raid [minutes]` and `/drill lockdown [minutes]` (Admin+; default 5 min, max 60) post a clearly-labelled **DRILL** embed in every text/announcement channel the bot can post in **and lock the server**. When the time is up (or `/drill end`) the server is unlocked and **the drill messages are deleted**. Drill state is stored in the db, so a restart mid-drill still ends on time.
 - The person who runs a drill gets the exact message text back (reply + DM).
-- `/lockdown server status:True|False` locks/unlocks every text channel for @everyone. Each channel's previous @everyone permissions are saved and restored on unlock. Unlocking during a drill ends the drill.
-- `/lockdown channel status:True|False [channel]` locks/unlocks one channel (defaults to the current one).
+- `/mod lockdown scope:Server status:True|False [reason]` (Admin+) locks/unlocks every text channel for @everyone. Every channel's full permission overwrites (@everyone, every role and any member override, every allow/deny bit) are backed up and restored exactly on unlock. Unlocking during a drill ends the drill.
+- `/mod lockdown scope:Channel status:True|False [channel] [reason]` locks/unlocks one channel (defaults to the current one).
 - Dashboard: **Lockdown & Drills** page (start/end drills with a message preview, lock/unlock server or a channel, see the last action and the exact text posted).
 - Needs **Manage Channels** (and Embed Links in the channels for drills). Re-deploy commands (restart the bot).
 

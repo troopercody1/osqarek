@@ -5135,12 +5135,28 @@ if (commandName === 'warn' && options.getSubcommand() === 'clear') {
                         logAction(guild, '🧹 Purge', `**Amount:** ${amount}\n**Channel:** ${interaction.channel.name}\n**Moderator:** ${user.tag}`, 0x3498DB);
                         break;
 
-                    case 'lockdown':
+                    case 'lockdown': {
                         if (!isAtLeastAdmin) return interaction.editReply("❌ You need **Admin+** to use this.");
-                        const status = options.getBoolean('status');
-                        await interaction.channel.permissionOverwrites.edit(guild.roles.everyone, { SendMessages: !status });
-                        logAction(guild, status ? '🔒 Lockdown' : '🔓 Unlock', `**Channel:** ${interaction.channel.name}\n**Moderator:** ${user.tag}`, 0xE74C3C);
-                        return interaction.editReply(status ? `🔒 Channel locked.` : `🔓 Channel unlocked.`);
+                        const L = features.modules.lockdown;
+                        const scope = options.getString('scope');
+                        const lock = options.getBoolean('status');
+                        const lockReason = options.getString('reason');
+                        const pickedChannel = options.getChannel('channel');
+                        let lockResult;
+                        if (scope === 'server') {
+                            if (pickedChannel) return interaction.editReply('❌ A **Server** lockdown affects every text channel — choose scope **Channel** to lock one specific channel.');
+                            await interaction.editReply(lock ? '🔒 Locking the server…' : '🔓 Unlocking the server…');
+                            lockResult = lock
+                                ? await L.lockServer({ guild, actor: user.tag, reason: lockReason })
+                                : await L.unlockServer({ guild, actor: user.tag });
+                        } else {
+                            const target = pickedChannel || interaction.channel;
+                            lockResult = lock
+                                ? await L.lockChannel({ guild, channel: target, actor: user.tag, reason: lockReason })
+                                : await L.unlockChannel({ guild, channel: target, actor: user.tag });
+                        }
+                        return interaction.editReply(lockResult.msg);
+                    }
 
                     case 'dm':
                         if (!isMod) return interaction.editReply("❌ You need **Moderator+** to use this.");

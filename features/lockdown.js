@@ -3,8 +3,8 @@
 //                                      server for the drill. When it ends (timer or /drill end) the server is unlocked
 //                                      and the drill messages are deleted.
 //   /drill end                       – ends a running drill early
-//   /lockdown server                 – really locks / unlocks every text channel for @everyone (saved perms are restored)
-//   /lockdown channel                – really locks / unlocks one channel
+//   /mod lockdown scope:Server       – really locks / unlocks every text channel for @everyone (every role's saved perms are restored)
+//   /mod lockdown scope:Channel      – really locks / unlocks one channel (the `channel` option, default: the current one)
 // Everything is implemented as core functions so the slash commands and the dashboard share the same code.
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const context = require('./context');
@@ -102,15 +102,20 @@ function postableChannels(guild) {
 }
 
 // ---------- permission helpers ----------
-// @everyone's current overwrite for each lock permission: true (allow) / false (deny) / null (neutral).
-function snapshotOverwrite(ch, everyone) {
+// Full backup of EVERY permission overwrite on a channel — @everyone, every role and any member-specific one —
+// with all allow/deny bits. Bitfields are stored as strings (JSON-safe in the db).
+//   { v: 3, ows: [{ id, type, allow: '<bits>', deny: '<bits>' }, ...] }   (type: 0 = role, 1 = member)
+function snapshotOverwrite(ch) {
+    return {
+        v: 3,
+        ows: [...ch.permissionOverwrites.cache.values()].map((ow) => ({ id: ow.id, type: ow.type, allow: ow.allow.bitfield.toString(), deny: ow.deny.bitfield.toString() })),
+    };
+}
+
+// True when @everyone is currently denied Send Messages on the channel (i.e. it looks locked).
+function isSendDenied(ch, everyone) {
     const ow = ch.permissionOverwrites.cache.get(everyone.id);
-    const out = {};
-    for (const p of LOCK_PERMS) {
-        const flag = PermissionFlagsBits[p];
-        out[p] = ow?.allow.has(flag) ? true : ow?.deny.has(flag) ? false : null;
-    }
-    return out;
+    return !!ow?.deny.has(PermissionFlagsBits.SendMessages);
 }
 
 const LOCKED_PATCH = Object.fromEntries(LOCK_PERMS.map((p) => [p, false]));
@@ -122,7 +127,35 @@ async function lockOne(ch, everyone, reason) {
 }
 
 async function restoreOne(ch, everyone, prev, reason) {
-    await ch.permissionOverwrites.edit(everyone, prev, { reason });
+    if (prev && prev.v === 3) {
+        // Put the channel's overwrites back exactly as backed up: every role/member overwrite with its allow/deny bits.
+        // Overwrites added while locked are removed. Roles/members that no longer exist are skipped (Discord rejects unknown ids).
+        const list = [];
+        for (const o of prev.ows) {
+            const exists = o.type === 0
+                ? ch.guild.roles.cache.has(o.id)
+                : !!(ch.guild.members.cache.get(o.id) || await ch.guild.members.fetch(o.id).catch(() => null));
+            if (exists) list.push({ id: o.id, type: o.type, allow: BigInt(o.allow), deny: BigInt(o.deny) });
+        }
+        await ch.permissionOverwrites.set(list, reason);
+        return;
+    }
+    const ow0 = ch.permissionOverwrites.cache.get(everyone.id);
+    if (prev && prev.v === 2) {
+        // Older backup (only @everyone's overwrite) — still restorable.
+        if (!prev.had) {
+            if (ow0) await ow0.delete(reason);
+            return;
+        }
+        const allow = BigInt(prev.allow);
+        const deny = BigInt(prev.deny);
+        const patch = {};
+        for (const [name, flag] of Object.entries(PermissionFlagsBits)) patch[name] = (allow & flag) ? true : (deny & flag) ? false : null;
+        await ch.permissionOverwrites.edit(everyone, patch, { reason });
+    } else {
+        // Oldest saved state (only the lock permissions, as true/false/null).
+        await ch.permissionOverwrites.edit(everyone, prev, { reason });
+    }
     // Tidy up: drop the overwrite entirely if it ended up empty.
     const ow = ch.permissionOverwrites.cache.get(everyone.id);
     if (ow && ow.allow.bitfield === 0n && ow.deny.bitfield === 0n) await ow.delete(reason).catch(() => { });
@@ -301,7 +334,7 @@ async function lockServer({ guild, actor, reason }) {
         return { ok: true, msg: [
             `🔒 **Server locked down.** ${r.locked} channel${r.locked === 1 ? '' : 's'} locked for @everyone${r.skipped ? `, ${r.skipped} were already locked` : ''}.`,
             r.failed.length ? `⚠️ Couldn't lock: ${truncate(r.failed.join(', '), 900)}` : '',
-            'Roles with their own "Send Messages" allow on a channel can still talk there. Unlock with `/lockdown server status:False`.',
+            'Roles with their own "Send Messages" allow on a channel can still talk there. Unlock with `/mod lockdown scope:Server status:False`.',
         ].filter(Boolean).join('\n') };
     } finally {
         busy = false;
@@ -323,7 +356,7 @@ async function unlockServer({ guild, actor }) {
         logAction(guild, '🔓 Server Unlock', `**Moderator:** ${actor}\n**Channels restored:** ${un.restored}`, 0x2ECC71);
         await context.get().safeSave();
         return { ok: true, msg: [
-            `🔓 **Server unlocked.** ${un.restored} channel${un.restored === 1 ? '' : 's'} restored to their previous permissions.`,
+            `🔓 **Server unlocked.** ${un.restored} channel${un.restored === 1 ? '' : 's'} restored to their exact previous permissions (all roles).`,
             un.failed.length ? `⚠️ Couldn't restore: ${truncate(un.failed.join(', '), 900)}` : '',
         ].filter(Boolean).join('\n') };
     } finally {
@@ -365,9 +398,8 @@ async function unlockChannel({ guild, channel, actor }) {
         const rec = d.channels[channel.id];
         if (!rec) {
             // Not locked by us — still allow clearing a lock set by hand / by the older /mod lockdown.
-            const cur = snapshotOverwrite(channel, everyone);
-            if (cur.SendMessages !== false) return { ok: false, msg: `ℹ️ ${mention(channel)} doesn't look locked.` };
-            await restoreOne(channel, everyone, { ...cur, ...Object.fromEntries(LOCK_PERMS.map((p) => [p, null])) }, reason);
+            if (!isSendDenied(channel, everyone)) return { ok: false, msg: `ℹ️ ${mention(channel)} doesn't look locked.` };
+            await restoreOne(channel, everyone, Object.fromEntries(LOCK_PERMS.map((p) => [p, null])), reason);
         } else {
             await restoreOne(channel, everyone, rec.prev, reason);
             delete d.channels[channel.id];
@@ -395,45 +427,18 @@ const commands = {
         const r = await startDrill({ guild, kind: sub, minutes: options.getInteger('minutes'), actor: { tag: user.tag }, dm: user });
         return interaction.editReply(r.embed ? { content: r.msg, embeds: [r.embed] } : r.msg);
     },
-
-    async lockdown({ interaction, options, guild, user, channel, isAtLeastAdmin }) {
-        if (!isAtLeastAdmin) return interaction.editReply('❌ You need **Admin+** to use this.');
-        const sub = options.getSubcommand();
-        const lock = options.getBoolean('status');
-        const reason = options.getString('reason');
-        let r;
-        if (sub === 'server') {
-            if (lock) await interaction.editReply('🔒 Locking the server…');
-            else await interaction.editReply('🔓 Unlocking the server…');
-            r = lock ? await lockServer({ guild, actor: user.tag, reason }) : await unlockServer({ guild, actor: user.tag });
-        } else if (sub === 'channel') {
-            const target = options.getChannel('channel') || channel;
-            r = lock ? await lockChannel({ guild, channel: target, actor: user.tag, reason }) : await unlockChannel({ guild, channel: target, actor: user.tag });
-        } else return interaction.editReply('❌ Unknown subcommand.');
-        return interaction.editReply(r.msg);
-    },
 };
 
-const statusOpt = { name: 'status', description: 'True to lock, False to unlock', type: 5, required: true };
-const reasonOpt = { name: 'reason', description: 'Why (shown in the log)', type: 3, required: false };
 const minutesOpt = { name: 'minutes', description: `How long the drill lasts (default ${DEFAULT_DRILL_MINUTES}, max ${MAX_DRILL_MINUTES})`, type: 4, required: false, min_value: 1, max_value: MAX_DRILL_MINUTES };
 
 const definitions = [
     {
         name: 'drill',
-        description: 'Run a staff drill — posts a DRILL notice, locks the server, then unlocks + deletes the notice (Admin+)',
+        description: 'Run a staff drill: post a DRILL notice, lock the server, then restore it (Admin+)',
         options: [
             { name: 'raid', description: 'Raid drill: notice in every channel + temporary server lock', type: 1, options: [minutesOpt] },
             { name: 'lockdown', description: 'Server lockdown drill: notice in every channel + temporary server lock', type: 1, options: [minutesOpt] },
             { name: 'end', description: 'End the running drill now (unlock + delete the notices)', type: 1 },
-        ],
-    },
-    {
-        name: 'lockdown',
-        description: 'Lock or unlock the whole server or one channel (Admin+)',
-        options: [
-            { name: 'server', description: 'Lock or unlock every text channel for @everyone', type: 1, options: [statusOpt, reasonOpt] },
-            { name: 'channel', description: 'Lock or unlock one channel (defaults to this one)', type: 1, options: [statusOpt, { name: 'channel', description: 'Channel to lock (default: current)', type: 7, required: false, channel_types: [0, 5] }, reasonOpt] },
         ],
     },
 ];
