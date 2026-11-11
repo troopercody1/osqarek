@@ -270,7 +270,7 @@
                     <span>Applying as <strong><%= discordUser.username %></strong></span>
                 </div>
 
-            <form method="POST" action="/apply-co-owner">
+            <form method="POST" action="/apply-co-owner"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <p class="section-title">About You</p>
 
                 <div class="field">

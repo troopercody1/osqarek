@@ -41,7 +41,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
     <div class="panel">
         <h2><%= f.def.icon %> <%= f.def.label %> <span class="fx-pill <%= f.cfg.enabled ? 'on' : 'off' %>"><%= f.cfg.enabled ? 'enabled' : 'disabled' %></span></h2>
         <p class="fx-sub"><%= f.def.description %></p>
-        <form action="/features/<%= f.name %>" method="POST">
+        <form action="/features/<%= f.name %>" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <label class="ng-row"><input type="checkbox" name="enabled" <%= f.cfg.enabled ? 'checked' : '' %>><div><div class="ng-title">Enabled</div></div></label>
             <div class="fx-grid">
             <% f.def.settings.forEach(s => { const v = f.cfg[s.key]; %>
@@ -68,7 +68,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
             </div>
             <div class="fx-inline" style="margin-top:14px"><button type="submit" class="btn-submit" style="margin:0">Save <%= f.def.label %></button></div>
         </form>
-        <form action="/features/<%= f.name %>/reset" method="POST" onsubmit="return confirm('Reset <%= f.def.label %> to defaults?');" style="margin-top:8px"><button class="fx-btn danger" type="submit">Reset to defaults</button></form>
+        <form action="/features/<%= f.name %>/reset" method="POST" onsubmit="return confirm('Reset <%= f.def.label %> to defaults?');" style="margin-top:8px"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="fx-btn danger" type="submit">Reset to defaults</button></form>
     </div>
     <% }) %>
 <% } %>
@@ -86,8 +86,8 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
             <div><span>Joins in window</span><b><%= fx_.raid.recentJoins %></b></div>
         </div>
         <div class="fx-inline">
-            <% if (st.active) { %><form action="/protection/raid/end" method="POST"><button class="btn-submit" style="margin:0">End raid mode</button></form>
-            <% } else { %><form action="/protection/raid/start" method="POST" onsubmit="return confirm('Turn raid mode on now?');"><button class="btn-submit" style="margin:0">Start raid mode</button></form><% } %>
+            <% if (st.active) { %><form action="/protection/raid/end" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn-submit" style="margin:0">End raid mode</button></form>
+            <% } else { %><form action="/protection/raid/start" method="POST" onsubmit="return confirm('Turn raid mode on now?');"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn-submit" style="margin:0">Start raid mode</button></form><% } %>
         </div>
         <% if (fx_.raid.incidents.length) { %>
         <table><tr><th>#</th><th>Started</th><th>Trigger</th><th>Joins</th><th>Actioned</th><th>Old accts skipped</th><th>Ended</th></tr>
@@ -100,7 +100,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
         <p class="fx-sub">Tracking <b><%= fx_.trackedBans %></b> banned users • flag score <b><%= fx_.evCfg.flagScore %></b> • automatic action <b><%= fx_.evCfg.autoAction %></b></p>
         <div class="fx-inline" style="margin:10px 0">
             <form method="GET" action="/protection" class="fx-inline"><input name="evUser" placeholder="Check a user ID against bans" pattern="\d{15,25}" style="min-width:260px" value="<%= (locals.fx.evCheck && locals.fx.evCheck.target && locals.fx.evCheck.target.id) || '' %>"><button class="fx-btn">Check user</button></form>
-            <form action="/protection/evasion/sync" method="POST"><button class="fx-btn">Re-sync ban list &amp; invites</button></form>
+            <form action="/protection/evasion/sync" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="fx-btn">Re-sync ban list &amp; invites</button></form>
         </div>
         <% if (fx_.evCheck) { %><div class="fx-form" style="display:block"><h3>Result for <%= fx_.evCheck.target.tag %></h3>
             <% if (!fx_.evCheck.ranked.length) { %><p class="fx-small">No similarities found against <%= fx_.evCheck.tracked %> tracked bans.</p><% } %>
@@ -112,9 +112,9 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
                 <td class="fx-small"><%= f.reasons.join(' • ') %></td>
                 <td><span class="fx-pill <%= f.status === 'open' ? 'warn' : '' %>"><%= f.status %><%= f.action ? ' (' + f.action + ')' : '' %></span></td>
                 <td><% if (f.status === 'open') { %><div class="fx-inline">
-                    <form action="/protection/evasion/<%= f.id %>/dismiss" method="POST"><button class="fx-btn">Dismiss</button></form>
-                    <form action="/protection/evasion/<%= f.id %>/kick" method="POST" onsubmit="return confirm('Kick this member?');"><button class="fx-btn">Kick</button></form>
-                    <form action="/protection/evasion/<%= f.id %>/ban" method="POST" onsubmit="return confirm('Ban this member?');"><button class="fx-btn danger">Ban</button></form></div><% } %></td>
+                    <form action="/protection/evasion/<%= f.id %>/dismiss" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="fx-btn">Dismiss</button></form>
+                    <form action="/protection/evasion/<%= f.id %>/kick" method="POST" onsubmit="return confirm('Kick this member?');"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="fx-btn">Kick</button></form>
+                    <form action="/protection/evasion/<%= f.id %>/ban" method="POST" onsubmit="return confirm('Ban this member?');"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="fx-btn danger">Ban</button></form></div><% } %></td>
             </tr><% }) %>
         </table><% } else { %><p class="fx-sub" style="margin-top:14px">No flags yet.</p><% } %>
     </div>
@@ -122,14 +122,14 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
     <div class="panel">
         <h2>🎭 Impersonation Guard <span class="fx-pill <%= fx_.impCfg.enabled ? 'on' : 'off' %>"><%= fx_.impCfg.enabled ? 'enabled' : 'disabled' %></span></h2>
         <div class="fx-inline" style="margin:10px 0">
-            <form action="/protection/impersonation/add" method="POST" class="fx-inline"><input name="name" placeholder="Protect a name…" required maxlength="100"><button class="fx-btn">Add</button></form>
-            <form action="/protection/impersonation/remove" method="POST" class="fx-inline"><input name="name" placeholder="Remove a custom name…" required maxlength="100"><button class="fx-btn danger">Remove</button></form>
+            <form action="/protection/impersonation/add" method="POST" class="fx-inline"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input name="name" placeholder="Protect a name…" required maxlength="100"><button class="fx-btn">Add</button></form>
+            <form action="/protection/impersonation/remove" method="POST" class="fx-inline"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input name="name" placeholder="Remove a custom name…" required maxlength="100"><button class="fx-btn danger">Remove</button></form>
             <form method="GET" action="/protection" class="fx-inline"><input name="impName" placeholder="Test a name…" maxlength="100" value="<%= (fx_.impTest && fx_.impTest.name) || '' %>"><button class="fx-btn">Would it be flagged?</button></form>
         </div>
         <% if (fx_.impTest) { %><p class="fx-small"><%= fx_.impTest.match ? '⚠️ "' + fx_.impTest.name + '" would be flagged: ' + fx_.impTest.match.kind + ' to ' + fx_.impTest.match.protectedLabel + ' (' + fx_.impTest.match.score + '%)' : '✅ "' + fx_.impTest.name + '" would not be flagged.' %></p><% } %>
         <div class="fx-inline" style="margin:10px 0">
-            <form action="/protection/impersonation/scan" method="POST"><input type="hidden" name="rename" value="0"><button class="fx-btn">Scan all members (preview)</button></form>
-            <form action="/protection/impersonation/scan" method="POST" onsubmit="return confirm('Rename every matching member now?');"><input type="hidden" name="rename" value="1"><button class="fx-btn danger">Scan &amp; rename</button></form>
+            <form action="/protection/impersonation/scan" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="rename" value="0"><button class="fx-btn">Scan all members (preview)</button></form>
+            <form action="/protection/impersonation/scan" method="POST" onsubmit="return confirm('Rename every matching member now?');"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="rename" value="1"><button class="fx-btn danger">Scan &amp; rename</button></form>
             <span class="fx-small">Staff names protected: <%= fx_.impSummary.staffMembers %> staff members</span>
         </div>
         <% if (fx_.lastScan) { %><p class="fx-small">Last scan (<%= when(fx_.lastScan.at) %>): scanned <%= fx_.lastScan.scanned %>, <%= fx_.lastScan.hits.length %> match(es)<%= fx_.lastScan.rename ? ', renamed ' + fx_.lastScan.renamed + ', failed ' + fx_.lastScan.failed : ' (preview only)' %></p>
@@ -164,11 +164,11 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
         <% if (sv.active && sv.reason && !dr) { %><p class="fx-small">Reason: <%= sv.reason %></p><% } %>
         <% if (dr) { %>
             <p class="fx-small">A <b><%= (fx_.drills.find(d => d.kind === dr.kind) || {}).label %></b> is running (<%= dr.messages %> notices posted). It unlocks and deletes the notices automatically at the time above.</p>
-            <form action="/lockdown/drill/end" method="POST" onsubmit="return confirm('End the drill now? The server will unlock and the drill notices will be deleted.');"><button class="btn-submit" style="margin:0">End drill now</button></form>
+            <form action="/lockdown/drill/end" method="POST" onsubmit="return confirm('End the drill now? The server will unlock and the drill notices will be deleted.');"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn-submit" style="margin:0">End drill now</button></form>
         <% } else if (sv.active) { %>
-            <form action="/lockdown/server/unlock" method="POST"><button class="btn-submit" style="margin:0">🔓 Unlock server</button></form>
+            <form action="/lockdown/server/unlock" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn-submit" style="margin:0">🔓 Unlock server</button></form>
         <% } else { %>
-            <form action="/lockdown/server/lock" method="POST" class="fx-form" onsubmit="return confirm('Lock EVERY text channel for @everyone now?');">
+            <form action="/lockdown/server/lock" method="POST" class="fx-form" onsubmit="return confirm('Lock EVERY text channel for @everyone now?');"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <div class="wide"><label>Reason (optional, goes in the log)</label><input name="reason" maxlength="200" placeholder="e.g. raid in progress"></div>
                 <div><button class="fx-btn danger" style="padding:10px 14px">🔒 Lock server</button></div>
             </form>
@@ -178,7 +178,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
     <div class="panel">
         <h2>🔒 Channel Lockdown</h2>
         <p class="fx-sub">Lock or unlock a single channel for @everyone.</p>
-        <form method="POST" class="fx-form" id="fx-chan-form">
+        <form method="POST" class="fx-form" id="fx-chan-form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <div><label>Channel</label><select name="channel" required><% fx_.lockable.forEach(c => { %><option value="<%= c.id %>">#<%= c.name %></option><% }) %></select></div>
             <div><label>Reason (optional)</label><input name="reason" maxlength="200"></div>
             <div class="fx-inline">
@@ -189,7 +189,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
         <% if (fx_.lockedChannels.length) { %>
         <table><tr><th>Channel</th><th>Locked by</th><th>Since</th><th>Reason</th><th></th></tr>
             <% fx_.lockedChannels.forEach(c => { %><tr><td>#<%= c.name %></td><td><%= c.by %></td><td><%= when(c.since) %></td><td class="fx-small"><%= c.reason || '—' %></td>
-                <td><form action="/lockdown/channel/unlock" method="POST" style="margin:0"><input type="hidden" name="channel" value="<%= c.id %>"><button class="fx-btn">Unlock</button></form></td></tr><% }) %>
+                <td><form action="/lockdown/channel/unlock" method="POST" style="margin:0"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="channel" value="<%= c.id %>"><button class="fx-btn">Unlock</button></form></td></tr><% }) %>
         </table><% } else { %><p class="fx-sub" style="margin-top:14px">No channels are individually locked.</p><% } %>
     </div>
 
@@ -203,7 +203,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
             <div style="background:#1a1b26;border:1px solid #2f3549;border-radius:6px;padding:12px;white-space:pre-wrap;color:#c0caf5;font-size:.85rem"><b><%= d.title %></b>
 
 <%= d.preview %></div>
-            <form action="/lockdown/drill/<%= d.kind %>" method="POST" class="fx-inline" style="margin-top:12px" onsubmit="return confirm('Start the <%= d.label.toLowerCase() %>? It will post in every channel and lock the server until it ends.');">
+            <form action="/lockdown/drill/<%= d.kind %>" method="POST" class="fx-inline" style="margin-top:12px" onsubmit="return confirm('Start the <%= d.label.toLowerCase() %>? It will post in every channel and lock the server until it ends.');"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <label class="fx-small">Length (minutes)</label>
                 <input type="number" name="minutes" min="1" max="<%= fx_.maxMinutes %>" value="<%= fx_.defaultMinutes %>" style="width:90px">
                 <button class="fx-btn" <%= (sv.active || fx_.busy) ? 'disabled' : '' %>>▶ Start <%= d.label.toLowerCase() %></button>
@@ -364,7 +364,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
     <div class="panel">
         <h2>🎉 Giveaways</h2>
         <p class="fx-sub">Start one here or with <code>/giveaway start</code>. <% if (!fx_.cfgG.enabled) { %><b style="color:#f7768e">Giveaways are disabled — enable them on the Features page.</b><% } %></p>
-        <form class="fx-form" action="/community/giveaway/start" method="POST">
+        <form class="fx-form" action="/community/giveaway/start" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <h3>Start a giveaway</h3>
             <div class="wide"><label>Prize</label><input name="prize" required maxlength="200" placeholder="Discord Nitro"></div>
             <div><label>Duration</label><input name="duration" required placeholder="e.g. 12h, 3d"></div>
@@ -377,14 +377,14 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
         <table><tr><th>#</th><th>Prize</th><th>Status</th><th>Ends</th><th>Entries</th><th>Winners</th><th></th></tr>
             <% fx_.giveaways.forEach(g => { %><tr><td><%= g.id %></td><td><%= g.prize %></td><td><span class="fx-pill <%= g.status === 'active' ? 'on' : '' %>"><%= g.status %></span></td><td><%= when(g.endsAt) %></td><td><%= g.entries.length %></td><td class="fx-small"><%= g.winners.length ? g.winners.join(', ') : '—' %></td>
                 <td><div class="fx-inline">
-                <% if (g.status === 'active') { %><form action="/community/giveaway/<%= g.id %>/end" method="POST"><button class="fx-btn">End now</button></form><form action="/community/giveaway/<%= g.id %>/cancel" method="POST" onsubmit="return confirm('Cancel this giveaway?');"><button class="fx-btn danger">Cancel</button></form>
-                <% } else if (g.status === 'ended') { %><form action="/community/giveaway/<%= g.id %>/reroll" method="POST"><button class="fx-btn">Reroll 1</button></form><% } %></div></td></tr><% }) %>
+                <% if (g.status === 'active') { %><form action="/community/giveaway/<%= g.id %>/end" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="fx-btn">End now</button></form><form action="/community/giveaway/<%= g.id %>/cancel" method="POST" onsubmit="return confirm('Cancel this giveaway?');"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="fx-btn danger">Cancel</button></form>
+                <% } else if (g.status === 'ended') { %><form action="/community/giveaway/<%= g.id %>/reroll" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="fx-btn">Reroll 1</button></form><% } %></div></td></tr><% }) %>
         </table><% } else { %><p class="fx-sub">No giveaways yet.</p><% } %>
     </div>
     <div class="panel">
         <h2>📊 Polls</h2>
         <p class="fx-sub">Create one here or with <code>/poll create</code>. <% if (!fx_.cfgP.enabled) { %><b style="color:#f7768e">Polls are disabled — enable them on the Features page.</b><% } %></p>
-        <form class="fx-form" action="/community/poll/create" method="POST">
+        <form class="fx-form" action="/community/poll/create" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <h3>Create a poll</h3>
             <div class="wide"><label>Question</label><input name="question" required maxlength="250"></div>
             <div class="wide"><label>Options — separate with | (2 to <%= fx_.cfgP.maxOptions %>)</label><input name="options" required placeholder="Pizza | Tacos | Sushi"></div>
@@ -397,7 +397,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
         <% if (fx_.polls.length) { %>
         <table><tr><th>#</th><th>Question</th><th>Status</th><th>Closes</th><th>Voters</th><th>Type</th><th></th></tr>
             <% fx_.polls.forEach(p => { %><tr><td><%= p.id %></td><td><%= p.question %><div class="fx-small"><%= p.options.map((o, i) => o + ' (' + p.tally.counts[i] + ')').join(' • ') %></div></td><td><span class="fx-pill <%= p.status === 'active' ? 'on' : '' %>"><%= p.status %></span></td><td><%= p.endsAt ? when(p.endsAt) : 'manual' %></td><td><%= p.tally.voters %></td><td class="fx-small"><%= p.multi ? 'multi' : 'single' %>, <%= p.anonymous ? 'anonymous' : 'public' %></td>
-                <td><% if (p.status === 'active') { %><form action="/community/poll/<%= p.id %>/end" method="POST"><button class="fx-btn danger">Close</button></form><% } %></td></tr><% }) %>
+                <td><% if (p.status === 'active') { %><form action="/community/poll/<%= p.id %>/end" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="fx-btn danger">Close</button></form><% } %></td></tr><% }) %>
         </table><% } else { %><p class="fx-sub">No polls yet.</p><% } %>
     </div>
 <% } %>
@@ -409,7 +409,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
     <div class="panel">
         <h2>⏲️ Scheduled Actions</h2>
         <p class="fx-sub">Schedule here or with <code>/timed …</code>. Durations look like <code>30m</code>, <code>12h</code>, <code>3d</code>, <code>1w</code> (max <%= fx_.cfgT.maxDays %> days). <% if (!fx_.cfgT.enabled) { %><b style="color:#f7768e">Timed Actions are disabled — enable them on the Features page.</b><% } %></p>
-        <form class="fx-form" action="/timed/ban" method="POST" onsubmit="return confirm('Ban this user now and unban automatically later?');">
+        <form class="fx-form" action="/timed/ban" method="POST" onsubmit="return confirm('Ban this user now and unban automatically later?');"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <h3>⏰ Temp-ban</h3>
             <div><label>User ID</label><input name="userId" required pattern="\d{15,25}"></div>
             <div><label>Duration</label><input name="duration" required placeholder="3d"></div>
@@ -417,7 +417,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
             <div class="wide"><label>Reason</label><input name="reason" maxlength="400"></div>
             <div><button class="btn-submit">Temp-ban</button></div>
         </form>
-        <form class="fx-form" action="/timed/role" method="POST">
+        <form class="fx-form" action="/timed/role" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <h3>🎭 Temporary role</h3>
             <div><label>User ID</label><input name="userId" required pattern="\d{15,25}"></div>
             <div><label>Role</label><%- roleSel('roleId') %></div>
@@ -425,13 +425,13 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
             <div><label>Mode</label><select name="mode"><option value="grant">Give now, remove later</option><option value="revoke">Remove now, restore later</option></select></div>
             <div><button class="btn-submit">Apply</button></div>
         </form>
-        <form class="fx-form" action="/timed/unban" method="POST">
+        <form class="fx-form" action="/timed/unban" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <h3>🔓 Scheduled unban</h3>
             <div><label>User ID</label><input name="userId" required pattern="\d{15,25}"></div>
             <div><label>In</label><input name="duration" required placeholder="1d"></div>
             <div><button class="btn-submit">Schedule unban</button></div>
         </form>
-        <form class="fx-form" action="/timed/message" method="POST">
+        <form class="fx-form" action="/timed/message" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <h3>💬 Delayed message</h3>
             <div><label>Channel</label><%- chanSel('channelId') %></div>
             <div><label>In</label><input name="duration" required placeholder="2h"></div>
@@ -440,7 +440,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
         </form>
         <% if (fx_.pending.length) { %>
         <table><tr><th>#</th><th>Type</th><th>Action</th><th>Runs</th><th>By</th><th></th></tr>
-            <% fx_.pending.forEach(i => { %><tr><td><%= i.id %></td><td><%= fx_.typeLabel[i.type] || i.type %></td><td class="fx-small"><%= i.text %></td><td><%= when(i.dueAt) %></td><td><%= i.createdBy %></td><td><form action="/timed/<%= i.id %>/cancel" method="POST"><button class="fx-btn danger">Cancel</button></form></td></tr><% }) %>
+            <% fx_.pending.forEach(i => { %><tr><td><%= i.id %></td><td><%= fx_.typeLabel[i.type] || i.type %></td><td class="fx-small"><%= i.text %></td><td><%= when(i.dueAt) %></td><td><%= i.createdBy %></td><td><form action="/timed/<%= i.id %>/cancel" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="fx-btn danger">Cancel</button></form></td></tr><% }) %>
         </table><% } else { %><p class="fx-sub">Nothing scheduled.</p><% } %>
     </div>
     <div class="panel">

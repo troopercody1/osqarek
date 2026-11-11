@@ -144,7 +144,7 @@
 
             <!-- Drawer -->
             <div class="drawer" id="presence-drawer">
-                <form action="/settings/bot-presence" method="POST" style="display:contents;">
+                <form action="/settings/bot-presence" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <label>Status</label>
                     <select name="botPresenceStatus">
                         <option value="online"    <%= (settings.botPresenceStatus || 'online') === 'online'    ? 'selected' : '' %>>&#128994; Online</option>
@@ -173,7 +173,7 @@
                     </div>
                 </form>
                 <% if (settings.botPresenceEnabled) { %>
-                <form action="/settings/bot-presence/reset" method="POST" style="display:contents;">
+                <form action="/settings/bot-presence/reset" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <div class="row-actions">
                         <button type="submit" class="btn">Revert to rotating status</button>
                     </div>
@@ -207,7 +207,7 @@
                         <%= settings.maintenanceMode ? 'Maintenance' : 'Live' %>
                     </span>
                     <!-- Real POST toggle -->
-                    <form action="/settings/toggle-maintenance" method="POST" style="display:contents;">
+                    <form action="/settings/toggle-maintenance" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <button type="submit"
                                 class="toggle <%= settings.maintenanceMode ? 'on' : '' %>"
                                 title="<%= settings.maintenanceMode ? 'Disable' : 'Enable' %> maintenance mode"
@@ -220,7 +220,7 @@
 
             <!-- Drawer -->
             <div class="drawer" id="maint-drawer">
-                <form action="/settings/maintenance-config" method="POST" style="display:contents;">
+                <form action="/settings/maintenance-config" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <label>Estimated return time (ETA)</label>
                 <input type="text" name="eta"
                        placeholder="e.g. 2 hours / 5:00 PM EST"
@@ -267,7 +267,7 @@
                 </div>
             </div>
             <div class="drawer" id="rate-drawer">
-                <form action="/settings/rate-limit" method="POST" style="display:contents;">
+                <form action="/settings/rate-limit" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <label>Requests per minute per IP</label>
                     <input type="number" name="rateLimit" value="<%= settings.rateLimit || 100 %>" min="1">
                     <div class="row-actions">
@@ -287,7 +287,7 @@
                     <div class="row-desc">Redirect all HTTP requests</div>
                 </div>
                 <div class="row-end">
-                    <form action="/settings/toggle-https" method="POST" style="display:contents;">
+                    <form action="/settings/toggle-https" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <button type="submit"
                                 class="toggle <%= settings.forceHttps ? 'on' : '' %>"
                                 aria-label="Toggle force HTTPS">
@@ -306,7 +306,7 @@
                     <div class="row-desc">Block known scrapers and crawlers</div>
                 </div>
                 <div class="row-end">
-                    <form action="/settings/toggle-bots" method="POST" style="display:contents;">
+                    <form action="/settings/toggle-bots" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <button type="submit"
                                 class="toggle <%= settings.blockBots ? 'on' : '' %>"
                                 aria-label="Toggle bot blocking">
@@ -333,7 +333,7 @@
                 </div>
             </div>
             <div class="drawer" id="ip-drawer">
-                <form action="/settings/ip-allowlist" method="POST" style="display:contents;">
+                <form action="/settings/ip-allowlist" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <label>Allowed IPs (comma-separated)</label>
                     <input type="text" name="ipAllowlist"
                            placeholder="127.0.0.1, 10.0.0.0/8"
@@ -365,7 +365,7 @@
                     <div class="row-desc">Controls how responses are cached</div>
                 </div>
                 <div class="row-end">
-                    <form action="/settings/cache-strategy" method="POST" style="display:contents;">
+                    <form action="/settings/cache-strategy" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <select name="cacheStrategy" class="inline" onchange="this.form.submit()">
                             <option value="aggressive" <%= settings.cacheStrategy === 'aggressive' ? 'selected' : '' %>>Aggressive (7d)</option>
                             <option value="balanced"   <%= (!settings.cacheStrategy || settings.cacheStrategy === 'balanced') ? 'selected' : '' %>>Balanced (1d)</option>
@@ -386,7 +386,7 @@
                     <div class="row-desc">Auto-compress and convert to WebP</div>
                 </div>
                 <div class="row-end">
-                    <form action="/settings/toggle-image-opt" method="POST" style="display:contents;">
+                    <form action="/settings/toggle-image-opt" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <button type="submit"
                                 class="toggle <%= settings.imageOptimisation ? 'on' : '' %>"
                                 aria-label="Toggle image optimisation">
@@ -410,7 +410,7 @@
                     </div>
                 </div>
                 <div class="row-end">
-                    <form action="/settings/purge-cache" method="POST" style="display:contents;">
+                    <form action="/settings/purge-cache" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <button type="submit" class="btn">Purge now</button>
                     </form>
                 </div>
@@ -484,7 +484,7 @@
                     <div class="row-desc">Email on status changes</div>
                 </div>
                 <div class="row-end">
-                    <form action="/settings/toggle-downtime-alerts" method="POST" style="display:contents;">
+                    <form action="/settings/toggle-downtime-alerts" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <button type="submit"
                                 class="toggle <%= settings.downtimeAlerts ? 'on' : '' %>"
                                 aria-label="Toggle downtime alerts">
@@ -510,7 +510,7 @@
                 </div>
             </div>
             <div class="drawer" id="discord-drawer">
-                <form action="/settings/discord-webhook" method="POST" style="display:contents;">
+                <form action="/settings/discord-webhook" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <label>Discord webhook URL</label>
                     <input type="url" name="discordWebhook"
                            placeholder="https://discord.com/api/webhooks/..."
@@ -543,7 +543,7 @@
                 </div>
                 <div class="row-end">
                     <form action="/settings/flush-sessions" method="POST" style="display:contents;"
-                          onsubmit="return confirm('This will sign out all active users. Continue?')">
+                          onsubmit="return confirm('This will sign out all active users. Continue?')"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <button type="submit" class="btn btn-danger">Flush</button>
                     </form>
                 </div>
@@ -560,7 +560,7 @@
                 </div>
                 <div class="row-end">
                     <form action="/settings/reset" method="POST" style="display:contents;"
-                          onsubmit="return confirm('All settings will be reset to defaults. This cannot be undone. Continue?')">
+                          onsubmit="return confirm('All settings will be reset to defaults. This cannot be undone. Continue?')"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <button type="submit" class="btn btn-danger">Reset</button>
                     </form>
                 </div>

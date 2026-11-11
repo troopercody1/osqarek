@@ -274,7 +274,7 @@
                 const checkbox = (name, opts) => opts.map(o => `<label class="option"><input type="checkbox" name="${name}" value="${o}"><span>${o}</span></label>`).join('');
             %>
 
-            <form method="POST" action="/mod-apps/apply" id="mod-form">
+            <form method="POST" action="/mod-apps/apply" id="mod-form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <p class="section-title">About You</p>
 
                 <div class="field">

@@ -74,7 +74,7 @@
         <% if (error) { %> <div class="error-msg"><%= error %></div> <% } %>
         <% if (msg) { %> <div class="success-msg"><%= msg %></div> <% } %>
 
-        <form action="/auth/verify-admin" method="POST">
+        <form action="/auth/verify-admin" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <input type="text" name="username" placeholder="Username" required autocomplete="off" autocapitalize="off" style="text-align:left; letter-spacing:normal;">
             <input type="password" name="password" placeholder="Enter password" required autocomplete="off">
             <button type="submit" class="btn-success">Verify & Login</button>

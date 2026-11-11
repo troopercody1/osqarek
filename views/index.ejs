@@ -261,7 +261,7 @@
             <% if (user && user.id === 'admin') { %>
             <a href="/settings" class="sidebar-link">🔧 Site Settings</a>
             <% } %>
-            <a href="/logout" style="color: #f7768e; text-decoration: none; font-weight: bold; padding: 12px 15px;">Logout</a>
+            <form action="/logout" method="POST" style="margin:0;"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit" style="background:none; border:none; cursor:pointer; font: inherit; text-align:left; width:100%; color: #f7768e; font-weight: bold; padding: 12px 15px;">Logout</button></form>
         </div>
     </div>
 
@@ -278,7 +278,7 @@
             </div>
             <div class="panel">
                 <h2>System Settings</h2>
-                <form action="/update-settings" method="POST">
+                <form action="/update-settings" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <label>Welcome Channel ID</label><input name="welcomeChannel" value="<%= settings.welcomeChannel || '' %>">
                     <label style="margin-top:10px; display:block">Goodbye Channel ID</label><input name="goodbyeChannel" value="<%= settings.goodbyeChannel || '' %>">
                     <button type="submit" class="btn-submit">Save Changes</button>
@@ -304,7 +304,7 @@
                         <span class="mod-badge <%= db.aiEnabled !== false ? 'on' : 'off' %>">
                             <%= db.aiEnabled !== false ? 'Enabled' : 'Disabled' %>
                         </span>
-                        <form action="/modules/toggle" method="POST" style="display:contents;">
+                        <form action="/modules/toggle" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                             <input type="hidden" name="module" value="aiEnabled">
                             <button type="submit"
                                     class="mod-toggle <%= db.aiEnabled !== false ? 'on' : '' %>"
@@ -325,7 +325,7 @@
                         <span class="mod-badge <%= db.musicEnabled !== false ? 'on' : 'off' %>">
                             <%= db.musicEnabled !== false ? 'Enabled' : 'Disabled' %>
                         </span>
-                        <form action="/modules/toggle" method="POST" style="display:contents;">
+                        <form action="/modules/toggle" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                             <input type="hidden" name="module" value="musicEnabled">
                             <button type="submit"
                                     class="mod-toggle <%= db.musicEnabled !== false ? 'on' : '' %>"
@@ -346,7 +346,7 @@
                         <span class="mod-badge <%= db.modmailEnabled !== false ? 'on' : 'off' %>">
                             <%= db.modmailEnabled !== false ? 'Enabled' : 'Disabled' %>
                         </span>
-                        <form action="/modules/toggle" method="POST" style="display:contents;">
+                        <form action="/modules/toggle" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                             <input type="hidden" name="module" value="modmailEnabled">
                             <button type="submit"
                                     class="mod-toggle <%= db.modmailEnabled !== false ? 'on' : '' %>"
@@ -367,7 +367,7 @@
                         <span class="mod-badge <%= db.automodEnabled !== false ? 'on' : 'off' %>">
                             <%= db.automodEnabled !== false ? 'Enabled' : 'Disabled' %>
                         </span>
-                        <form action="/modules/toggle" method="POST" style="display:contents;">
+                        <form action="/modules/toggle" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                             <input type="hidden" name="module" value="automodEnabled">
                             <button type="submit"
                                     class="mod-toggle <%= db.automodEnabled !== false ? 'on' : '' %>"
@@ -388,7 +388,7 @@
                         <span class="mod-badge <%= db.welcomeEnabled !== false ? 'on' : 'off' %>">
                             <%= db.welcomeEnabled !== false ? 'Enabled' : 'Disabled' %>
                         </span>
-                        <form action="/modules/toggle" method="POST" style="display:contents;">
+                        <form action="/modules/toggle" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                             <input type="hidden" name="module" value="welcomeEnabled">
                             <button type="submit"
                                     class="mod-toggle <%= db.welcomeEnabled !== false ? 'on' : '' %>"
@@ -409,7 +409,7 @@
                         <span class="mod-badge <%= db.remindersEnabled !== false ? 'on' : 'off' %>">
                             <%= db.remindersEnabled !== false ? 'Enabled' : 'Disabled' %>
                         </span>
-                        <form action="/modules/toggle" method="POST" style="display:contents;">
+                        <form action="/modules/toggle" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                             <input type="hidden" name="module" value="remindersEnabled">
                             <button type="submit"
                                     class="mod-toggle <%= db.remindersEnabled !== false ? 'on' : '' %>"
@@ -430,7 +430,7 @@
                         <span class="mod-badge <%= db.moderationEnabled !== false ? 'on' : 'off' %>">
                             <%= db.moderationEnabled !== false ? 'Enabled' : 'Disabled' %>
                         </span>
-                        <form action="/modules/toggle" method="POST" style="display:contents;">
+                        <form action="/modules/toggle" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                             <input type="hidden" name="module" value="moderationEnabled">
                             <button type="submit" class="mod-toggle <%= db.moderationEnabled !== false ? 'on' : '' %>" aria-label="Toggle Moderation"></button>
                         </form>
@@ -448,7 +448,7 @@
                         <span class="mod-badge <%= db.utilitiesEnabled !== false ? 'on' : 'off' %>">
                             <%= db.utilitiesEnabled !== false ? 'Enabled' : 'Disabled' %>
                         </span>
-                        <form action="/modules/toggle" method="POST" style="display:contents;">
+                        <form action="/modules/toggle" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                             <input type="hidden" name="module" value="utilitiesEnabled">
                             <button type="submit" class="mod-toggle <%= db.utilitiesEnabled !== false ? 'on' : '' %>" aria-label="Toggle Utilities"></button>
                         </form>
@@ -466,7 +466,7 @@
                         <span class="mod-badge <%= db.funEnabled !== false ? 'on' : 'off' %>">
                             <%= db.funEnabled !== false ? 'Enabled' : 'Disabled' %>
                         </span>
-                        <form action="/modules/toggle" method="POST" style="display:contents;">
+                        <form action="/modules/toggle" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                             <input type="hidden" name="module" value="funEnabled">
                             <button type="submit" class="mod-toggle <%= db.funEnabled !== false ? 'on' : '' %>" aria-label="Toggle Fun"></button>
                         </form>
@@ -484,7 +484,7 @@
                         <span class="mod-badge <%= db.quizEnabled !== false ? 'on' : 'off' %>">
                             <%= db.quizEnabled !== false ? 'Enabled' : 'Disabled' %>
                         </span>
-                        <form action="/modules/toggle" method="POST" style="display:contents;">
+                        <form action="/modules/toggle" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                             <input type="hidden" name="module" value="quizEnabled">
                             <button type="submit" class="mod-toggle <%= db.quizEnabled !== false ? 'on' : '' %>" aria-label="Toggle Quiz"></button>
                         </form>
@@ -502,7 +502,7 @@
                         <span class="mod-badge <%= db.staffToolsEnabled !== false ? 'on' : 'off' %>">
                             <%= db.staffToolsEnabled !== false ? 'Enabled' : 'Disabled' %>
                         </span>
-                        <form action="/modules/toggle" method="POST" style="display:contents;">
+                        <form action="/modules/toggle" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                             <input type="hidden" name="module" value="staffToolsEnabled">
                             <button type="submit" class="mod-toggle <%= db.staffToolsEnabled !== false ? 'on' : '' %>" aria-label="Toggle Staff Tools"></button>
                         </form>
@@ -520,7 +520,7 @@
                         <span class="mod-badge <%= db.tempChannelsEnabled !== false ? 'on' : 'off' %>">
                             <%= db.tempChannelsEnabled !== false ? 'Enabled' : 'Disabled' %>
                         </span>
-                        <form action="/modules/toggle" method="POST" style="display:contents;">
+                        <form action="/modules/toggle" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                             <input type="hidden" name="module" value="tempChannelsEnabled">
                             <button type="submit" class="mod-toggle <%= db.tempChannelsEnabled !== false ? 'on' : '' %>" aria-label="Toggle Temp Channels"></button>
                         </form>
@@ -551,7 +551,7 @@
         </div>
 
         <!-- Case Creation -->
-        <form action="/create-case" method="POST" class="create-form">
+        <form action="/create-case" method="POST" class="create-form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <input type="text" name="user" placeholder="User" required>
             <input type="text" name="userId" placeholder="User ID" required>
             <input type="text" name="type" placeholder="Type (WARN/BAN/MUTE)" required>
@@ -592,14 +592,14 @@
                     </td>
 
                     <td>
-                        <form action="/edit-case/<%= item.id %>" method="POST" style="display:flex; gap:8px;">
+                        <form action="/edit-case/<%= item.id %>" method="POST" style="display:flex; gap:8px;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                             <input type="text" name="reason" value="<%= item.reason %>">
                             <button type="submit" class="btn-submit">Update</button>
                         </form>
                     </td>
 
                     <td>
-                        <form action="/delete-case/<%= item.id %>" method="POST">
+                        <form action="/delete-case/<%= item.id %>" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                             <button class="btn-delete">Delete</button>
                         </form>
                     </td>
@@ -661,7 +661,7 @@
                                     </td>
                                     <td><%= reasons.length > 0 ? reasons.join(', ') : "Verified Account" %></td>
                                     <td>
-                                        <form action="/review-risk/<%= member.id %>" method="POST">
+                                        <form action="/review-risk/<%= member.id %>" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                                             <button type="submit" class="btn-submit">Review</button>
                                         </form>
                                     </td>
@@ -679,7 +679,7 @@
         <div id="roles" class="tab-content<%= (locals.activeTab || 'dashboard') === 'roles' ? ' active' : '' %>">
             <div class="panel">
                 <h2>🎭 Reaction Role Configuration</h2>
-                <form action="/add-reaction-role" method="POST" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <form action="/add-reaction-role" method="POST" style="display: flex; gap: 10px; flex-wrap: wrap;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <select name="emoji" style="width: 150px; background: #16161e; color: #fff; padding: 10px; border-radius: 4px; border: 1px solid #2f3549;">
                         <option value="">Select Emoji</option>
                         <% if (typeof emojis !== 'undefined' && emojis && emojis.length > 0) { %>
@@ -715,7 +715,7 @@
                         <% bannedWords.forEach(word => { %>
                             <span class="word-chip">
                                 <%= word %>
-                                <form action="/banned-words/remove" method="POST">
+                                <form action="/banned-words/remove" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                                     <input type="hidden" name="word" value="<%= word %>">
                                     <button type="submit" title="Remove">✕</button>
                                 </form>
@@ -726,7 +726,7 @@
                     <% } %>
                 </div>
 
-                <form action="/banned-words/add" method="POST" class="add-word-row">
+                <form action="/banned-words/add" method="POST" class="add-word-row"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <input name="word" placeholder="Add a word to the filter..." required>
                     <button type="submit" class="btn-submit">Add</button>
                 </form>
@@ -744,7 +744,7 @@
                     <code>ModeratedNickname#1234</code>. Existing members are swept every time the bot starts; new members are checked when they join.
                 </p>
 
-                <form action="/nickname-guard/settings" method="POST">
+                <form action="/nickname-guard/settings" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <label class="ng-row">
                         <input type="checkbox" name="enabled" <%= ng.config.enabled ? 'checked' : '' %>>
                         <div><div class="ng-title">Enabled</div><div class="ng-desc">Nothing is checked or renamed while this is off.</div></div>
@@ -773,8 +773,8 @@
                 <h2>🔍 Scan Members</h2>
                 <p style="color:#565f89; font-size:0.85rem; margin-top:-10px;">Preview shows who would be renamed without changing anything. Uses the saved settings above.</p>
                 <div class="ng-btn-row">
-                    <form action="/nickname-guard/scan" method="POST"><input type="hidden" name="apply" value="0"><button type="submit" class="btn-submit btn-secondary" <%= ng.running ? 'disabled' : '' %>>Preview</button></form>
-                    <form action="/nickname-guard/scan" method="POST" onsubmit="return confirm('Rename every flagged member now?');"><input type="hidden" name="apply" value="1"><button type="submit" class="btn-submit" <%= ng.running ? 'disabled' : '' %>>Scan &amp; Rename Now</button></form>
+                    <form action="/nickname-guard/scan" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="apply" value="0"><button type="submit" class="btn-submit btn-secondary" <%= ng.running ? 'disabled' : '' %>>Preview</button></form>
+                    <form action="/nickname-guard/scan" method="POST" onsubmit="return confirm('Rename every flagged member now?');"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="apply" value="1"><button type="submit" class="btn-submit" <%= ng.running ? 'disabled' : '' %>>Scan &amp; Rename Now</button></form>
                 </div>
 
                 <% if (ng.lastScan) { const sc = ng.lastScan; %>
@@ -847,7 +847,7 @@
                             <td><%= b.by %></td>
                             <td><%= new Date(b.at).toLocaleDateString('en-GB') %></td>
                             <td>
-                                <form action="/confessions/allow" method="POST" style="margin:0;">
+                                <form action="/confessions/allow" method="POST" style="margin:0;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                                     <input type="hidden" name="userId" value="<%= b.userId %>">
                                     <button type="submit" class="btn-submit" style="margin:0;">Allow</button>
                                 </form>
@@ -857,7 +857,7 @@
                     </tbody>
                 </table>
                 <% } %>
-                <form action="/confessions/disallow" method="POST" class="add-word-row">
+                <form action="/confessions/disallow" method="POST" class="add-word-row"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <input name="userId" placeholder="Discord user ID to disallow..." required pattern="\d{15,25}">
                     <input name="reason" placeholder="Reason (optional)" maxlength="300">
                     <button type="submit" class="btn-submit">Disallow</button>
@@ -882,7 +882,7 @@
                                 <% if (banned) { %>
                                     <span style="color:#f7768e; font-size:12px;">Disallowed</span>
                                 <% } else { %>
-                                    <form action="/confessions/disallow" method="POST" style="margin:0;" onsubmit="return confirm('Disallow this author from /confess?')">
+                                    <form action="/confessions/disallow" method="POST" style="margin:0;" onsubmit="return confirm('Disallow this author from /confess?')"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                                         <input type="hidden" name="userId" value="<%= c.userId %>">
                                         <input type="hidden" name="reason" value="Confession #<%= c.number %>">
                                         <button type="submit" class="btn-submit" style="margin:0; background:#2e1a1a; color:#f7768e;">Disallow</button>

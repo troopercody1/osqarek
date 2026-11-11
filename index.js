@@ -276,10 +276,37 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'fallback-secret',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 60000 * 60 * 24 }
+    cookie: { maxAge: 60000 * 60 * 24, httpOnly: true, sameSite: 'lax' }
 }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
+// --- CSRF PROTECTION ---
+// One random token per session. It is exposed to every view as `csrfToken`
+// (forms embed it as a hidden `_csrf` field, fetch() calls send it in the
+// `X-CSRF-Token` header) and verified on every state-changing request.
+const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+function csrfTokensMatch(expected, provided) {
+    if (typeof expected !== 'string' || typeof provided !== 'string') return false;
+    const a = Buffer.from(expected);
+    const b = Buffer.from(provided);
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+app.use((req, res, next) => {
+    if (!req.session) return next(new Error('Session middleware missing — CSRF protection cannot run.'));
+    if (!req.session.csrfToken) req.session.csrfToken = crypto.randomBytes(32).toString('hex');
+    res.locals.csrfToken = req.session.csrfToken;
+
+    if (CSRF_SAFE_METHODS.has(req.method)) return next();
+
+    const provided = (req.body && req.body._csrf) || req.get('x-csrf-token') || req.get('csrf-token');
+    if (csrfTokensMatch(req.session.csrfToken, provided)) return next();
+
+    console.error(`🛡️ [csrf] Blocked ${req.method} ${req.path} (missing or invalid token)`);
+    const wantsJson = req.is('application/json') || (req.get('accept') || '').includes('application/json');
+    if (wantsJson) return res.status(403).json({ error: 'Invalid or missing CSRF token. Reload the page and try again.' });
+    return res.status(403).send('Invalid or missing CSRF token. Go back, reload the page, and try again.');
+});
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use((req, res, next) => {
@@ -369,7 +396,7 @@ app.get('/admin/user/:userId', checkAuth, (req, res) => {
 });
 
 
-app.get('/logout', (req, res) => {
+app.post('/logout', (req, res) => {
     req.session.destroy((err) => {
         if (err) {
             console.error("Session destruction error:", err);
@@ -380,12 +407,16 @@ app.get('/logout', (req, res) => {
 });
 
 app.get('/auth/discord', (req, res) => {
-    const params = new URLSearchParams({ client_id: process.env.CLIENT_ID, redirect_uri: process.env.DASHBOARD_CALLBACK_URL, response_type: 'code', scope: 'identify guilds.members.read' });
+    req.session.oauthState = crypto.randomBytes(16).toString('hex');
+    const params = new URLSearchParams({ client_id: process.env.CLIENT_ID, redirect_uri: process.env.DASHBOARD_CALLBACK_URL, response_type: 'code', scope: 'identify guilds.members.read', state: req.session.oauthState });
     res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
 });
 
 app.get('/auth/callback', async (req, res) => {
-    const { code } = req.query;
+    const { code, state } = req.query;
+    const expectedState = req.session.oauthState;
+    delete req.session.oauthState;
+    if (!csrfTokensMatch(expectedState, state)) return res.redirect('/login?error=' + encodeURIComponent('Login session expired or invalid. Please try again.'));
     try {
         const tokenResponse = await postWithRateLimitRetry('https://discord.com/api/oauth2/token', new URLSearchParams({ client_id: process.env.CLIENT_ID, client_secret: process.env.DISCORD_CLIENT_SECRET, grant_type: 'authorization_code', code, redirect_uri: process.env.DASHBOARD_CALLBACK_URL }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
         const user = (await axios.get('https://discord.com/api/users/@me', { headers: { Authorization: `Bearer ${tokenResponse.data.access_token}` } })).data;
@@ -749,17 +780,22 @@ app.get('/verify', (req, res) => {
 
 app.get('/verify/login', (req, res) => {
     if (!VERIFY_CALLBACK_URL) return res.redirect('/verify?error=' + encodeURIComponent('Verification is not configured yet — missing VERIFY_CALLBACK_URL.'));
+    req.session.verifyOauthState = crypto.randomBytes(16).toString('hex');
     const params = new URLSearchParams({
         client_id: process.env.CLIENT_ID,
         redirect_uri: VERIFY_CALLBACK_URL,
         response_type: 'code',
-        scope: 'identify'
+        scope: 'identify',
+        state: req.session.verifyOauthState
     });
     res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
 });
 
 app.get('/verify/callback', async (req, res) => {
-    const { code } = req.query;
+    const { code, state } = req.query;
+    const expectedVerifyState = req.session.verifyOauthState;
+    delete req.session.verifyOauthState;
+    if (code && !csrfTokensMatch(expectedVerifyState, state)) return res.redirect('/verify?error=' + encodeURIComponent('Verification session expired or invalid. Please try again.'));
     if (!code) return res.redirect('/verify?error=' + encodeURIComponent('Discord login was cancelled or failed.'));
     try {
         const tokenResponse = await postWithRateLimitRetry(

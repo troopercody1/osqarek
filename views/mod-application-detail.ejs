@@ -155,7 +155,7 @@
         <h1>🛡️ <%= application.username %> <span class="status-badge <%= application.status || 'pending' %>"><%= application.status || 'pending' %></span></h1>
         <div class="header-actions no-print">
             <button type="button" class="btn-print" onclick="window.print()">🖨 Print</button>
-            <form method="POST" action="/mod-applications/<%= application.id %>/delete" onsubmit="return confirm('Delete this application? This cannot be undone.')">
+            <form method="POST" action="/mod-applications/<%= application.id %>/delete" onsubmit="return confirm('Delete this application? This cannot be undone.')"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <button type="submit" class="btn-danger-outline">🗑 Delete Application</button>
         </form>
         </div>
@@ -179,7 +179,7 @@
         <% } %>
     </div>
 
-    <form method="POST" action="/mod-applications/<%= application.id %>/status" class="decision-form no-print" id="decision-form">
+    <form method="POST" action="/mod-applications/<%= application.id %>/status" class="decision-form no-print" id="decision-form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <label for="reason">Reason for decision <span>(required — staff only, shown on printouts)</span></label>
         <textarea name="reason" id="reason" required maxlength="500" placeholder="Why is this application being passed or failed?"><%= application.statusReason || '' %></textarea>
         <div class="decision-row">

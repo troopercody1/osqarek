@@ -206,7 +206,7 @@
                     <span>Logged in as <strong><%= discordUser.username %></strong></span>
                 </div>
 
-                <form method="POST" action="/verify/submit" id="verifyForm">
+                <form method="POST" action="/verify/submit" id="verifyForm"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <div class="rules-box">
                         <ol>
                             <li><strong>Respectful Communication</strong> — engage in respectful, polite conversation. No harassment, hate speech, or bullying.</li>
