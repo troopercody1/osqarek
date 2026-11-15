@@ -67,8 +67,7 @@ function onLockdown() { if (!enabled()) return; day().lk = (day().lk || 0) + 1; 
 // ---------- startup-sync backfill ----------
 // The startup stats sync already pages through every message in the server. This collector rides along on that
 // scan (no extra API calls), tallies per-day / per-hour / per-channel message counts, and when the sync finishes
-// merges them into the analytics store. Merging takes the larger of "live count" and "scanned count" per field,
-// so it's idempotent and never double-counts messages the bot also saw live. Bot messages count toward the all-messages total but not the human total or active users, same as live.
+// replaces the stored message counters with the scanned totals (every sync resets them first). Bot messages count toward the all-messages total but not the human total or active users, same as live.
 function createHistoryCollector() {
     const cfg = getConfig(context.get().db, 'analytics');
     const cutoff = new Date();
@@ -96,16 +95,25 @@ function createHistoryCollector() {
         async apply(guild) {
             if (!cfg.enabled) return { enabled: false, days: 0, messages: 0 };
             const live = data();
+            // Reset: every sync wipes the stored message counters (bot + human, human only, hourly, per-channel,
+            // active users) for all retained days, then rebuilds them purely from the scan. Join/leave/ban/etc.
+            // counters are untouched.
+            for (const rec of Object.values(live.days)) {
+                rec.m = 0; rec.hm = 0; rec.a = 0;
+                rec.h = Array(24).fill(0);
+                rec.ch = {};
+            }
             for (const [key, scanned] of Object.entries(days)) {
                 const rec = day(key);
-                rec.m = Math.max(rec.m || 0, scanned.m);
-                rec.hm = Math.max(rec.hm || 0, scanned.hm);
-                rec.a = Math.max(rec.a || 0, scanned.users.size);
-                scanned.h.forEach((n, i) => { rec.h[i] = Math.max(rec.h[i] || 0, n); });
-                for (const [id, n] of Object.entries(scanned.ch)) rec.ch[id] = Math.max(rec.ch[id] || 0, n);
+                rec.m = scanned.m;
+                rec.hm = scanned.hm;
+                rec.a = scanned.users.size;
+                scanned.h.forEach((n, i) => { rec.h[i] = n; });
+                rec.ch = { ...scanned.ch };
                 const entries = Object.entries(rec.ch);
                 if (key < dayKey() && entries.length > CHANNELS_KEPT_PER_DAY) rec.ch = Object.fromEntries(entries.sort((a, b) => b[1] - a[1]).slice(0, CHANNELS_KEPT_PER_DAY));
             }
+            todaySets.key = null; todaySets.users = new Set(); // live active-user set restarts from the fresh baseline
             snapshot(guild);
             live.lastSync = { at: Date.now(), days: Object.keys(days).length, messages: counted };
             await (context.get().saveLater?.flush ? context.get().saveLater.flush() : context.get().safeSave());
