@@ -64,10 +64,25 @@ function onRaid() { if (!enabled()) return; day().r++; touch(); }
 function onDrill() { if (!enabled()) return; day().dr = (day().dr || 0) + 1; touch(); }
 function onLockdown() { if (!enabled()) return; day().lk = (day().lk || 0) + 1; touch(); }
 
+// Called at the very start of a startup sync: wipes the stored message counters (bot + human, human only, hourly,
+// per-channel, active users) for every retained day. Joins/leaves/bans/raids/drills/lockdowns are untouched.
+// The scan then rebuilds them (see apply below).
+function resetMessageCounts() {
+    if (!enabled()) return false;
+    for (const rec of Object.values(data().days)) {
+        rec.m = 0; rec.hm = 0; rec.a = 0;
+        rec.h = Array(24).fill(0);
+        rec.ch = {};
+    }
+    todaySets.key = null; todaySets.users = new Set();
+    touch();
+    return true;
+}
+
 // ---------- startup-sync backfill ----------
 // The startup stats sync already pages through every message in the server. This collector rides along on that
 // scan (no extra API calls), tallies per-day / per-hour / per-channel message counts, and when the sync finishes
-// replaces the stored message counters with the scanned totals (every sync resets them first). Bot messages count toward the all-messages total but not the human total or active users, same as live.
+// writes the scanned totals into the analytics store (the counters were already reset at the start of the sync). Bot messages count toward the all-messages total but not the human total or active users, same as live.
 function createHistoryCollector() {
     const cfg = getConfig(context.get().db, 'analytics');
     const cutoff = new Date();
@@ -95,14 +110,6 @@ function createHistoryCollector() {
         async apply(guild) {
             if (!cfg.enabled) return { enabled: false, days: 0, messages: 0 };
             const live = data();
-            // Reset: every sync wipes the stored message counters (bot + human, human only, hourly, per-channel,
-            // active users) for all retained days, then rebuilds them purely from the scan. Join/leave/ban/etc.
-            // counters are untouched.
-            for (const rec of Object.values(live.days)) {
-                rec.m = 0; rec.hm = 0; rec.a = 0;
-                rec.h = Array(24).fill(0);
-                rec.ch = {};
-            }
             for (const [key, scanned] of Object.entries(days)) {
                 const rec = day(key);
                 rec.m = scanned.m;
@@ -113,7 +120,6 @@ function createHistoryCollector() {
                 const entries = Object.entries(rec.ch);
                 if (key < dayKey() && entries.length > CHANNELS_KEPT_PER_DAY) rec.ch = Object.fromEntries(entries.sort((a, b) => b[1] - a[1]).slice(0, CHANNELS_KEPT_PER_DAY));
             }
-            todaySets.key = null; todaySets.users = new Set(); // live active-user set restarts from the fresh baseline
             snapshot(guild);
             live.lastSync = { at: Date.now(), days: Object.keys(days).length, messages: counted };
             await (context.get().saveLater?.flush ? context.get().saveLater.flush() : context.get().safeSave());
@@ -267,4 +273,4 @@ const definitions = [
     },
 ];
 
-module.exports = { onMessage, onJoin, onLeave, onBan, onRaid, onDrill, onLockdown, createHistoryCollector, snapshot, tick, report, spark, hourLabel, commands, definitions };
+module.exports = { onMessage, onJoin, onLeave, onBan, onRaid, onDrill, onLockdown, createHistoryCollector, resetMessageCounts, snapshot, tick, report, spark, hourLabel, commands, definitions };

@@ -2350,6 +2350,9 @@ async function runStartupStatsSync(guild) {
         db.stats[id].count = 0;
         db.stats[id].allTime = 0;
     });
+    // Start of the sync: reset the analytics message counts (bot + human, human only) along with the staff stats.
+    try { require('./features').modules.analytics.resetMessageCounts(); }
+    catch (err) { console.error(`⚠️ Startup sync: analytics reset failed: ${err.message}`); }
 
     const lastMonday = new Date();
     lastMonday.setHours(0, 0, 0, 0);
