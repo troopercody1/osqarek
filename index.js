@@ -2371,6 +2371,7 @@ async function runStartupStatsSync(guild) {
         db.stats[id].count = 0;
         db.stats[id].allTime = 0;
     });
+    console.log(`📊 Startup sync: zeroed staff stats for ${staffIds.length} staff members (pid ${process.pid}).`);
     // Staff counts stay at 0 in db.stats for the whole scan. The scan tallies into
     // scanTotals instead, and the real values are written to db.stats once at the end.
     const scanTotals = {};
