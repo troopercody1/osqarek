@@ -218,6 +218,20 @@ function queueSave(delayMs = 5000) {
     }, delayMs);
 }
 
+// guild.members.fetch() sends a gateway request every time and is rate limited
+// (opcode 8) — it fails outright while the startup sync is fetching members.
+// Use the cache when it's essentially complete, and fall back to it if a fetch fails.
+async function getGuildMembersSafe(guild) {
+    const cache = guild.members.cache;
+    if (guild.memberCount && cache.size >= guild.memberCount * 0.95) return cache;
+    try {
+        return await guild.members.fetch();
+    } catch (err) {
+        console.warn(`⚠️ members.fetch() failed (${err.message}); using cached members.`);
+        return cache;
+    }
+}
+
 // --- MEMBER CACHE ---
 // guild.members.fetch() hits the Discord API and can pull thousands of records.
 // Cache the result briefly so repeated calls (e.g. every dashboard page load)
@@ -2301,6 +2315,12 @@ async function runStartupStatsSync(guild) {
     if (db.lastStatsSyncAt && (Date.now() - db.lastStatsSyncAt) < MIN_RESYNC_INTERVAL_MS) {
         const waitLeft = formatMsDuration(MIN_RESYNC_INTERVAL_MS - (Date.now() - db.lastStatsSyncAt));
         console.log(`📊 Startup sync: skipped — last full sync was under ${formatMsDuration(MIN_RESYNC_INTERVAL_MS)} ago (next eligible in ~${waitLeft}).`);
+        logAction(
+            guild,
+            '📊 Startup Stats Sync Skipped',
+            `The last full sync finished less than ${formatMsDuration(MIN_RESYNC_INTERVAL_MS)} ago, so stats were **not** reset or rescanned this boot. Next automatic sync is eligible in ~${waitLeft}. Run \`/syncstats\` to force one.`,
+            0xE0AF68
+        );
         return;
     }
 
@@ -2332,6 +2352,7 @@ async function runStartupStatsSync(guild) {
 
     const allMembers = await withTimeout(guild.members.fetch(), 30000, 'guild.members.fetch()').catch((err) => {
         console.error(`❌ Startup sync: couldn't fetch guild members, aborting: ${err.message}`);
+        logAction(guild, '❌ Startup Stats Sync Aborted', `Couldn't fetch the guild member list (${err.message}), so stats were **not** reset or rescanned this boot.`, 0xFF0000);
         return null;
     });
     if (!allMembers) return;
@@ -5289,7 +5310,7 @@ if (commandName === 'warn' && options.getSubcommand() === 'clear') {
                     .setTimestamp();
 
                 let description = "";
-                const allMembers = await interaction.guild.members.fetch();
+                const allMembers = await getGuildMembersSafe(interaction.guild);
 
                 // Loop through database stats
                 for (const [userId, stats] of Object.entries(db.stats || {})) {
