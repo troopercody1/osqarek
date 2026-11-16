@@ -1716,7 +1716,8 @@ const {
     ModalBuilder,
     TextInputBuilder,
     TextInputStyle,
-    ChannelType
+    ChannelType,
+    Options
 } = require('discord.js');
 
 dayjs.extend(relativeTime);
@@ -1740,6 +1741,15 @@ client = new Client({
         GatewayIntentBits.GuildMessageReactions,
         GatewayIntentBits.GuildModeration // needed for guildBanAdd/guildBanRemove (ban-evasion tracking, analytics)
     ],
+    // discord.js only keeps the newest 200 messages per channel by default and silently evicts the rest,
+    // so the startup sync's "cache every fetched message" never actually held on to the history.
+    // Default here is unlimited. Set MESSAGE_CACHE_LIMIT (per channel) to cap it if memory gets tight.
+    makeCache: Options.cacheWithLimits({
+        ...Options.DefaultMakeCacheSettings,
+        MessageManager: Number.isFinite(Number(process.env.MESSAGE_CACHE_LIMIT)) && Number(process.env.MESSAGE_CACHE_LIMIT) > 0
+            ? Number(process.env.MESSAGE_CACHE_LIMIT)
+            : Infinity
+    }),
     partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
@@ -1787,6 +1797,7 @@ client.once('clientReady', async () => {
     }
 });
 
+let startupSyncRunning = false; // true while the startup stats scan is in flight (see SIGTERM handler)
 let dbInitialLoadDone = false; // set once the initial Redis load (below) has succeeded
 const spamTracker = new Map(); // userId -> array of recent message timestamps (ms), in-memory only
 let unsavedMessages = 0;
@@ -2364,6 +2375,8 @@ async function runStartupStatsSync(guild) {
 
     const staffIds = allMembers.filter(m =>
         m.roles.cache.has('826829037136510986') ||
+        m.roles.cache.has('801828933800296478') || // Head Moderator
+        m.roles.cache.has('850513944329191445') || // Head Administrator
         m.roles.cache.has('772558550555295794') ||
         m.roles.cache.has('850513087399329823') ||
         m.roles.cache.has('1511810524818440243') ||
@@ -2399,9 +2412,10 @@ async function runStartupStatsSync(guild) {
     const PROGRESS_PERCENT_STEP = 10;
     // Every fetched message is kept in Discord.js's message cache (no cache:false,
     // no pruning) so that edits to old messages after a restart can always resolve
-    // against a cached original instead of falling back to "not in cache". On a
-    // server with a very large full message history this can use a lot of memory —
-    // there's no cap here by design.
+    // against a cached original instead of falling back to "not in cache". The client's
+    // makeCache (see the Client options) lifts discord.js's default 200-per-channel cap
+    // for this to actually hold. On a server with a very large full message history
+    // this can use a lot of memory — see MESSAGE_CACHE_LIMIT and the failsafe below.
     //
     // --- FAILSAFE ---
     // If a run doesn't finish cleanly two times in a row (including a hard crash
@@ -2423,6 +2437,7 @@ async function runStartupStatsSync(guild) {
         console.log(`⚠️ Startup sync: ${priorFailures} consecutive incomplete runs detected — falling back to the original cache:false method for this run.`);
     }
 
+    startupSyncRunning = true;
     let scannedCount = 0;
     let allTimeScannedCount = 0;
     let channelsDone = 0;
@@ -2538,6 +2553,7 @@ async function runStartupStatsSync(guild) {
 
     db.lastStatsSyncAt = Date.now();
     db.startupSyncConsecutiveFailures = 0; // this run completed cleanly — clear the failsafe marker
+    startupSyncRunning = false;
     try {
         await withTimeout(db.save(), DB_SAVE_TIMEOUT_MS, 'db.save() startup sync final');
     } catch (saveErr) {
@@ -4806,6 +4822,8 @@ if (commandName === 'warn' && options.getSubcommand() === 'clear') {
                     // 3. Staff Message Sync (Updated to use lastMonday)
                     const staffIds = allMembers.filter(m =>
                         m.roles.cache.has('826829037136510986') ||
+                        m.roles.cache.has('801828933800296478') || // Head Moderator
+                        m.roles.cache.has('850513944329191445') || // Head Administrator
                         m.roles.cache.has('772558550555295794') ||
                         m.roles.cache.has('850513087399329823') ||
                         m.roles.cache.has('1511810524818440243') ||
@@ -6881,6 +6899,26 @@ setInterval(async () => {
         }
     }
 }, 10000);
+
+// Render sends SIGTERM on every redeploy/restart. A deploy that interrupts the startup scan is not a crash,
+// so don't let it count toward the failsafe (which switches the sync to cache:false after 2 incomplete runs).
+// A real OOM kill is SIGKILL, never reaches this handler, and still counts.
+let sigtermHandled = false;
+process.on('SIGTERM', async () => {
+    if (sigtermHandled) return;
+    sigtermHandled = true;
+    console.log("💾 SIGTERM received (deploy/restart). Syncing database...");
+    try {
+        if (startupSyncRunning) {
+            db.startupSyncConsecutiveFailures = Math.max(0, (db.startupSyncConsecutiveFailures || 0) - 1);
+            console.log("📊 Startup sync interrupted by a clean shutdown — not counting it toward the failsafe.");
+        }
+        await Promise.race([db.save(), new Promise(resolve => setTimeout(resolve, 10000))]);
+    } catch (err) {
+        console.error("❌ SIGTERM save failed:", err.message);
+    }
+    process.exit(0);
+});
 
 process.on('SIGINT', async () => {
     console.log("💾 SIGINT received. Syncing database...");
