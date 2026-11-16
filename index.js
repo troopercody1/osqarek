@@ -1772,7 +1772,10 @@ client.once('clientReady', async () => {
         console.error("❌ Lavalink init failed:", err.message);
     }
 
-    if (redis) {
+    // Fallback only: the initial load IIFE further down already pulls bot_db from Redis. Re-reading it
+    // here when that already succeeded overwrote db.stats with the stale copy from Redis moments after
+    // the startup stats sync zeroed it, so the zeros never stuck. Only run it if the first load failed.
+    if (redis && !dbInitialLoadDone) {
         try {
             const remoteData = await redis.get('bot_db');
             if (remoteData) {
@@ -1784,6 +1787,7 @@ client.once('clientReady', async () => {
     }
 });
 
+let dbInitialLoadDone = false; // set once the initial Redis load (below) has succeeded
 const spamTracker = new Map(); // userId -> array of recent message timestamps (ms), in-memory only
 let unsavedMessages = 0;
 let isTrial = false;
@@ -1855,6 +1859,7 @@ const DB_DEFAULTS = JSON.parse(JSON.stringify(db));
         if (redis) {
             console.log("⏳ Loading database from Upstash...");
             const remoteData = await redis.get('bot_db');
+            dbInitialLoadDone = true;
 
             if (remoteData) {
                 // Merge Redis data into the real db object (defaults act as fallback for new keys)
