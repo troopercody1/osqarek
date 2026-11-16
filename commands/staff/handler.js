@@ -585,6 +585,20 @@ async function syncstats({ interaction, isAtLeastAdmin, db }) {
     }
 }
 
+// guild.members.fetch() sends a gateway request every time and is rate limited
+// (opcode 8) — it fails outright while the startup sync is fetching members.
+// Use the cache when it's essentially complete, and fall back to it if a fetch fails.
+async function getGuildMembersSafe(guild) {
+    const cache = guild.members.cache;
+    if (guild.memberCount && cache.size >= guild.memberCount * 0.95) return cache;
+    try {
+        return await guild.members.fetch();
+    } catch (err) {
+        console.warn(`⚠️ members.fetch() failed (${err.message}); using cached members.`);
+        return cache;
+    }
+}
+
 async function staffstatsAll({ interaction, db }) {
     if (db.staffToolsEnabled === false) return interaction.editReply('🚫 The Staff Tools module is currently disabled.');
     // 1. Permission Check
@@ -617,7 +631,7 @@ async function staffstatsAll({ interaction, db }) {
         .setTimestamp();
 
     let description = "";
-    const allMembers = await interaction.guild.members.fetch();
+    const allMembers = await getGuildMembersSafe(interaction.guild);
 
     // Loop through database stats
     for (const [userId, stats] of Object.entries(db.stats || {})) {
