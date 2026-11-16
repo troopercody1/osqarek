@@ -2350,6 +2350,10 @@ async function runStartupStatsSync(guild) {
         db.stats[id].count = 0;
         db.stats[id].allTime = 0;
     });
+    // Staff counts stay at 0 in db.stats for the whole scan. The scan tallies into
+    // scanTotals instead, and the real values are written to db.stats once at the end.
+    const scanTotals = {};
+    staffIds.forEach(id => { scanTotals[id] = { count: 0, allTime: 0 }; });
     // Start of the sync: reset the analytics message counts (bot + human, human only) along with the staff stats.
     try { require('./features').modules.analytics.resetMessageCounts(); }
     catch (err) { console.error(`⚠️ Startup sync: analytics reset failed: ${err.message}`); }
@@ -2435,10 +2439,10 @@ async function runStartupStatsSync(guild) {
                 for (const msg of messages.values()) {
                     analyticsHistory?.add(msg);
                     if (staffIds.includes(msg.author.id)) {
-                        db.stats[msg.author.id].allTime++;
+                        scanTotals[msg.author.id].allTime++;
                         allTimeScannedCount++;
                         if (msg.createdTimestamp >= startTimestamp) {
-                            db.stats[msg.author.id].count++;
+                            scanTotals[msg.author.id].count++;
                             scannedCount++;
                         }
                     }
@@ -2496,6 +2500,14 @@ async function runStartupStatsSync(guild) {
             );
         }
     }
+
+    // Scan finished: swap the zeros for the real values. Anything a staff member sent
+    // live while the scan was running is already sitting in db.stats, so it is added on top.
+    staffIds.forEach(id => {
+        if (!db.stats[id]) db.stats[id] = { count: 0, allTime: 0 };
+        db.stats[id].count = (db.stats[id].count || 0) + scanTotals[id].count;
+        db.stats[id].allTime = (db.stats[id].allTime || 0) + scanTotals[id].allTime;
+    });
 
     db.lastStatsSyncAt = Date.now();
     db.startupSyncConsecutiveFailures = 0; // this run completed cleanly — clear the failsafe marker
@@ -6336,6 +6348,77 @@ client.on('messageCreate', async (message) => {
 // ⚠️ is staff-only: anyone else's ⚠️ reaction gets stripped immediately.
 // When staff use it, it issues a real warning (via the same escalation ladder
 // as /strike and auto-mod) against whoever posted the suggestion.
+//
+//  - Only ONE warning is ever issued per suggestion, no matter how many staff
+//    add ⚠️. Every staff reactor is tracked in db.suggestions[id].warnReactors.
+//  - The warning is automatically removed once the LAST staff reactor takes
+//    their ⚠️ off (or the ⚠️ reactions are cleared by a mod). If other staff
+//    are still reacting, the warning stays.
+//  - If the same suggestion is flagged again later, a fresh warning is issued.
+
+// Serialises ⚠️ add/remove handling per suggestion message so two staff
+// reacting at the same moment can't both slip past the "already warned" check.
+const suggestionWarnQueues = new Map();
+const runSuggestionWarnTask = (messageId, task) => {
+    const prev = suggestionWarnQueues.get(messageId) || Promise.resolve();
+    const next = prev.catch(() => {}).then(task);
+    suggestionWarnQueues.set(messageId, next);
+    next.finally(() => {
+        if (suggestionWarnQueues.get(messageId) === next) suggestionWarnQueues.delete(messageId);
+    }).catch(() => {});
+    return next;
+};
+
+// Reverses the warning that was issued for a suggestion: deletes the case,
+// takes one offence off the author's count, and lifts any mute/ban that the
+// escalation ladder applied for it (kicks can't be undone).
+const undoSuggestionWarn = async (guild, messageUrl, suggestion, removedBy) => {
+    const caseId = suggestion.warnCaseId;
+    const action = suggestion.warnAction || 'WARN';
+    const authorId = suggestion.authorId;
+    const reason = 'Suggestion warning removed (staff un-reacted ⚠️)';
+    const notes = [];
+
+    const caseIndex = db.cases.findIndex(c => c.id === caseId);
+    if (caseIndex !== -1) {
+        db.cases.splice(caseIndex, 1);
+        db.offences[authorId] = Math.max(0, (db.offences[authorId] || 0) - 1);
+
+        try {
+            if (action.includes('MUTE')) {
+                const member = await guild.members.fetch(authorId).catch(() => null);
+                if (member) {
+                    await member.timeout(null, reason);
+                    notes.push('mute lifted');
+                }
+            } else if (action.includes('BAN')) {
+                await guild.members.unban(authorId, reason);
+                notes.push('ban lifted');
+            } else if (action.includes('KICK')) {
+                notes.push('kick could not be undone');
+            }
+        } catch (e) {
+            console.error('Suggestion warn undo action failed:', e.message);
+            notes.push(`could not reverse ${action}`);
+        }
+    } else {
+        notes.push('case was already deleted');
+    }
+
+    delete suggestion.warnCaseId;
+    delete suggestion.warnAction;
+    suggestion.warnReactors = [];
+    await db.save();
+
+    const authorTag = suggestion.authorTag || authorId;
+    logAction(
+        guild,
+        `➖ Suggestion Warn Removed | Case #${caseId}`,
+        `User: ${authorTag}\nRemoved by: ${removedBy}\nOriginal action: ${action}${notes.length ? `\nNotes: ${notes.join(', ')}` : ''}\nSuggestion: ${messageUrl}`,
+        0x9ECE6A
+    );
+};
+
 client.on('messageReactionAdd', async (reaction, user) => {
     try {
         if (user.bot) return;
@@ -6354,33 +6437,133 @@ client.on('messageReactionAdd', async (reaction, user) => {
             return;
         }
 
-        const suggestion = db.suggestions?.[reaction.message.id];
-        if (!suggestion) {
-            // No record of who posted this one (e.g. reacted on an old/legacy
-            // suggestion) — leave the reaction as a manual flag only.
-            return;
-        }
+        const messageId = reaction.message.id;
+        const messageUrl = reaction.message.url;
 
-        const targetMember = await guild.members.fetch(suggestion.authorId).catch(() => null);
-        const targetUser = targetMember?.user || await client.users.fetch(suggestion.authorId).catch(() => null);
-        if (!targetUser) return;
+        await runSuggestionWarnTask(messageId, async () => {
+            const suggestion = db.suggestions?.[messageId];
+            if (!suggestion) {
+                // No record of who posted this one (e.g. reacted on an old/legacy
+                // suggestion) — leave the reaction as a manual flag only.
+                return;
+            }
 
-        const { action, caseId } = await applyEscalation(
-            guild,
-            targetUser,
-            targetMember,
-            'Suggestion flagged by staff (⚠️ reaction)',
-            user.tag
-        );
+            if (!Array.isArray(suggestion.warnReactors)) suggestion.warnReactors = [];
+            if (!suggestion.warnReactors.includes(user.id)) suggestion.warnReactors.push(user.id);
 
-        logAction(
-            guild,
-            `⚠️ Suggestion Warned | Case #${caseId}`,
-            `User: ${targetUser.tag}\nStaff: ${user.tag}\nAction: ${action}\nSuggestion: ${reaction.message.url}`,
-            0xE0AF68
-        );
+            // Someone already triggered the warning for this suggestion — just
+            // record this staff member as another reactor, no second warning.
+            if (suggestion.warnCaseId) {
+                await db.save();
+                return;
+            }
+
+            const targetMember = await guild.members.fetch(suggestion.authorId).catch(() => null);
+            const targetUser = targetMember?.user || await client.users.fetch(suggestion.authorId).catch(() => null);
+            if (!targetUser) {
+                suggestion.warnReactors = suggestion.warnReactors.filter(id => id !== user.id);
+                await db.save();
+                return;
+            }
+
+            const { action, caseId } = await applyEscalation(
+                guild,
+                targetUser,
+                targetMember,
+                'Suggestion flagged by staff (⚠️ reaction)',
+                user.tag
+            );
+
+            suggestion.warnCaseId = caseId;
+            suggestion.warnAction = action;
+            await db.save();
+
+            logAction(
+                guild,
+                `⚠️ Suggestion Warned | Case #${caseId}`,
+                `User: ${targetUser.tag}\nStaff: ${user.tag}\nAction: ${action}\nSuggestion: ${messageUrl}`,
+                0xE0AF68
+            );
+        });
     } catch (err) {
         console.error('❌ Suggestion reaction handler error:', err.message);
+    }
+});
+
+// A staff member took their ⚠️ off. Drop them from the reactor list, and if
+// nobody is left, remove the warning.
+client.on('messageReactionRemove', async (reaction, user) => {
+    try {
+        if (user.bot) return;
+        if (!process.env.SUGGEST_CHANNEL) return;
+        if (reaction.partial) await reaction.fetch().catch(() => {});
+        if (reaction.message.channelId !== process.env.SUGGEST_CHANNEL) return;
+        if (reaction.emoji.name !== '⚠️') return;
+
+        const guild = reaction.message.guild || client.guilds.cache.get(reaction.message.guildId);
+        if (!guild) return;
+
+        const messageId = reaction.message.id;
+        const messageUrl = `https://discord.com/channels/${guild.id}/${reaction.message.channelId}/${messageId}`;
+
+        await runSuggestionWarnTask(messageId, async () => {
+            const suggestion = db.suggestions?.[messageId];
+            // Ignore anyone who never counted as a staff reactor (e.g. a
+            // non-staff ⚠️ that the bot stripped straight away).
+            if (!suggestion?.warnReactors?.includes(user.id)) return;
+
+            suggestion.warnReactors = suggestion.warnReactors.filter(id => id !== user.id);
+
+            if (suggestion.warnReactors.length > 0 || !suggestion.warnCaseId) {
+                await db.save();
+                return;
+            }
+
+            await undoSuggestionWarn(guild, messageUrl, suggestion, user.tag);
+        });
+    } catch (err) {
+        console.error('❌ Suggestion reaction remove handler error:', err.message);
+    }
+});
+
+// A mod cleared every reaction (or just the ⚠️ ones) off a suggestion — treat
+// that as every staff reactor withdrawing, so the warning is removed too.
+const clearSuggestionWarnReactors = async (message, removedBy) => {
+    if (!process.env.SUGGEST_CHANNEL) return;
+    if (message.channelId !== process.env.SUGGEST_CHANNEL) return;
+
+    const guild = message.guild || client.guilds.cache.get(message.guildId);
+    if (!guild) return;
+
+    const messageId = message.id;
+    const messageUrl = `https://discord.com/channels/${guild.id}/${message.channelId}/${messageId}`;
+
+    await runSuggestionWarnTask(messageId, async () => {
+        const suggestion = db.suggestions?.[messageId];
+        if (!suggestion) return;
+        if (!suggestion.warnCaseId) {
+            suggestion.warnReactors = [];
+            await db.save();
+            return;
+        }
+        await undoSuggestionWarn(guild, messageUrl, suggestion, removedBy);
+    });
+};
+
+client.on('messageReactionRemoveEmoji', async (reaction) => {
+    try {
+        if (reaction.emoji.name !== '⚠️') return;
+        await clearSuggestionWarnReactors(reaction.message, 'Reactions cleared');
+    } catch (err) {
+        console.error('❌ Suggestion reaction clear handler error:', err.message);
+    }
+});
+
+client.on('messageReactionRemoveAll', async (message) => {
+    try {
+        await clearSuggestionWarnReactors(message, 'Reactions cleared');
+    } catch (err) {
+        console.error('❌ Suggestion reaction clear-all handler error:', err.message);
     }
 });
 
