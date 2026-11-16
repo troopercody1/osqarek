@@ -696,6 +696,7 @@ async function staffstatsView({ interaction, options, db }) {
         if (!db.stats) db.stats = {};
         const msgCount = db.stats[targetMember.id]?.count || 0;
         const allTimeCount = db.stats[targetMember.id]?.allTime || 0;
+        console.log(`DEBUG: /staffstats view read count=${msgCount} allTime=${allTimeCount} for ${targetMember.user.username} (pid ${process.pid}, lastStatsSyncAt=${db.lastStatsSyncAt || 'none'})`);
 
         const requirements = [
             { roleId: '771423764511981599', name: 'Owner', min: 0, promo: 100 },
