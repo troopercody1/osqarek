@@ -366,6 +366,8 @@ async function syncstats({ interaction, isAtLeastAdmin, db }) {
         // 3. Staff Message Sync (Updated to use lastMonday)
         const staffIds = allMembers.filter(m =>
             m.roles.cache.has('826829037136510986') ||
+            m.roles.cache.has('801828933800296478') || // Head Moderator
+            m.roles.cache.has('850513944329191445') || // Head Administrator
             m.roles.cache.has('772558550555295794') ||
             m.roles.cache.has('850513087399329823') ||
             m.roles.cache.has('1511810524818440243') ||
