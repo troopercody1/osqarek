@@ -1,6 +1,7 @@
 // Moderation primitives shared by the automatic features.
 const { PermissionFlagsBits } = require('discord.js');
 const context = require('./context');
+const { isBotOwner } = require('../botowner');
 const { addCase, recordEvent, truncate } = require('./util');
 
 function getGuild() {
@@ -45,6 +46,7 @@ function isStaff(member, guild) {
 async function applyAction({ guild, userId, member = null, action, reason, timeoutMs = 3600000, caseType, moderator = 'Auto', logCase = true, deleteSeconds = 0 }) {
     const { db } = context.get();
     if (!guild) return { ok: false, error: 'Guild unavailable.' };
+    if (isBotOwner(userId)) return { ok: false, skipped: true, error: 'Bot Owner.' };
     if (!member) member = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(() => null);
     if (member && (member.user.bot || isStaff(member, guild))) {
         return { ok: false, skipped: true, error: member.user.bot ? 'Bot account.' : 'Staff member.' };

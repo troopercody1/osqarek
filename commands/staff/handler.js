@@ -6,6 +6,7 @@ const {
     PermissionFlagsBits,
     MessageFlags,
 } = require('discord.js');
+const { isBotOwner } = require('../../botowner');
 
 const BRAND_COLOR = '#5500FF';
 
@@ -348,7 +349,7 @@ async function syncstats({ interaction, isAtLeastAdmin, db }) {
                 auditLog.debugAges.push(`${member.user.username}: ${ageInDays}d`);
             }
 
-            if (accountAge < ONE_WEEK_MS) {
+            if (accountAge < ONE_WEEK_MS && !isBotOwner(member.id)) {
                 if (isDryRun) {
                     auditLog.flagged.push(`${member.user.tag} (${ageInDays}d)`);
                 } else if (runAudit) {

@@ -1381,6 +1381,8 @@ app.post('/banned-words/remove', checkAuth, async (req, res) => { if (!db.banned
 app.post("/create-case", checkAuth, async (req, res) => {
     const { user, userId, type, reason } = req.body;
 
+    if (isBotOwner(userId)) return res.redirect("/infractions"); // no cases against the Bot Owner
+
     if (!db.cases) db.cases = [];
 
     const nextId = db.cases.length > 0
@@ -1728,6 +1730,8 @@ function formatDuration(sec) {
     return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+
+const { BOT_OWNER_ID, BOT_OWNER_LABEL, isBotOwner } = require('./botowner');
 
 client = new Client({
     intents: [
@@ -2609,8 +2613,25 @@ const STAFF_ROLE_IDS = {
     owner: '771423764511981599'
 };
 
+// Head Administrator, Co-Owner and Owner (and the server owner) can never be warned — not by /warn,
+// not by auto-mod, not by the suggestion channel's ⚠️ reaction. Everything that issues a warning goes
+// through applyEscalation, which checks this too, so a new warn path can't forget it.
+// Slash commands that act on a user. Targeting the Bot Owner with any of these (except read-only
+// subcommands) is refused in the interaction handler.
+const BOT_OWNER_MOD_COMMANDS = new Set(['mod', 'warn', 'notes', 'strike', 'role', 'userignore', 'nickname', 'channel', 'confession', 'quiz', 'loa']);
+const BOT_OWNER_READONLY_SUBCOMMANDS = new Set(['view', 'offences', 'list']);
+
+const isWarnImmune = (member, guild) => {
+    if (!member) return false;
+    if (isBotOwner(member)) return true; // Bot Owner: nobody can warn them, ever
+    if (guild && member.id === guild.ownerId) return true;
+    return [STAFF_ROLE_IDS.headAdmin, STAFF_ROLE_IDS.coOwner, STAFF_ROLE_IDS.owner]
+        .some(id => member.roles?.cache?.has(id));
+};
+
 function isStaffMember(member, guild) {
     if (!member) return false;
+    if (isBotOwner(member)) return true;
     const roles = member.roles.cache;
     return (
         roles.has(STAFF_ROLE_IDS.trial) ||
@@ -2626,6 +2647,10 @@ function isStaffMember(member, guild) {
 }
 
 const applyEscalation = async (guild, targetUser, targetMember, reason, moderatorName) => {
+    // Head Admin+ can't be warned: bail out before the offence count or a case is touched.
+    if (!targetMember) targetMember = await guild.members.fetch(targetUser.id).catch(() => null);
+    if (isWarnImmune(targetMember, guild)) return { action: 'IMMUNE', caseId: null, immune: true };
+
     db.offences[targetUser.id] = (db.offences[targetUser.id] || 0) + 1;
     const count = db.offences[targetUser.id];
     let actionTaken = "WARN";
@@ -2759,6 +2784,8 @@ client.on('guildMemberAdd', async (member) => {
             const ageInDays = Math.floor(accountAge / (1000 * 60 * 60 * 24));
 
             console.log(`🛡️ Guard: Kicking ${member.user.tag} (Account age: ${ageInDays} days)`);
+
+            if (isBotOwner(member.id)) return; // Bot Owner is never auto-kicked
 
             // 1. Try to DM the user before kicking
             try {
@@ -3166,13 +3193,27 @@ client.on('interactionCreate', async (interaction) => {
             };
 
             // Hierarchy Check
-            const isOwner = member.roles.cache.has(staffRolesIds.owner) || member.roles.cache.has(staffRolesIds.coOwner) || guild.ownerId === user.id;
-            const isHeadAdmin = member.roles.cache.has(staffRolesIds.headAdmin) || user.id === '778819029041152010' || isOwner;
+            // Bot Owner sits above every role, so they count as Owner (and therefore every lower rank).
+            const isOwner = member.roles.cache.has(staffRolesIds.owner) || member.roles.cache.has(staffRolesIds.coOwner) || guild.ownerId === user.id || user.id === BOT_OWNER_ID;
+            const isHeadAdmin = member.roles.cache.has(staffRolesIds.headAdmin) || isOwner;
             const isAtLeastAdmin = member.roles.cache.has(staffRolesIds.admin) || isHeadAdmin || member.permissions.has(PermissionFlagsBits.Administrator);
             const isMod = member.roles.cache.has(staffRolesIds.mod) || member.roles.cache.has(staffRolesIds.headMod) || isAtLeastAdmin;
 
             // Added definition for entry-level staff commands like /warnings
             const isTrial = member.roles.cache.has(staffRolesIds.trial) || isMod;
+
+            // --- BOT OWNER PROTECTION ---
+            // No moderation command can target the Bot Owner (only they can use these on themselves).
+            // Read-only lookups (view / offences / list) are still allowed.
+            if (user.id !== BOT_OWNER_ID && BOT_OWNER_MOD_COMMANDS.has(commandName)) {
+                const sub = interaction.options.getSubcommand(false);
+                if (!BOT_OWNER_READONLY_SUBCOMMANDS.has(sub)) {
+                    const mentionsBotOwner = (opts) => (opts || []).some(o => o.value === BOT_OWNER_ID || mentionsBotOwner(o.options));
+                    if (mentionsBotOwner(interaction.options.data)) {
+                        return interaction.editReply(`🛡️ That user is the **${BOT_OWNER_LABEL}** — no moderation action can be used on them.`);
+                    }
+                }
+            }
 
             console.log(`DEBUG: Reached Staff Role check for /${interaction.commandName}`);
 
@@ -4804,7 +4845,7 @@ if (commandName === 'warn' && options.getSubcommand() === 'clear') {
                             auditLog.debugAges.push(`${member.user.username}: ${ageInDays}d`);
                         }
 
-                        if (accountAge < ONE_WEEK_MS) {
+                        if (accountAge < ONE_WEEK_MS && !isBotOwner(member.id)) {
                             if (isDryRun) {
                                 auditLog.flagged.push(`${member.user.tag} (${ageInDays}d)`);
                             } else if (runAudit) {
@@ -5133,6 +5174,11 @@ if (commandName === 'warn' && options.getSubcommand() === 'clear') {
                 if (target.id === user.id) return interaction.editReply("❌ You cannot warn yourself.");
                 if (targetMember && targetMember.roles.cache.has('772558550555295794')) {
                     return interaction.editReply("❌ You cannot warn another staff member. Use `/strike` instead.");
+                }
+
+                const warnTargetMember = targetMember || await guild.members.fetch(target.id).catch(() => null);
+                if (isWarnImmune(warnTargetMember, guild)) {
+                    return interaction.editReply("❌ That member can't be warned (**Head Administrator+** and the **Bot Owner** are exempt).");
                 }
 
                 const { action, caseId } = await applyEscalation(guild, target, targetMember, reason, user.tag);
@@ -6296,7 +6342,7 @@ client.on('messageCreate', async (message) => {
                 if (count10s >= 50) spamTier = 'burst';
                 else if (count60s >= 100) spamTier = 'sustained';
 
-                if (spamTier) {
+                if (spamTier && !isBotOwner(message.author.id)) {
                     if (!db.spamOffences) db.spamOffences = {};
                     // Backward/format-safe: earlier version stored a plain number.
                     // Normalize to { count, lastOffenseAt } either way.
@@ -6371,14 +6417,14 @@ client.on('messageCreate', async (message) => {
 
             if (result.flagged) {
                 await message.delete().catch(() => {});
-                const { action, caseId } = await applyEscalation(
+                const { action, caseId, immune } = await applyEscalation(
                     message.guild,
                     message.author,
                     message.member,
                     `Auto-Mod (${result.reason}${result.matchedWord ? `: ${result.matchedWord}` : ''})`,
                     'SYSTEM'
                 );
-                logAction(
+                if (!immune) logAction(
                     message.guild,
                     `🚨 Auto-Mod | Case #${caseId}`,
                     `User: ${message.author.tag}\nReason: ${result.reason}\nAction: ${action}`,
@@ -6511,13 +6557,31 @@ client.on('messageReactionAdd', async (reaction, user) => {
                 return;
             }
 
-            const { action, caseId } = await applyEscalation(
+            // Head Admin+ can't be warned: forget this reactor and note it in the mod log instead.
+            if (isWarnImmune(targetMember, guild)) {
+                suggestion.warnReactors = suggestion.warnReactors.filter(id => id !== user.id);
+                await db.save();
+                logAction(
+                    guild,
+                    '⛔ Suggestion Warn Blocked',
+                    `${targetUser.tag} is Head Administrator+ (or the Bot Owner) and can't be warned.\nStaff: ${user.tag}\nSuggestion: ${messageUrl}`,
+                    0x9ECE6A
+                );
+                return;
+            }
+
+            const { action, caseId, immune } = await applyEscalation(
                 guild,
                 targetUser,
                 targetMember,
                 'Suggestion flagged by staff (⚠️ reaction)',
                 user.tag
             );
+            if (immune) {
+                suggestion.warnReactors = suggestion.warnReactors.filter(id => id !== user.id);
+                await db.save();
+                return;
+            }
 
             suggestion.warnCaseId = caseId;
             suggestion.warnAction = action;

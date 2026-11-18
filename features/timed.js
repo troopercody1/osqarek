@@ -3,6 +3,7 @@
 // anything overdue at startup runs on the first tick.
 const { PermissionFlagsBits } = require('discord.js');
 const context = require('./context');
+const { isBotOwner } = require('../botowner');
 const actions = require('./actions');
 const { getConfig } = require('./config');
 const { store, brandEmbed, recordEvent, parseDuration, formatDuration, addCase, ts, truncate } = require('./util');
@@ -152,6 +153,7 @@ async function tempBan(guild, { userId, when, reason = 'No reason provided.', de
     const w = parseWhen(when, cfg); if (w.error) return fail(w.error.replace(/^❌ /, ''));
     if (!/^\d{15,25}$/.test(String(userId))) return fail('That doesn\'t look like a user ID.');
     if (userId === actor.id) return fail('You can\'t temp-ban yourself.');
+    if (isBotOwner(userId) && !isBotOwner(actor.id)) return fail('That user is the Bot Owner — no moderation action can be used on them.');
     const target = await client.users.fetch(userId).catch(() => null);
     if (!target) return fail('No such user.');
     const tm = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(() => null);
@@ -177,6 +179,7 @@ async function timedRole(guild, { userId, roleId, when, mode = 'grant', actor, i
     const w = parseWhen(when, getConfig(db, 'timed')); if (w.error) return fail(w.error.replace(/^❌ /, ''));
     const target = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(() => null);
     if (!target) return fail('That user isn\'t in the server.');
+    if (isBotOwner(target.id) && !isBotOwner(actor.id)) return fail('That user is the Bot Owner — no moderation action can be used on them.');
     const role = guild.roles.cache.get(roleId);
     if (!role) return fail('Role not found.');
     if (role.id === guild.id) return fail('You can\'t use @everyone.');
