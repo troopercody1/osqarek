@@ -2324,20 +2324,25 @@ async function ensureTempChannelEmbed(guild) {
 // and doesn't use the button-based checkpoint pause from /syncstats (there's no
 // user to click it on startup) — it just runs straight through and posts progress
 // to the mod log every PROGRESS_PERCENT_STEP% instead.
-const MIN_RESYNC_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h — guards against back-to-back
-// full rescans if the bot restarts/crash-loops repeatedly. Adjust or remove this
-// guard (and the db.lastStatsSyncAt check below) if that's not the behavior you want.
+const MIN_RESYNC_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // 1 week — the automatic sync only runs
+// if the last one finished at least this long ago (so restarts/crash-loops don't trigger rescans).
+// Adjust or remove this guard (and the db.lastStatsSyncAt check below) to change that behavior.
+const formatLongDuration = (ms) => {
+    const totalMin = Math.max(0, Math.ceil(ms / 60000));
+    const d = Math.floor(totalMin / 1440), h = Math.floor((totalMin % 1440) / 60), m = totalMin % 60;
+    return [d && `${d}d`, h && `${h}h`, (m || (!d && !h)) && `${m}m`].filter(Boolean).join(' ');
+};
 
 async function runStartupStatsSync(guild) {
     if (!guild) return;
 
     if (db.lastStatsSyncAt && (Date.now() - db.lastStatsSyncAt) < MIN_RESYNC_INTERVAL_MS) {
-        const waitLeft = formatMsDuration(MIN_RESYNC_INTERVAL_MS - (Date.now() - db.lastStatsSyncAt));
-        console.log(`📊 Startup sync: skipped — last full sync was under ${formatMsDuration(MIN_RESYNC_INTERVAL_MS)} ago (next eligible in ~${waitLeft}).`);
+        const waitLeft = formatLongDuration(MIN_RESYNC_INTERVAL_MS - (Date.now() - db.lastStatsSyncAt));
+        console.log(`📊 Startup sync: skipped — last full sync was under ${formatLongDuration(MIN_RESYNC_INTERVAL_MS)} ago (next eligible in ~${waitLeft}).`);
         logAction(
             guild,
             '📊 Startup Stats Sync Skipped',
-            `The last full sync finished less than ${formatMsDuration(MIN_RESYNC_INTERVAL_MS)} ago, so stats were **not** reset or rescanned this boot. Next automatic sync is eligible in ~${waitLeft}. Run \`/syncstats\` to force one.`,
+            `The last full sync finished less than ${formatLongDuration(MIN_RESYNC_INTERVAL_MS)} ago, so stats were **not** reset or rescanned this boot. Next automatic sync is eligible in ~${waitLeft}. Run \`/syncstats\` to force one.`,
             0xE0AF68
         );
         return;
