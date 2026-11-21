@@ -453,7 +453,7 @@ const _supportHits = new Map(); // ip -> [timestamps]; 3 requests / hour / IP
 const supportClean = (v, max) => String(v || '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').trim().slice(0, max);
 const supportNoPing = (v) => String(v).replace(/@/g, '@\u200b'); // never let user text ping anyone via the webhook
 const supportPage = (req, res, extra = {}) => res.render('support-request', {
-    ...legalLocals(), types: SUPPORT_TYPES, sent: null, error: null,
+    ...legalLocals(), types: SUPPORT_TYPES, sent: null, emailedTo: null, error: null,
     form: { type: '', discord: '', email: '', subject: '', message: '' }, ...extra
 });
 app.get('/support/request', (req, res) => supportPage(req, res));
@@ -481,12 +481,14 @@ app.post('/support/request', async (req, res) => {
     if (db.supportRequests.length > 500) db.supportRequests = db.supportRequests.slice(-500);
     await safeSave();
 
+    mailbox.sendSupportRequestEmail({ id, ...form }).catch(() => {}); // lands in Settings → Mailbox
+    const receiptSent = form.email ? await mailbox.sendRequesterConfirmation({ id, ...form }).catch(() => false) : false;
     sendDiscordWebhook({
         title: `📩 New support request ${id}`,
         message: supportNoPing(`**Type:** ${form.type}\n**Discord:** ${form.discord}\n**Email:** ${form.email || 'not given'}\n**Subject:** ${form.subject}\n\n${form.message.slice(0, 1500)}`),
         color: 0x5865F2
     }).catch(() => {});
-    supportPage(req, res, { sent: id });
+    supportPage(req, res, { sent: id, emailedTo: receiptSent ? form.email : null });
 });
 
 // --- ROUTES ---

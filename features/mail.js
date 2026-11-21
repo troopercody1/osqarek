@@ -150,6 +150,9 @@ async function sendReply(uid, body) {
     if (!orig) throw new Error('That message no longer exists.');
     const to = (orig.replyTo[0] || orig.from[0] || {}).address;
     if (!to || !EMAIL_RE.test(to)) throw new Error('The original message has no valid sender address to reply to.');
+    if (to.toLowerCase() === env('MAIL_USER').toLowerCase()) {
+        throw new Error('This request has no email for the sender. Reply to them on Discord using the username in the message.');
+    }
 
     const subject = /^re:/i.test(orig.subject) ? orig.subject : `Re: ${orig.subject}`;
     const refs = [...orig.references, orig.messageId].filter(Boolean);
@@ -181,6 +184,84 @@ async function sendStatusChangeEmail({ subject, title, message }) {
         return true;
     } catch (err) {
         console.error('❌ Status email failed:', err.message);
+        return false;
+    }
+}
+
+// Delivers a help-center request into the staff inbox (shows up on Settings → Mailbox).
+// Reply-To is the requester's email when they gave one, so "Reply" in the dashboard reaches them.
+async function sendSupportRequestEmail(r) {
+    const to = env('MAIL_ALERT_TO') || env('MAIL_USER');
+    if (!isConfigured() || !to) return false;
+    const one = (v) => String(v || '').replace(/\s+/g, ' ').trim();
+    const lines = [
+        `Reference: ${r.id}`,
+        `Type: ${one(r.type)}`,
+        `Discord: ${one(r.discord)}`,
+        `Email: ${r.email ? one(r.email) : 'not given — reply to them on Discord (DM the user)'}`,
+        '',
+        r.message,
+    ];
+    try {
+        await smtp().sendMail({
+            from: fromHeader(),
+            to,
+            replyTo: r.email && EMAIL_RE.test(r.email) ? r.email : undefined,
+            subject: `[Support ${r.id}] ${one(r.subject).slice(0, 120)}`,
+            text: lines.join('\n'),
+        });
+        return true;
+    } catch (err) {
+        console.error('❌ Support request email failed:', err.message);
+        return false;
+    }
+}
+
+// Automatic receipt to the person who submitted the request (only when they gave an email).
+// The summary only repeats what they typed, with the message shortened, and a global
+// cap (30/hour) stops the form being used to push mail through the support account.
+const _receipts = [];
+async function sendRequesterConfirmation(r) {
+    if (!isConfigured() || !r.email || !EMAIL_RE.test(r.email)) return false;
+    const cutoff = Date.now() - 3600000;
+    while (_receipts.length && _receipts[0] < cutoff) _receipts.shift();
+    if (_receipts.length >= 30) return false;
+    _receipts.push(Date.now());
+
+    const one = (v) => String(v || '').replace(/\s+/g, ' ').trim();
+    const name = env('MAIL_FROM_NAME') || "OsQarek's Universe";
+    const msg = one(r.message);
+    const excerpt = msg.length > 300 ? msg.slice(0, 300).trimEnd() + '…' : msg;
+    const text = [
+        `Hi ${one(r.discord)},`,
+        '',
+        `We've received your support request and a member of staff will get back to you.`,
+        '',
+        `Here's a summary of what you sent:`,
+        `  Reference:  ${r.id}`,
+        `  Type:       ${one(r.type)}`,
+        `  Subject:    ${one(r.subject)}`,
+        `  Discord:    ${one(r.discord)}`,
+        `  Details:    ${excerpt}`,
+        '',
+        `Please keep your reference (${r.id}) if you contact us again. You can reply to this email to add more information.`,
+        '',
+        `If you didn't send this request, you can ignore this email.`,
+        '',
+        `${name} Support`,
+        `This is an automated message.`,
+    ].join('\n');
+    try {
+        await smtp().sendMail({
+            from: fromHeader(),
+            to: r.email,
+            subject: `We received your request [${r.id}]`,
+            text,
+            headers: { 'Auto-Submitted': 'auto-replied' },
+        });
+        return true;
+    } catch (err) {
+        console.error('❌ Requester confirmation email failed:', err.message);
         return false;
     }
 }
@@ -294,4 +375,4 @@ function registerRoutes(app, { isAdminRank }) {
     });
 }
 
-module.exports = { isConfigured, registerRoutes, sendStatusChangeEmail };
+module.exports = { isConfigured, registerRoutes, sendStatusChangeEmail, sendSupportRequestEmail, sendRequesterConfirmation };

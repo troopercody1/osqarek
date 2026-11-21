@@ -40,6 +40,7 @@
             <div class="tick">✅</div>
             <h1>Request sent</h1>
             <p style="color:var(--dim);">Staff will review it and reply using the contact details you gave. Your reference is <code><%= sent %></code>.</p>
+            <% if (emailedTo) { %><p style="color:var(--dim);">We’ve emailed a confirmation with a summary to <strong style="color:#fff;"><%= emailedTo %></strong>. Check your spam folder if it doesn’t show up.</p><% } %>
             <p style="margin-top:20px;"><a class="btn" style="display:inline-block;text-decoration:none;" href="/support">Back to the Help Center</a></p>
         </div>
     <% } else { %>
