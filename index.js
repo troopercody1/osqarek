@@ -37,6 +37,9 @@ function isAdminRank(sessionUser) {
 const mailbox = require('./features/mail');
 const { sendStatusChangeEmail } = mailbox;
 
+// Help Center threads: member replies, staff replies, statuses (Open / Awaiting your reply / Solved).
+const supportThreads = require('./features/support');
+
 // Runs slash-command registration in the background. This is intentionally
 // NOT awaited/blocking anywhere in startup — if Discord's API is slow or
 // unreachable this can fail/timeout without preventing the web server from
@@ -344,7 +347,7 @@ const LEGAL_FOOTER_HTML =
     '<a href="' + LEGAL_TERMS_URL + '" style="color:#9aa0ac;text-decoration:none;">Terms of Service</a>' +
     ' &middot; ' +
     '<a href="' + LEGAL_PRIVACY_URL + '" style="color:#9aa0ac;text-decoration:none;">Privacy Policy</a></div>';
-const LEGAL_PAGES = new Set(['terms', 'privacy', 'support', 'support-request', 'support-my-requests']);
+const LEGAL_PAGES = new Set(['terms', 'privacy', 'support', 'support-request', 'support-my-requests', 'support-thread']);
 app.use((req, res, next) => {
     const originalRender = res.render.bind(res);
     res.render = (view, options, callback) => {
@@ -406,6 +409,7 @@ app.use((req, res, next) => {
     if (
         db.settings?.maintenanceMode &&
         !isMailPath &&
+        !req.path.startsWith('/support/requests/') &&
         !maintenanceWhitelist.includes(req.path)
     ) {
         return res.render('maintenance', { 
@@ -482,12 +486,17 @@ app.post('/support/request', async (req, res) => {
 
     if (!Array.isArray(db.supportRequests)) db.supportRequests = [];
     const id = 'SR-' + crypto.randomBytes(3).toString('hex').toUpperCase();
-    db.supportRequests.push({ id, ...form, discordId: member ? member.id : null, status: 'open', createdAt: now });
+    db.supportRequests.push({
+        id, ...form, discordId: member ? member.id : null, avatar: member ? member.avatar : null,
+        status: 'open', createdAt: now, updatedAt: now,
+        messages: [{ id: 'm0', from: 'member', name: form.discord, body: form.message, at: now }]
+    });
     if (db.supportRequests.length > 500) db.supportRequests = db.supportRequests.slice(-500);
     await safeSave();
 
     mailbox.sendSupportRequestEmail({ id, ...form }).catch(() => {}); // lands in Settings → Mailbox
-    const receiptSent = form.email ? await mailbox.sendRequesterConfirmation({ id, ...form }).catch(() => false) : false;
+    const threadUrl = member ? `${PUBLIC_BASE_URL}/support/requests/${id}` : null; // only logged-in members can open the thread
+    const receiptSent = form.email ? await mailbox.sendRequesterConfirmation({ id, ...form, threadUrl }).catch(() => false) : false;
     sendDiscordWebhook({
         title: `📩 New support request ${id}`,
         message: supportNoPing(`**Type:** ${form.type}\n**Discord:** ${form.discord}\n**Email:** ${form.email || 'not given'}\n**Subject:** ${form.subject}\n\n${form.message.slice(0, 1500)}`),
@@ -546,8 +555,9 @@ app.get('/support/my-requests', (req, res) => {
     if (!member) return res.redirect('/support/login?next=/support/my-requests');
     const requests = (db.supportRequests || [])
         .filter((r) => r.discordId && r.discordId === member.id)
-        .sort((a, b) => b.createdAt - a.createdAt);
-    res.render('support-my-requests', { ...legalLocals(), member, requests });
+        .map(supportThreads.normalize)
+        .sort((a, b) => b.updatedAt - a.updatedAt); // most recent activity first
+    res.render('support-my-requests', { ...legalLocals(), member, requests, STATUS: supportThreads.STATUS, ago: supportThreads.ago, full: supportThreads.full });
 });
 
 // --- ROUTES ---
@@ -1119,12 +1129,20 @@ app.post('/auth/change-password', async (req, res) => {
 
 app.get('/settings', (req, res) => {
     if (isAdminRank(req.session.user)) {
-        res.render('settings', { user: req.session.user, settings: db.settings || {}, bannedWords: db.bannedWords || [], msg: req.query.msg || null, coOwnerApplicationCount: (db.coOwnerApplications || []).length, modApplicationCount: (db.modApplications || []).length, mailConfigured: mailbox.isConfigured(), mailUser: (process.env.MAIL_USER || '').trim() });
+        res.render('settings', { user: req.session.user, settings: db.settings || {}, bannedWords: db.bannedWords || [], msg: req.query.msg || null, coOwnerApplicationCount: (db.coOwnerApplications || []).length, modApplicationCount: (db.modApplications || []).length, mailConfigured: mailbox.isConfigured(), mailUser: (process.env.MAIL_USER || '').trim(), supportOpenCount: supportThreads.countOpen(db.supportRequests), supportTotalCount: (db.supportRequests || []).length });
     } else res.status(403).send("<h1>403 Forbidden</h1><p>Access denied.</p>");
 });
 
 // Mailbox: /settings/mail (inbox), /settings/mail/:uid (read + reply), /settings/mail/compose
 mailbox.registerRoutes(app, { isAdminRank });
+
+// Support threads: /support/requests/:id (member) and /settings/support[/:id] (staff)
+supportThreads.registerRoutes(app, {
+    getDb: () => db,              // db is reassigned on reload, so always read it lazily
+    getClient: () => client,
+    isAdminRank, safeSave, sendDiscordWebhook, legalLocals,
+    baseUrl: PUBLIC_BASE_URL
+});
 
 app.get("/admin/filter/:type", checkAuth, async (req, res) => {
     const type = req.params.type.toUpperCase();

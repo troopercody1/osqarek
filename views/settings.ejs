@@ -468,6 +468,29 @@
     </div>
 
     <!-- ══════════════════════════════════════
+         SUPPORT REQUESTS (Help Center threads)
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Support</div>
+        <div class="card">
+            <a href="/settings/support" class="row clickable" style="text-decoration:none;">
+                <div class="row-icon" style="background:#1f2030;">
+                    <span style="color:#a9b1d6;">&#128172;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Support requests</div>
+                    <div class="row-desc">Reply to Help Center threads and set Open / Awaiting reply / Solved</div>
+                </div>
+                <div class="row-end">
+                    <% const _so = (typeof supportOpenCount !== 'undefined') ? supportOpenCount : 0; %>
+                    <span class="badge <%= _so > 0 ? 'badge-maint' : 'badge-live' %>"><%= _so > 0 ? _so + ' open' : 'All caught up' %></span>
+                    <span class="chevron" style="transform:rotate(-90deg);">&#8964;</span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
          MAILBOX
     ══════════════════════════════════════ -->
     <div class="section">

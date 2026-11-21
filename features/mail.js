@@ -280,6 +280,9 @@ async function sendRequesterConfirmation(r) {
         `  Discord:    ${one(r.discord)}`,
         `  Details:    ${excerpt}`,
         '',
+        ...(r.threadUrl
+            ? [`Follow this request and reply to staff here: ${r.threadUrl}`, '']
+            : []),
         `Please keep your reference (${r.id}) if you contact us again. You can reply to this email to add more information.`,
         '',
         `If you didn't send this request, you can ignore this email.`,
@@ -297,6 +300,58 @@ async function sendRequesterConfirmation(r) {
         return true;
     } catch (err) {
         console.error('❌ Requester confirmation email failed:', err.message);
+        return false;
+    }
+}
+
+// Tells the requester that staff replied to (or solved) their help-center request.
+// `url` is the on-site thread link, only given when the request is tied to a Discord login.
+// Shares a global cap (30/hour) with nothing else, so a burst of staff replies can't be abused.
+const _notices = [];
+async function sendRequesterReplyNotice(r, { body, solved, url }) {
+    if (!isConfigured() || !r.email || !EMAIL_RE.test(r.email)) return false;
+    const cutoff = Date.now() - 3600000;
+    while (_notices.length && _notices[0] < cutoff) _notices.shift();
+    if (_notices.length >= 30) return false;
+    _notices.push(Date.now());
+
+    const one = (v) => String(v || '').replace(/\s+/g, ' ').trim();
+    const name = env('MAIL_FROM_NAME') || "OsQarek's Universe";
+    const text = [
+        `Hi ${one(r.discord)},`,
+        '',
+        solved ? `Your request ${r.id} ("${one(r.subject)}") was marked as solved.` : `There's a new reply on your request ${r.id} ("${one(r.subject)}"):`,
+        '',
+        String(body || '').slice(0, 3000),
+        '',
+        url ? `View the full thread and reply here: ${url}` : `You can reply to this email to answer.`,
+        '',
+        `${name} Support`,
+    ].join('\n');
+    try {
+        await sendMail({ to: r.email, subject: `${solved ? 'Solved' : 'New reply'}: your request [${r.id}]`, text });
+        return true;
+    } catch (err) {
+        console.error('❌ Requester reply notice failed:', err.message);
+        return false;
+    }
+}
+
+// Tells staff (MAIL_ALERT_TO, else the mailbox itself) that a member wrote back on the website.
+async function sendStaffReplyNotice(r, body) {
+    const to = env('MAIL_ALERT_TO') || env('MAIL_USER');
+    if (!isConfigured() || !to) return false;
+    const one = (v) => String(v || '').replace(/\s+/g, ' ').trim();
+    try {
+        await sendMail({
+            to,
+            replyTo: r.email && EMAIL_RE.test(r.email) ? r.email : undefined,
+            subject: `[Support ${r.id}] New reply from ${one(r.discord)}`,
+            text: [`Reference: ${r.id}`, `Subject: ${one(r.subject)}`, `Discord: ${one(r.discord)}`, '', String(body || '').slice(0, 3000), '', 'Answer it in Settings → Support requests.'].join('\n'),
+        });
+        return true;
+    } catch (err) {
+        console.error('❌ Staff reply notice failed:', err.message);
         return false;
     }
 }
@@ -410,4 +465,4 @@ function registerRoutes(app, { isAdminRank }) {
     });
 }
 
-module.exports = { isConfigured, registerRoutes, sendStatusChangeEmail, sendSupportRequestEmail, sendRequesterConfirmation };
+module.exports = { isConfigured, registerRoutes, sendStatusChangeEmail, sendSupportRequestEmail, sendRequesterConfirmation, sendRequesterReplyNotice, sendStaffReplyNotice };

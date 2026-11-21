@@ -40,10 +40,10 @@
         <div class="ok">
             <div class="tick">✅</div>
             <h1>Request sent</h1>
-            <p style="color:var(--dim);">Staff will review it and reply using the contact details you gave. Your reference is <code><%= sent %></code>.</p>
+            <p style="color:var(--dim);"><%= member ? 'Staff will review it and reply on your request page. You’ll also get a Discord DM when they do.' : 'Staff will review it and reply using the contact details you gave.' %> Your reference is <code><%= sent %></code>.</p>
             <% if (emailedTo) { %><p style="color:var(--dim);">We’ve emailed a confirmation with a summary to <strong style="color:#fff;"><%= emailedTo %></strong>. Check your spam folder if it doesn’t show up.</p><% } %>
             <p style="margin-top:20px;"><a class="btn" style="display:inline-block;text-decoration:none;" href="/support">Back to the Help Center</a>
-            <% if (member) { %> <a class="btn" style="display:inline-block;text-decoration:none;background:transparent;border:1px solid #4e5058;" href="/support/my-requests">My Help Requests</a><% } %></p>
+            <% if (member) { %> <a class="btn" style="display:inline-block;text-decoration:none;" href="/support/requests/<%= sent %>">View request</a> <a class="btn" style="display:inline-block;text-decoration:none;background:transparent;border:1px solid #4e5058;" href="/support/my-requests">My Help Requests</a><% } %></p>
         </div>
     <% } else { %>
         <h1>Submit a request</h1>
