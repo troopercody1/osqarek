@@ -332,6 +332,8 @@ app.use((req, res, next) => {
         '/auth/verify-admin',
         '/auth/change-password',
         '/logout',
+        '/terms',
+        '/privacy',
         '/verify',
         '/verify/login',
         '/verify/callback',
@@ -389,6 +391,20 @@ function checkAuth(req, res, next) {
     if (req.session?.user && req.session.isHeadAdmin) return next();
     res.redirect('/login');
 }
+
+// --- PUBLIC LEGAL PAGES (Terms of Service + Privacy Policy) ---
+// No login required. Optional env vars: SUPPORT_INVITE_URL (Discord invite) and
+// LEGAL_CONTACT_EMAIL. Bump LEGAL_LAST_UPDATED whenever the wording in
+// views/terms.ejs or views/privacy.ejs changes.
+const LEGAL_LAST_UPDATED = 'November 21, 2026';
+const legalLocals = () => ({
+    botName: client?.user?.username || "OsQarek’s Universe",
+    updated: LEGAL_LAST_UPDATED,
+    supportUrl: (process.env.SUPPORT_INVITE_URL || '').trim() || null,
+    contactEmail: (process.env.LEGAL_CONTACT_EMAIL || '').trim() || null
+});
+app.get('/terms', (req, res) => res.render('terms', legalLocals()));
+app.get('/privacy', (req, res) => res.render('privacy', legalLocals()));
 
 // --- ROUTES ---
 app.get('/login', (req, res) => {
