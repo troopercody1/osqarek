@@ -330,14 +330,17 @@ app.set('views', path.join(__dirname, 'views'));
 // dashboard layouts alike. The Terms/Privacy pages already have their own footer, so they're skipped.
 const LEGAL_TERMS_URL = 'https://osqareks-universe.onrender.com/terms';
 const LEGAL_PRIVACY_URL = 'https://osqareks-universe.onrender.com/privacy';
+const LEGAL_SUPPORT_URL = 'https://osqareks-universe.onrender.com/support';
 const LEGAL_FOOTER_HTML =
     '<div id="legal-footer" style="position:fixed;left:50%;bottom:0;transform:translateX(-50%);z-index:50;' +
     'padding:5px 16px;font:12px/1.4 \'Segoe UI\',system-ui,sans-serif;color:#9aa0ac;background:rgba(14,15,19,0.92);' +
     'border:1px solid #262a35;border-bottom:0;border-radius:8px 8px 0 0;white-space:nowrap;">' +
+    '<a href="' + LEGAL_SUPPORT_URL + '" style="color:#9aa0ac;text-decoration:none;">Support</a>' +
+    ' &middot; ' +
     '<a href="' + LEGAL_TERMS_URL + '" style="color:#9aa0ac;text-decoration:none;">Terms of Service</a>' +
     ' &middot; ' +
     '<a href="' + LEGAL_PRIVACY_URL + '" style="color:#9aa0ac;text-decoration:none;">Privacy Policy</a></div>';
-const LEGAL_PAGES = new Set(['terms', 'privacy']);
+const LEGAL_PAGES = new Set(['terms', 'privacy', 'support']);
 app.use((req, res, next) => {
     const originalRender = res.render.bind(res);
     res.render = (view, options, callback) => {
@@ -363,6 +366,7 @@ app.use((req, res, next) => {
         '/logout',
         '/terms',
         '/privacy',
+        '/support',
         '/verify',
         '/verify/login',
         '/verify/callback',
@@ -421,7 +425,7 @@ function checkAuth(req, res, next) {
     res.redirect('/login');
 }
 
-// --- PUBLIC LEGAL PAGES (Terms of Service + Privacy Policy) ---
+// --- PUBLIC LEGAL PAGES (Terms of Service, Privacy Policy, Support) ---
 // No login required. Optional env vars: SUPPORT_INVITE_URL (Discord invite) and
 // LEGAL_CONTACT_EMAIL. Bump LEGAL_LAST_UPDATED whenever the wording in
 // views/terms.ejs or views/privacy.ejs changes.
@@ -434,6 +438,7 @@ const legalLocals = () => ({
 });
 app.get('/terms', (req, res) => res.render('terms', legalLocals()));
 app.get('/privacy', (req, res) => res.render('privacy', legalLocals()));
+app.get('/support', (req, res) => res.render('support', legalLocals()));
 
 // --- ROUTES ---
 app.get('/login', (req, res) => {
