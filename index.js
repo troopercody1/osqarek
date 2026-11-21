@@ -33,6 +33,10 @@ function isAdminRank(sessionUser) {
     return sessionUser?.id === 'admin' && sessionUser?.rank === 'admin';
 }
 
+// Dashboard mailbox (IMAP read + SMTP reply) and the status-alert email helper.
+const mailbox = require('./features/mail');
+const { sendStatusChangeEmail } = mailbox;
+
 // Runs slash-command registration in the background. This is intentionally
 // NOT awaited/blocking anywhere in startup — if Discord's API is slow or
 // unreachable this can fail/timeout without preventing the web server from
@@ -340,7 +344,7 @@ const LEGAL_FOOTER_HTML =
     '<a href="' + LEGAL_TERMS_URL + '" style="color:#9aa0ac;text-decoration:none;">Terms of Service</a>' +
     ' &middot; ' +
     '<a href="' + LEGAL_PRIVACY_URL + '" style="color:#9aa0ac;text-decoration:none;">Privacy Policy</a></div>';
-const LEGAL_PAGES = new Set(['terms', 'privacy', 'support']);
+const LEGAL_PAGES = new Set(['terms', 'privacy', 'support', 'support-request']);
 app.use((req, res, next) => {
     const originalRender = res.render.bind(res);
     res.render = (view, options, callback) => {
@@ -367,6 +371,7 @@ app.use((req, res, next) => {
         '/terms',
         '/privacy',
         '/support',
+        '/support/request',
         '/verify',
         '/verify/login',
         '/verify/callback',
@@ -392,9 +397,11 @@ app.use((req, res, next) => {
         maintenanceWhitelist.push('/settings/flush-sessions');
         maintenanceWhitelist.push('/settings/reset');
     }
+    const isMailPath = isAdminRank(req.session?.user) && (req.path === '/settings/mail' || req.path.startsWith('/settings/mail/'));
 
     if (
         db.settings?.maintenanceMode &&
+        !isMailPath &&
         !maintenanceWhitelist.includes(req.path)
     ) {
         return res.render('maintenance', { 
@@ -439,6 +446,48 @@ const legalLocals = () => ({
 app.get('/terms', (req, res) => res.render('terms', legalLocals()));
 app.get('/privacy', (req, res) => res.render('privacy', legalLocals()));
 app.get('/support', (req, res) => res.render('support', legalLocals()));
+
+// --- SUPPORT REQUESTS (public "Submit a request" form) ---
+const SUPPORT_TYPES = ['Verification problem', 'Moderation appeal', 'Bot or command issue', 'Staff application', 'Data request (see / correct / delete)', 'Bug or suggestion', 'Something else'];
+const _supportHits = new Map(); // ip -> [timestamps]; 3 requests / hour / IP
+const supportClean = (v, max) => String(v || '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').trim().slice(0, max);
+const supportNoPing = (v) => String(v).replace(/@/g, '@\u200b'); // never let user text ping anyone via the webhook
+const supportPage = (req, res, extra = {}) => res.render('support-request', {
+    ...legalLocals(), types: SUPPORT_TYPES, sent: null, error: null,
+    form: { type: '', discord: '', email: '', subject: '', message: '' }, ...extra
+});
+app.get('/support/request', (req, res) => supportPage(req, res));
+app.post('/support/request', async (req, res) => {
+    const form = {
+        type: SUPPORT_TYPES.includes(req.body.type) ? req.body.type : SUPPORT_TYPES[SUPPORT_TYPES.length - 1],
+        discord: supportClean(req.body.discord, 64), email: supportClean(req.body.email, 254),
+        subject: supportClean(req.body.subject, 120), message: supportClean(req.body.message, 3000)
+    };
+    if (req.body.website) return supportPage(req, res, { sent: 'OK-0000' }); // honeypot: pretend success
+    const fail = (error) => supportPage(req, res, { form, error });
+    if (!form.discord) return fail('Enter your Discord username so staff can reach you.');
+    if (form.email && !/^[^\s@<>"',;]+@[^\s@<>"',;]+\.[^\s@<>"',;]+$/.test(form.email)) return fail('That email address does not look valid.');
+    if (!form.subject) return fail('Add a subject.');
+    if (form.message.length < 10) return fail('Please describe the problem in a bit more detail.');
+
+    const ip = req.ip || 'unknown', now = Date.now();
+    const hits = (_supportHits.get(ip) || []).filter((t) => now - t < 3600000);
+    if (hits.length >= 3) return fail('You have sent several requests recently. Please wait a while before sending another.');
+    hits.push(now); _supportHits.set(ip, hits);
+
+    if (!Array.isArray(db.supportRequests)) db.supportRequests = [];
+    const id = 'SR-' + crypto.randomBytes(3).toString('hex').toUpperCase();
+    db.supportRequests.push({ id, ...form, status: 'open', createdAt: now });
+    if (db.supportRequests.length > 500) db.supportRequests = db.supportRequests.slice(-500);
+    await safeSave();
+
+    sendDiscordWebhook({
+        title: `📩 New support request ${id}`,
+        message: supportNoPing(`**Type:** ${form.type}\n**Discord:** ${form.discord}\n**Email:** ${form.email || 'not given'}\n**Subject:** ${form.subject}\n\n${form.message.slice(0, 1500)}`),
+        color: 0x5865F2
+    }).catch(() => {});
+    supportPage(req, res, { sent: id });
+});
 
 // --- ROUTES ---
 app.get('/login', (req, res) => {
@@ -1009,9 +1058,12 @@ app.post('/auth/change-password', async (req, res) => {
 
 app.get('/settings', (req, res) => {
     if (isAdminRank(req.session.user)) {
-        res.render('settings', { user: req.session.user, settings: db.settings || {}, bannedWords: db.bannedWords || [], msg: req.query.msg || null, coOwnerApplicationCount: (db.coOwnerApplications || []).length, modApplicationCount: (db.modApplications || []).length });
+        res.render('settings', { user: req.session.user, settings: db.settings || {}, bannedWords: db.bannedWords || [], msg: req.query.msg || null, coOwnerApplicationCount: (db.coOwnerApplications || []).length, modApplicationCount: (db.modApplications || []).length, mailConfigured: mailbox.isConfigured(), mailUser: (process.env.MAIL_USER || '').trim() });
     } else res.status(403).send("<h1>403 Forbidden</h1><p>Access denied.</p>");
 });
+
+// Mailbox: /settings/mail (inbox), /settings/mail/:uid (read + reply), /settings/mail/compose
+mailbox.registerRoutes(app, { isAdminRank });
 
 app.get("/admin/filter/:type", checkAuth, async (req, res) => {
     const type = req.params.type.toUpperCase();

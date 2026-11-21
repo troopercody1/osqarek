@@ -468,6 +468,32 @@
     </div>
 
     <!-- ══════════════════════════════════════
+         MAILBOX
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Mailbox</div>
+        <div class="card">
+            <a href="/settings/mail" class="row clickable" style="text-decoration:none;">
+                <div class="row-icon" style="background:#1f2030;">
+                    <span style="color:#a9b1d6;">&#9993;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Inbox</div>
+                    <div class="row-desc">
+                        <%= (typeof mailConfigured !== 'undefined' && mailConfigured) ? 'Read and reply as ' + mailUser : 'Not connected — set the MAIL_* environment variables' %>
+                    </div>
+                </div>
+                <div class="row-end">
+                    <span class="badge <%= (typeof mailConfigured !== 'undefined' && mailConfigured) ? 'badge-live' : 'badge-maint' %>">
+                        <%= (typeof mailConfigured !== 'undefined' && mailConfigured) ? 'Connected' : 'Setup needed' %>
+                    </span>
+                    <span class="chevron" style="transform:rotate(-90deg);">&#8964;</span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
          NOTIFICATIONS
     ══════════════════════════════════════ -->
     <div class="section">

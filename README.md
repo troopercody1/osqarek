@@ -58,3 +58,15 @@ When the startup stats sync finishes, the message counts it tallied while scanni
 - Moves between channels count as one session; time is split correctly across midnight. Live sessions are saved every minute and re-synced on startup, so restarts lose at most ~1 minute.
 - `/vc stats [user]` all-time / 7d / 30d, sessions, longest + average session, rank, favourite channel (viewing others is Moderator+). `/vc top [days]` leaderboard (empty = all-time). `/vc server [days]` summary (Moderator+). `/vc now` who's in voice.
 - Dashboard: **Analytics → Voice Time** (hours per day chart, top members, top channels, all-time leaderboard). `/analytics` also shows total voice time.
+
+
+## Mailbox (`/settings/mail`)
+Admin-only inbox in the dashboard: **Settings → Mailbox**. Read mail (IMAP), search, filter unread, mark read/unread, **reply** (threaded with `In-Reply-To`/`References`, original quoted) and **compose** new mail (SMTP). Set in `.env` — credentials are never stored in the database:
+- `MAIL_USER`, `MAIL_PASS` — mailbox login (use an app password for Gmail/Outlook)
+- `MAIL_IMAP_HOST` (+ `MAIL_IMAP_PORT`, default 993) and `MAIL_SMTP_HOST` (+ `MAIL_SMTP_PORT`, default 465; 587 = STARTTLS)
+- optional `MAIL_FROM`, `MAIL_FROM_NAME`, `MAIL_ALERT_TO` (recipient for the maintenance/downtime status emails; defaults to `MAIL_USER`)
+
+HTML emails render in a sandboxed iframe (no scripts, remote images blocked). Sending is limited to 20 emails/hour. Run `npm install` after pulling (adds `imapflow`, `mailparser`, `nodemailer`). The code lives in `features/mail.js` and `views/mail.ejs`.
+
+## Help Center (`/support`)
+Public, Discord-support-style help center: search hero, category tiles, article list (client-side search/filter) and a **Submit a request** form at `/support/request`. Articles are defined in the `articles` array at the top of `views/support.ejs`. Requests are stored in `db.supportRequests` (last 500, ref like `SR-1A2B3C`), posted to the Discord webhook from Settings (mentions are neutralised), and limited to 3 per IP per hour with a honeypot field. Reply by DM, or by email via the Mailbox if the user left an address.
