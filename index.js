@@ -323,6 +323,35 @@ app.use((req, res, next) => {
 });
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
+// --- LEGAL LINKS FOOTER (every rendered page) ---
+// Wraps res.render so every full HTML page gets a small fixed "Terms · Privacy" bar just before
+// </body>. It is position:fixed so it works on the centred login/maintenance cards and the
+// dashboard layouts alike. The Terms/Privacy pages already have their own footer, so they're skipped.
+const LEGAL_TERMS_URL = 'https://osqareks-universe.onrender.com/terms';
+const LEGAL_PRIVACY_URL = 'https://osqareks-universe.onrender.com/privacy';
+const LEGAL_FOOTER_HTML =
+    '<div id="legal-footer" style="position:fixed;left:50%;bottom:0;transform:translateX(-50%);z-index:50;' +
+    'padding:5px 16px;font:12px/1.4 \'Segoe UI\',system-ui,sans-serif;color:#9aa0ac;background:rgba(14,15,19,0.92);' +
+    'border:1px solid #262a35;border-bottom:0;border-radius:8px 8px 0 0;white-space:nowrap;">' +
+    '<a href="' + LEGAL_TERMS_URL + '" style="color:#9aa0ac;text-decoration:none;">Terms of Service</a>' +
+    ' &middot; ' +
+    '<a href="' + LEGAL_PRIVACY_URL + '" style="color:#9aa0ac;text-decoration:none;">Privacy Policy</a></div>';
+const LEGAL_PAGES = new Set(['terms', 'privacy']);
+app.use((req, res, next) => {
+    const originalRender = res.render.bind(res);
+    res.render = (view, options, callback) => {
+        if (typeof options === 'function') { callback = options; options = undefined; }
+        if (LEGAL_PAGES.has(view)) return originalRender(view, options, callback);
+        return originalRender(view, options, (err, html) => {
+            if (err) return callback ? callback(err) : next(err);
+            const at = html.toLowerCase().lastIndexOf('</body>');
+            const out = at === -1 ? html + LEGAL_FOOTER_HTML : html.slice(0, at) + LEGAL_FOOTER_HTML + html.slice(at);
+            return callback ? callback(null, out) : res.send(out);
+        });
+    };
+    next();
+});
 app.use((req, res, next) => {
     const maintenanceWhitelist = [
         '/login',
