@@ -25,6 +25,7 @@
         .err { background:rgba(240,71,71,.12); border:1px solid #f04747; color:#ff9a9a; padding:11px 14px; border-radius:8px; margin-bottom:16px; font-size:14px; }
         .ok { background:var(--bg2); border:1px solid var(--line); border-radius:12px; padding:34px; text-align:center; }
         .ok .tick { font-size:42px; } .ok h1 { margin:8px 0; } .ok code { background:var(--bg3); padding:3px 9px; border-radius:6px; color:#fff; }
+        .signed { background:var(--bg3); border:1px solid #1a1b1e; border-radius:6px; padding:11px 12px; font-size:15px; }
         .hp { position:absolute; left:-9999px; height:0; overflow:hidden; }
         .fine { color:var(--dim); font-size:13px; margin-top:16px; }
         footer { background:var(--bg3); border-top:1px solid var(--line); padding:26px 24px; color:var(--dim); font-size:13px; text-align:center; }
@@ -41,7 +42,8 @@
             <h1>Request sent</h1>
             <p style="color:var(--dim);">Staff will review it and reply using the contact details you gave. Your reference is <code><%= sent %></code>.</p>
             <% if (emailedTo) { %><p style="color:var(--dim);">We’ve emailed a confirmation with a summary to <strong style="color:#fff;"><%= emailedTo %></strong>. Check your spam folder if it doesn’t show up.</p><% } %>
-            <p style="margin-top:20px;"><a class="btn" style="display:inline-block;text-decoration:none;" href="/support">Back to the Help Center</a></p>
+            <p style="margin-top:20px;"><a class="btn" style="display:inline-block;text-decoration:none;" href="/support">Back to the Help Center</a>
+            <% if (member) { %> <a class="btn" style="display:inline-block;text-decoration:none;background:transparent;border:1px solid #4e5058;" href="/support/my-requests">My Help Requests</a><% } %></p>
         </div>
     <% } else { %>
         <h1>Submit a request</h1>
@@ -56,8 +58,14 @@
                 <% types.forEach(t => { %><option value="<%= t %>" <%= form.type === t ? 'selected' : '' %>><%= t %></option><% }) %>
             </select>
 
+            <% if (member) { %>
+            <label>Discord account</label>
+            <div class="signed">Signed in as <strong><%= member.username %></strong>. This request will appear under <a href="/support/my-requests">My Help Requests</a>.</div>
+            <% } else { %>
             <label for="discord">Discord username</label>
             <input id="discord" name="discord" maxlength="64" required value="<%= form.discord %>" placeholder="e.g. osqarek">
+            <p class="fine" style="margin-top:8px;"><a href="/support/login?next=/support/request">Log in with Discord</a> to track this request under “My Help Requests”.</p>
+            <% } %>
 
             <label for="email">Email <small>(optional, only if you can’t receive Discord DMs)</small></label>
             <input id="email" name="email" type="email" maxlength="254" value="<%= form.email %>" placeholder="you@example.com">

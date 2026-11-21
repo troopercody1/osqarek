@@ -344,7 +344,7 @@ const LEGAL_FOOTER_HTML =
     '<a href="' + LEGAL_TERMS_URL + '" style="color:#9aa0ac;text-decoration:none;">Terms of Service</a>' +
     ' &middot; ' +
     '<a href="' + LEGAL_PRIVACY_URL + '" style="color:#9aa0ac;text-decoration:none;">Privacy Policy</a></div>';
-const LEGAL_PAGES = new Set(['terms', 'privacy', 'support', 'support-request']);
+const LEGAL_PAGES = new Set(['terms', 'privacy', 'support', 'support-request', 'support-my-requests']);
 app.use((req, res, next) => {
     const originalRender = res.render.bind(res);
     res.render = (view, options, callback) => {
@@ -372,6 +372,10 @@ app.use((req, res, next) => {
         '/privacy',
         '/support',
         '/support/request',
+        '/support/login',
+        '/support/callback',
+        '/support/logout',
+        '/support/my-requests',
         '/verify',
         '/verify/login',
         '/verify/callback',
@@ -445,7 +449,7 @@ const legalLocals = () => ({
 });
 app.get('/terms', (req, res) => res.render('terms', legalLocals()));
 app.get('/privacy', (req, res) => res.render('privacy', legalLocals()));
-app.get('/support', (req, res) => res.render('support', legalLocals()));
+app.get('/support', (req, res) => res.render('support', { ...legalLocals(), member: req.session.supportMember || null, error: String(req.query.error || '').slice(0, 200) || null }));
 
 // --- SUPPORT REQUESTS (public "Submit a request" form) ---
 const SUPPORT_TYPES = ['Verification problem', 'Moderation appeal', 'Bot or command issue', 'Staff application', 'Data request (see / correct / delete)', 'Bug or suggestion', 'Something else'];
@@ -453,14 +457,15 @@ const _supportHits = new Map(); // ip -> [timestamps]; 3 requests / hour / IP
 const supportClean = (v, max) => String(v || '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').trim().slice(0, max);
 const supportNoPing = (v) => String(v).replace(/@/g, '@\u200b'); // never let user text ping anyone via the webhook
 const supportPage = (req, res, extra = {}) => res.render('support-request', {
-    ...legalLocals(), types: SUPPORT_TYPES, sent: null, emailedTo: null, error: null,
+    ...legalLocals(), member: req.session.supportMember || null, types: SUPPORT_TYPES, sent: null, emailedTo: null, error: null,
     form: { type: '', discord: '', email: '', subject: '', message: '' }, ...extra
 });
 app.get('/support/request', (req, res) => supportPage(req, res));
 app.post('/support/request', async (req, res) => {
+    const member = req.session.supportMember || null; // logged-in members can't spoof who the request is from
     const form = {
         type: SUPPORT_TYPES.includes(req.body.type) ? req.body.type : SUPPORT_TYPES[SUPPORT_TYPES.length - 1],
-        discord: supportClean(req.body.discord, 64), email: supportClean(req.body.email, 254),
+        discord: member ? member.username : supportClean(req.body.discord, 64), email: supportClean(req.body.email, 254),
         subject: supportClean(req.body.subject, 120), message: supportClean(req.body.message, 3000)
     };
     if (req.body.website) return supportPage(req, res, { sent: 'OK-0000' }); // honeypot: pretend success
@@ -477,7 +482,7 @@ app.post('/support/request', async (req, res) => {
 
     if (!Array.isArray(db.supportRequests)) db.supportRequests = [];
     const id = 'SR-' + crypto.randomBytes(3).toString('hex').toUpperCase();
-    db.supportRequests.push({ id, ...form, status: 'open', createdAt: now });
+    db.supportRequests.push({ id, ...form, discordId: member ? member.id : null, status: 'open', createdAt: now });
     if (db.supportRequests.length > 500) db.supportRequests = db.supportRequests.slice(-500);
     await safeSave();
 
@@ -489,6 +494,60 @@ app.post('/support/request', async (req, res) => {
         color: 0x5865F2
     }).catch(() => {});
     supportPage(req, res, { sent: id, emailedTo: receiptSent ? form.email : null });
+});
+
+// --- SUPPORT MEMBER LOGIN (Discord OAuth, "identify" only) ---
+// Separate from the staff dashboard login: this only sets req.session.supportMember and grants
+// access to that person's own help requests. Add SUPPORT_CALLBACK_URL (default below) to the
+// Redirects list in the Discord Developer Portal.
+const SUPPORT_CALLBACK_URL = process.env.SUPPORT_CALLBACK_URL || `${PUBLIC_BASE_URL}/support/callback`;
+const SUPPORT_RETURN_PATHS = new Set(['/support', '/support/my-requests', '/support/request']);
+app.get('/support/login', (req, res) => {
+    const state = crypto.randomBytes(16).toString('hex');
+    req.session.supportOAuthState = state;
+    req.session.supportReturn = SUPPORT_RETURN_PATHS.has(req.query.next) ? req.query.next : '/support/my-requests';
+    const params = new URLSearchParams({
+        client_id: process.env.CLIENT_ID,
+        redirect_uri: SUPPORT_CALLBACK_URL,
+        response_type: 'code',
+        scope: 'identify',
+        state
+    });
+    res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
+});
+app.get('/support/callback', async (req, res) => {
+    const expected = req.session.supportOAuthState, back = req.session.supportReturn || '/support/my-requests';
+    delete req.session.supportOAuthState; delete req.session.supportReturn;
+    const bail = (m) => res.redirect('/support?error=' + encodeURIComponent(m));
+    if (!req.query.code) return bail('Discord login was cancelled or failed.');
+    if (!csrfTokensMatch(expected, String(req.query.state || ''))) return bail('Your login session expired. Please try logging in again.');
+    try {
+        const tokenResponse = await postWithRateLimitRetry(
+            'https://discord.com/api/oauth2/token',
+            new URLSearchParams({
+                client_id: process.env.CLIENT_ID, client_secret: process.env.DISCORD_CLIENT_SECRET,
+                grant_type: 'authorization_code', code: req.query.code, redirect_uri: SUPPORT_CALLBACK_URL
+            }),
+            { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+        );
+        const u = (await axios.get('https://discord.com/api/users/@me', {
+            headers: { Authorization: `Bearer ${tokenResponse.data.access_token}` }
+        })).data;
+        req.session.supportMember = { id: u.id, username: u.username, avatar: u.avatar || null };
+        res.redirect(back);
+    } catch (err) {
+        console.error('❌ [support oauth] Discord auth failed:', err.response?.data || err.message);
+        bail(err.response?.status === 429 ? 'Discord is rate-limiting this server right now. Please wait a bit and try again.' : 'Discord login failed. Please try again.');
+    }
+});
+app.post('/support/logout', (req, res) => { delete req.session.supportMember; res.redirect('/support'); });
+app.get('/support/my-requests', (req, res) => {
+    const member = req.session.supportMember;
+    if (!member) return res.redirect('/support/login?next=/support/my-requests');
+    const requests = (db.supportRequests || [])
+        .filter((r) => r.discordId && r.discordId === member.id)
+        .sort((a, b) => b.createdAt - a.createdAt);
+    res.render('support-my-requests', { ...legalLocals(), member, requests });
 });
 
 // --- ROUTES ---

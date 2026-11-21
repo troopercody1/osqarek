@@ -71,3 +71,6 @@ HTML emails render in a sandboxed iframe (no scripts, remote images blocked). Se
 
 ## Help Center (`/support`)
 Public, Discord-support-style help center: search hero, category tiles, article list (client-side search/filter) and a **Submit a request** form at `/support/request`. Articles are defined in the `articles` array at the top of `views/support.ejs`. Requests are stored in `db.supportRequests` (last 500, ref like `SR-1A2B3C`), posted to the Discord webhook from Settings (mentions are neutralised), and limited to 3 per IP per hour with a honeypot field. Reply by DM, or by email via the Mailbox if the user left an address.
+
+### Member login & "My Help Requests"
+Members can log in to the help center with Discord (`identify` scope only; separate from the staff dashboard login, so it grants no dashboard access): `/support/login` → `/support/my-requests`. Requests submitted while logged in are tied to the Discord account ID and listed on **My Help Requests** (reference, type, date, status, message). Requests sent while logged out can't be linked. Add `https://YOUR-SITE/support/callback` (or `SUPPORT_CALLBACK_URL`) to **Redirects** in the Discord Developer Portal.
