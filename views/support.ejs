@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support – <%= botName %></title>
+    <meta name="description" content="Get help with <%= botName %>: verification, moderation appeals, staff applications, data requests and bug reports.">
+    <style>
+        :root {
+            --bg: #0e0f13;
+            --panel: #16181f;
+            --panel-border: #262a35;
+            --accent: #5865F2;
+            --accent-hover: #7983f5;
+            --text: #e7e9ee;
+            --text-dim: #9aa0ac;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font: 16px/1.7 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        .wrap { max-width: 820px; margin: 0 auto; padding: 40px 20px 80px; }
+        .topnav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
+        .topnav a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 14px;
+            padding: 6px 14px;
+            border: 1px solid var(--panel-border);
+            border-radius: 999px;
+        }
+        .topnav a:hover { color: var(--text); border-color: var(--accent); }
+        .topnav a.active { color: #fff; background: var(--accent); border-color: var(--accent); }
+        h1 { font-size: 34px; margin: 0 0 6px; letter-spacing: -0.5px; }
+        .lead { color: var(--text-dim); margin: 0 0 28px; }
+        h2 { font-size: 21px; margin: 38px 0 14px; }
+        p { margin: 0 0 12px; }
+        a { color: var(--accent-hover); }
+        strong { color: #fff; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 20px 22px;
+        }
+        .card h3 { margin: 0 0 6px; font-size: 17px; }
+        .card p { margin: 0 0 10px; color: var(--text-dim); font-size: 15px; line-height: 1.6; }
+        .card p:last-child { margin-bottom: 0; }
+        .btn {
+            display: inline-block;
+            background: var(--accent);
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 8px 16px;
+            border-radius: 8px;
+        }
+        .btn:hover { background: var(--accent-hover); }
+        details {
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            padding: 0 22px;
+        }
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            padding: 15px 0;
+            list-style: none;
+            color: #fff;
+        }
+        summary::-webkit-details-marker { display: none; }
+        summary::before { content: '+'; display: inline-block; width: 22px; color: var(--accent-hover); font-weight: 700; }
+        details[open] summary::before { content: '–'; }
+        details .answer { padding: 0 0 16px 22px; color: var(--text); }
+        details .answer ul, details .answer ol { margin: 0 0 12px; padding-left: 22px; }
+        details .answer li { margin: 4px 0; }
+        .note {
+            border-left: 3px solid var(--accent);
+            background: var(--panel);
+            border-radius: 0 12px 12px 0;
+            padding: 14px 20px;
+            margin-top: 28px;
+            font-size: 15px;
+            color: var(--text-dim);
+        }
+        footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--panel-border); color: var(--text-dim); font-size: 14px; }
+        @media (max-width: 600px) { h1 { font-size: 28px; } }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <nav class="topnav">
+        <a class="active" href="/support">Support</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/privacy">Privacy Policy</a>
+    </nav>
+
+    <h1>Support</h1>
+    <p class="lead">Need help with <%= botName %>? Here’s how to reach us and answers to the most common questions.</p>
+
+    <h2>Get in touch</h2>
+    <div class="grid">
+        <div class="card">
+            <h3>Discord server</h3>
+            <p>The fastest way to get help. Ask in the server and a staff member will pick it up.</p>
+            <% if (supportUrl) { %>
+            <p><a class="btn" href="<%= supportUrl %>" rel="noopener" target="_blank">Join the server</a></p>
+            <% } %>
+        </div>
+        <div class="card">
+            <h3>Message the bot</h3>
+            <p>Send <%= botName %> a direct message. It’s relayed privately to staff, who reply to you in your DMs. Keep your DMs open so you can get the reply.</p>
+        </div>
+        <% if (contactEmail) { %>
+        <div class="card">
+            <h3>Email</h3>
+            <p>For anything you’d rather not post in the server, such as privacy or data requests.</p>
+            <p><a href="mailto:<%= contactEmail %>"><%= contactEmail %></a></p>
+        </div>
+        <% } %>
+    </div>
+
+    <h2>Common questions</h2>
+
+    <details>
+        <summary>I can’t verify</summary>
+        <div class="answer">
+            <ol>
+                <li>Make sure you’ve joined the server first.</li>
+                <li>Open the <a href="/verify">verification page</a> and sign in with Discord.</li>
+                <li>Complete the CAPTCHA and tick the rules agreement, then submit.</li>
+            </ol>
+            <p>If the CAPTCHA doesn’t show up, a privacy extension, ad blocker or VPN may be blocking it. Try turning it off for this page or using another browser. Still stuck? Contact staff with a short description of what you see.</p>
+        </div>
+    </details>
+
+    <details>
+        <summary>I was warned, muted, kicked or banned and think it’s a mistake</summary>
+        <div class="answer">
+            <p>
+                Tell us what happened by DMing the bot or asking in the server (if you’re banned, DM the bot or
+                email us). Include your Discord username and what you think went wrong. Staff will review it.
+                Automatic flags and actions can be wrong, and they’re not a final judgment about you. See the
+                <a href="/terms#moderation">Terms</a> for how moderation works.
+            </p>
+        </div>
+    </details>
+
+    <details>
+        <summary>A command isn’t working or the bot is offline</summary>
+        <div class="answer">
+            <ul>
+                <li>Use <strong>/help</strong> to see what’s available, and check you have permission for the command you’re trying.</li>
+                <li>Wait a moment and try again. Discord can lag, and the bot restarts after updates.</li>
+                <li>If the bot is down or the website says it’s in maintenance, that’s usually temporary. If it lasts, let staff know.</li>
+            </ul>
+        </div>
+    </details>
+
+    <details>
+        <summary>How do confessions work?</summary>
+        <div class="answer">
+            <p>
+                Confessions are posted publicly without your name, but they are not anonymous to staff, who can see
+                the author so abuse can be handled. If you see a confession that breaks the rules, report it to staff.
+                More in the <a href="/terms#confessions">Terms</a> and the <a href="/privacy#collect">Privacy Policy</a>.
+            </p>
+        </div>
+    </details>
+
+    <details>
+        <summary>Staff applications</summary>
+        <div class="answer">
+            <p>
+                You can apply for <a href="/mod-apps/apply">moderator</a> or
+                <a href="/apply-co-owner">co-owner</a> when applications are open. The owners review
+                them, and not every application gets a position. If you’ve been waiting a while or
+                something looks broken, ask in the server.
+            </p>
+        </div>
+    </details>
+
+    <details>
+        <summary>I want to see, correct or delete my data</summary>
+        <div class="answer">
+            <p>
+                Contact us using the options above and say what you need. We may ask you to confirm you control the
+                Discord account first. Leaving the server doesn’t delete your data automatically, so you do need to
+                ask. Some records, such as moderation history, may be kept for safety reasons. Details are in the
+                <a href="/privacy#rights">Privacy Policy</a>.
+            </p>
+        </div>
+    </details>
+
+    <details>
+        <summary>I found a bug or have a suggestion</summary>
+        <div class="answer">
+            <p>
+                Tell staff in the server. The most useful reports say what you did, what you expected, what happened
+                instead, and roughly when. If it’s a security problem, please DM the bot or email us instead of
+                posting it publicly.
+            </p>
+        </div>
+    </details>
+
+    <div class="note">
+        If someone is in danger or a message involves a serious threat, report it to Discord as well:
+        <a href="https://discord.com/safety" rel="noopener" target="_blank">discord.com/safety</a>.
+        Staff here can’t act on things that happen outside the server.
+    </div>
+
+    <footer>
+        <a href="/support">Support</a> · <a href="/terms">Terms of Service</a> · <a href="/privacy">Privacy Policy</a>
+        <br>
+        <%= botName %> is an independent community project and is not affiliated with or endorsed by Discord Inc.
+    </footer>
+</div>
+</body>
+</html>
