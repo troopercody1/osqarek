@@ -64,7 +64,8 @@ When the startup stats sync finishes, the message counts it tallied while scanni
 Admin-only inbox in the dashboard: **Settings → Mailbox**. Read mail (IMAP), search, filter unread, mark read/unread, **reply** (threaded with `In-Reply-To`/`References`, original quoted) and **compose** new mail (SMTP). Set in `.env` — credentials are never stored in the database:
 - `MAIL_USER`, `MAIL_PASS` — mailbox login (use an app password for Gmail/Outlook)
 - `MAIL_IMAP_HOST` (+ `MAIL_IMAP_PORT`, default 993) and `MAIL_SMTP_HOST` (+ `MAIL_SMTP_PORT`, default 465; 587 = STARTTLS)
-- optional `MAIL_FROM`, `MAIL_FROM_NAME`, `MAIL_ALERT_TO` (recipient for the maintenance/downtime status emails; defaults to `MAIL_USER`)
+- optional `MAIL_FROM`, `MAIL_FROM_NAME`, `MAIL_ALERT_TO`
+- `BREVO_API_KEY` — send via Brevo's HTTPS API instead of SMTP (needed on hosts that block SMTP ports, such as Render free instances; then `MAIL_SMTP_HOST` is not required and `MAIL_FROM`/`MAIL_USER` must be a verified Brevo sender). Reading mail still uses IMAP (port 993). (recipient for the maintenance/downtime status emails; defaults to `MAIL_USER`)
 
 HTML emails render in a sandboxed iframe (no scripts, remote images blocked). Sending is limited to 20 emails/hour. Run `npm install` after pulling (adds `imapflow`, `mailparser`, `nodemailer`). The code lives in `features/mail.js` and `views/mail.ejs`.
 

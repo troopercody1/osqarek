@@ -8,9 +8,13 @@
 //   MAIL_SMTP_HOST   e.g. smtp.gmail.com        MAIL_SMTP_PORT (default 465 = TLS, 587 = STARTTLS)
 //   MAIL_FROM        optional From address      MAIL_FROM_NAME (default "OsQarek's Universe")
 //   MAIL_ALERT_TO    optional recipient for status-change alerts (defaults to MAIL_USER)
+//   BREVO_API_KEY    optional. Sends over HTTPS (port 443) via Brevo instead of SMTP. Use this on hosts that
+//                    block outbound SMTP ports (Render free instances do). MAIL_SMTP_HOST is then not needed;
+//                    MAIL_FROM (or MAIL_USER) must be a verified sender in Brevo.
 const { ImapFlow } = require('imapflow');
 const { simpleParser } = require('mailparser');
 const nodemailer = require('nodemailer');
+const axios = require('axios');
 
 const PAGE_SIZE = 20;
 const MAX_BODY = 20000;
@@ -19,7 +23,7 @@ const EMAIL_RE = /^[^\s@<>"',;]+@[^\s@<>"',;]+\.[^\s@<>"',;]+$/;
 const env = (k) => (process.env[k] || '').trim();
 
 function isConfigured() {
-    return !!(env('MAIL_USER') && env('MAIL_PASS') && env('MAIL_IMAP_HOST') && env('MAIL_SMTP_HOST'));
+    return !!(env('MAIL_USER') && env('MAIL_PASS') && env('MAIL_IMAP_HOST') && (env('MAIL_SMTP_HOST') || env('BREVO_API_KEY')));
 }
 
 function newImap() {
@@ -40,8 +44,42 @@ function smtp() {
         port,
         secure: port === 465,
         auth: { user: env('MAIL_USER'), pass: env('MAIL_PASS') },
-        connectionTimeout: 15000,
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
     });
+}
+
+// Single send path for everything. With BREVO_API_KEY it goes over HTTPS; otherwise SMTP.
+// opts: { to, subject, text, replyTo?, inReplyTo?, references?: string[], headers? }
+async function sendMail(opts) {
+    const from = fromHeader();
+    const key = env('BREVO_API_KEY');
+    // If we send "from" a different address than the inbox we read (e.g. a no-reply sender),
+    // point Reply-To at the inbox so people's replies land in Settings → Mailbox.
+    const defaultReply = from.address.toLowerCase() !== env('MAIL_USER').toLowerCase() ? env('MAIL_USER') : undefined;
+    const replyTo = opts.replyTo || defaultReply;
+    if (!key) return smtp().sendMail({ from, ...opts, replyTo });
+
+    const headers = { ...(opts.headers || {}) };
+    if (opts.inReplyTo) headers['In-Reply-To'] = opts.inReplyTo;
+    if (opts.references && opts.references.length) headers['References'] = opts.references.join(' ');
+    const payload = {
+        sender: { name: from.name, email: from.address },
+        to: [{ email: opts.to }],
+        subject: opts.subject,
+        textContent: opts.text,
+    };
+    if (replyTo) payload.replyTo = { email: replyTo };
+    if (Object.keys(headers).length) payload.headers = headers;
+    try {
+        await axios.post('https://api.brevo.com/v3/smtp/email', payload, {
+            headers: { 'api-key': key, 'content-type': 'application/json', accept: 'application/json' },
+            timeout: 10000,
+        });
+    } catch (err) {
+        throw new Error(err.response?.data?.message || err.message);
+    }
 }
 
 const fromHeader = () => ({
@@ -150,14 +188,13 @@ async function sendReply(uid, body) {
     if (!orig) throw new Error('That message no longer exists.');
     const to = (orig.replyTo[0] || orig.from[0] || {}).address;
     if (!to || !EMAIL_RE.test(to)) throw new Error('The original message has no valid sender address to reply to.');
-    if (to.toLowerCase() === env('MAIL_USER').toLowerCase()) {
+    if ([env('MAIL_USER'), env('MAIL_FROM')].filter(Boolean).some((a) => a.toLowerCase() === to.toLowerCase())) {
         throw new Error('This request has no email for the sender. Reply to them on Discord using the username in the message.');
     }
 
     const subject = /^re:/i.test(orig.subject) ? orig.subject : `Re: ${orig.subject}`;
     const refs = [...orig.references, orig.messageId].filter(Boolean);
-    await smtp().sendMail({
-        from: fromHeader(),
+    await sendMail({
         to,
         subject,
         text: `${body}\n\n${quoteText(orig)}`,
@@ -169,7 +206,7 @@ async function sendReply(uid, body) {
 }
 
 async function sendNew({ to, subject, body }) {
-    await smtp().sendMail({ from: fromHeader(), to, subject, text: body });
+    await sendMail({ to, subject, text: body });
 }
 
 // Used by the maintenance / downtime-alert toggles in index.js.
@@ -180,7 +217,7 @@ async function sendStatusChangeEmail({ subject, title, message }) {
         return false;
     }
     try {
-        await smtp().sendMail({ from: fromHeader(), to, subject: subject || title, text: `${title}\n\n${message}` });
+        await sendMail({ to, subject: subject || title, text: `${title}\n\n${message}` });
         return true;
     } catch (err) {
         console.error('❌ Status email failed:', err.message);
@@ -203,8 +240,7 @@ async function sendSupportRequestEmail(r) {
         r.message,
     ];
     try {
-        await smtp().sendMail({
-            from: fromHeader(),
+        await sendMail({
             to,
             replyTo: r.email && EMAIL_RE.test(r.email) ? r.email : undefined,
             subject: `[Support ${r.id}] ${one(r.subject).slice(0, 120)}`,
@@ -252,8 +288,7 @@ async function sendRequesterConfirmation(r) {
         `This is an automated message.`,
     ].join('\n');
     try {
-        await smtp().sendMail({
-            from: fromHeader(),
+        await sendMail({
             to: r.email,
             subject: `We received your request [${r.id}]`,
             text,
