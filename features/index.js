@@ -16,6 +16,7 @@ const modules = {
     audit: require('./audit'),
     analytics: require('./analytics'),
     voice: require('./voice'),
+    seasonal: require('./seasonal'),
     featurecmd: require('./featurecmd'),
 };
 
@@ -70,7 +71,7 @@ function init(ctx) {
         await evasion.backfillBans(guild);
         analytics.snapshot(guild);
         modules.voice.reconcile(guild, { resume: true });
-        console.log('🧩 Features online: raid, lockdown, drills, evasion, impersonation, timed, giveaways, polls, audit, analytics, voice.');
+        console.log('🧩 Features online: raid, lockdown, drills, evasion, impersonation, timed, giveaways, polls, audit, analytics, voice, eco drops, christmas facts.');
     });
     if (client.isReady()) onReady(); else client.once('clientReady', onReady);
 
@@ -80,7 +81,7 @@ function init(ctx) {
         if (busy || !client.isReady()) return;
         busy = true;
         try {
-            for (const [label, fn] of [['raid', raid.tick], ['lockdown', modules.lockdown.tick], ['timed', modules.timed.tick], ['giveaways', modules.giveaways.tick], ['polls', modules.polls.tick], ['evasion', evasion.tick], ['analytics', analytics.tick], ['voice', modules.voice.tick]]) {
+            for (const [label, fn] of [['raid', raid.tick], ['lockdown', modules.lockdown.tick], ['timed', modules.timed.tick], ['giveaways', modules.giveaways.tick], ['polls', modules.polls.tick], ['evasion', evasion.tick], ['analytics', analytics.tick], ['voice', modules.voice.tick], ['seasonal', modules.seasonal.tick]]) {
                 try { await fn(); } catch (err) { console.error(`❌ [features:${label}] tick failed:`, err.message); }
             }
         } finally { busy = false; }

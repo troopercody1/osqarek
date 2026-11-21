@@ -126,6 +126,33 @@ const FEATURES = {
             { key: 'retentionDays', type: 'int', min: 7, max: 365, default: 90, label: 'Keep daily voice stats for (days)', desc: 'All-time totals are kept forever; per-day detail older than this is dropped.' },
         ],
     },
+    ecodrops: {
+        label: 'Eco Drops',
+        icon: '💸',
+        description: 'Announces 1-6 random eco drops per day (ET) with a random amount (default 50M-500M) and pings a role. Message only: nothing is given out by the bot.',
+        defaultEnabled: true,
+        settings: [
+            { key: 'channels', type: 'list', default: ['771423231584108568', '772598596443832330', '1512845893349408839', '1467588751822819520', '883622147052933121', '1489842627028324502', '1422676481619791922', '814468713297608744', '1112103039449436260', '1254559209027145779', '953958239488335893', '1558604938043588608', '1489840975336706250', '955577038721409095', '1467588005614194688', '1340439976562786435', '1467586365574217728', '950053168706887740', '1436036170931896361', '1242980695081619458'], label: 'Drop channels', desc: 'Comma separated channel IDs. Each drop is sent to one of them, picked at random.' },
+            { key: 'pingRole', type: 'role', default: '1431263330819112980', label: 'Role to ping', desc: 'Pinged on every drop.' },
+            { key: 'maxPerDay', type: 'int', min: 1, max: 6, default: 6, label: 'Max drops per day', desc: 'Each day a random number of drops from 1 up to this is scheduled.' },
+            { key: 'minAmount', type: 'int', min: 1, max: 100000, default: 50, label: 'Min amount (millions)', desc: '50 = 50M.' },
+            { key: 'maxAmount', type: 'int', min: 1, max: 100000, default: 500, label: 'Max amount (millions)', desc: '500 = 500M.' },
+            { key: 'startHour', type: 'int', min: 0, max: 23, default: 8, label: 'Earliest hour (ET)', desc: 'Drops are never scheduled before this hour (0-23, New York time).' },
+            { key: 'endHour', type: 'int', min: 1, max: 24, default: 23, label: 'Latest hour (ET)', desc: 'Drops are never scheduled after this hour (1-24, New York time).' },
+        ],
+    },
+    christmas: {
+        label: 'Christmas Fact of the Day',
+        icon: '🎄',
+        description: 'Posts one Christmas fact per day at the chosen time (ET) until Christmas Day.',
+        defaultEnabled: true,
+        settings: [
+            { key: 'channel', type: 'channel', default: '', label: 'Fact channel', desc: 'Where the daily fact is posted. Nothing is sent until this is set.' },
+            { key: 'hour', type: 'int', min: 0, max: 23, default: 11, label: 'Hour (ET)', desc: '11 = 11:00 AM New York time.' },
+            { key: 'pingRole', type: 'role', default: '955575158129696798', label: 'Role to ping', desc: 'Pinged with every fact.' },
+            { key: 'startNumber', type: 'int', min: 1, max: 100000, default: 263, label: 'FOTD number on Nov 21, 2026', desc: 'The number goes up by 1 each day after that.' },
+        ],
+    },
 };
 
 const FEATURE_NAMES = Object.keys(FEATURES);
