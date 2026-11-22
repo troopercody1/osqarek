@@ -105,67 +105,158 @@ async function withInbox(fn) {
 const addr = (list) => (list || []).map((a) => ({ name: a.name || '', address: a.address || '' }));
 const label = (a) => (a ? (a.name ? `${a.name} <${a.address}>` : a.address) : '');
 
+// Support emails carry the ticket reference (SR-XXXXXX) in the subject. Everything with the same
+// reference is shown as ONE conversation instead of separate inbox rows.
+const TICKET_RE = /\bSR-[0-9A-F]{4,10}\b/i;
+const ticketOf = (subject) => (String(subject || '').match(TICKET_RE) || [])[0]?.toUpperCase() || null;
+const ENVELOPE_CAP = 1000; // newest messages considered when grouping
+
+// Envelope info (no bodies) for the newest messages, newest first.
+async function envelopes(client) {
+    const found = (await client.search({ all: true }, { uid: true })) || [];
+    found.sort((a, b) => b - a);
+    const slice = found.slice(0, ENVELOPE_CAP);
+    const out = [];
+    if (slice.length) {
+        for await (const m of client.fetch(slice.join(','), { uid: true, envelope: true, flags: true, internalDate: true }, { uid: true })) {
+            out.push({
+                uid: m.uid,
+                subject: m.envelope?.subject || '(no subject)',
+                from: label(m.envelope?.from?.[0]) || '(unknown)',
+                date: m.internalDate || m.envelope?.date || null,
+                seen: m.flags?.has('\\Seen') || false,
+                answered: m.flags?.has('\\Answered') || false,
+            });
+        }
+        out.sort((a, b) => b.uid - a.uid);
+    }
+    return out;
+}
+
 async function listMessages({ page = 1, unreadOnly = false, q = '' } = {}) {
     return withInbox(async (client) => {
-        let query = { all: true };
-        if (unreadOnly) query = { seen: false };
-        if (q) query = unreadOnly ? { seen: false, or: [{ subject: q }, { from: q }] } : { or: [{ subject: q }, { from: q }] };
+        const all = await envelopes(client);
 
-        const found = (await client.search(query, { uid: true })) || [];
-        found.sort((a, b) => b - a); // newest first
-        const total = found.length;
+        // One row per ticket (newest message represents it); other mail stays one row each.
+        const groups = [];
+        const byTicket = new Map();
+        for (const m of all) {
+            const t = ticketOf(m.subject);
+            if (t && byTicket.has(t)) { byTicket.get(t).msgs.push(m); continue; }
+            const g = { ticket: t, msgs: [m] };
+            groups.push(g);
+            if (t) byTicket.set(t, g);
+        }
+
+        const needle = q.toLowerCase();
+        let rows = groups.map((g) => {
+            const latest = g.msgs[0];
+            return {
+                uid: latest.uid,
+                ticket: g.ticket,
+                count: g.msgs.length,
+                unreadCount: g.msgs.filter((x) => !x.seen).length,
+                subject: latest.subject,
+                from: latest.from,
+                date: latest.date,
+                seen: g.msgs.every((x) => x.seen),
+                answered: latest.answered,
+                _hay: g.msgs.map((x) => `${x.subject} ${x.from}`).join(' ').toLowerCase(),
+            };
+        });
+        if (unreadOnly) rows = rows.filter((r) => !r.seen);
+        if (needle) rows = rows.filter((r) => r._hay.includes(needle));
+
+        const total = rows.length;
         const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
         const cur = Math.min(Math.max(1, page), pages);
-        const slice = found.slice((cur - 1) * PAGE_SIZE, cur * PAGE_SIZE);
-
-        const messages = [];
-        if (slice.length) {
-            for await (const m of client.fetch(slice.join(','), { uid: true, envelope: true, flags: true, internalDate: true }, { uid: true })) {
-                messages.push({
-                    uid: m.uid,
-                    subject: m.envelope?.subject || '(no subject)',
-                    from: label(m.envelope?.from?.[0]) || '(unknown)',
-                    date: m.internalDate || m.envelope?.date || null,
-                    seen: m.flags?.has('\\Seen') || false,
-                    answered: m.flags?.has('\\Answered') || false,
-                });
-            }
-            messages.sort((a, b) => b.uid - a.uid);
-        }
+        const messages = rows.slice((cur - 1) * PAGE_SIZE, cur * PAGE_SIZE).map(({ _hay, ...r }) => r);
         return { messages, total, page: cur, pages };
     });
 }
 
+async function readOne(client, uid, markRead) {
+    const m = await client.fetchOne(String(uid), { source: true, flags: true }, { uid: true });
+    if (!m || !m.source) return null;
+    const p = await simpleParser(m.source);
+    if (markRead && !m.flags?.has('\\Seen')) {
+        await client.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true });
+    }
+    return {
+        uid: Number(uid),
+        subject: p.subject || '(no subject)',
+        from: addr(p.from?.value),
+        to: addr(p.to?.value),
+        cc: addr(p.cc?.value),
+        replyTo: addr(p.replyTo?.value),
+        date: p.date || null,
+        messageId: p.messageId || '',
+        references: Array.isArray(p.references) ? p.references : p.references ? [p.references] : [],
+        text: (p.text || '').slice(0, MAX_BODY),
+        html: typeof p.html === 'string' ? p.html.slice(0, 200000) : '',
+        attachments: (p.attachments || []).map((a) => ({ name: a.filename || 'attachment', size: a.size || 0, type: a.contentType })),
+        seen: true,
+    };
+}
+
 async function getMessage(uid, { markRead = true } = {}) {
+    return withInbox((client) => readOne(client, uid, markRead));
+}
+
+// The opened message plus every other message about the same support ticket, oldest first.
+// `thread` is the newest one (replies are sent to it); `convo` is the whole conversation.
+async function getConversation(uid) {
     return withInbox(async (client) => {
-        const m = await client.fetchOne(String(uid), { source: true, flags: true }, { uid: true });
-        if (!m || !m.source) return null;
-        const p = await simpleParser(m.source);
-        if (markRead && !m.flags?.has('\\Seen')) {
-            await client.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true });
-        }
-        return {
-            uid: Number(uid),
-            subject: p.subject || '(no subject)',
-            from: addr(p.from?.value),
-            to: addr(p.to?.value),
-            cc: addr(p.cc?.value),
-            replyTo: addr(p.replyTo?.value),
-            date: p.date || null,
-            messageId: p.messageId || '',
-            references: Array.isArray(p.references) ? p.references : p.references ? [p.references] : [],
-            text: (p.text || '').slice(0, MAX_BODY),
-            html: typeof p.html === 'string' ? p.html.slice(0, 200000) : '',
-            attachments: (p.attachments || []).map((a) => ({ name: a.filename || 'attachment', size: a.size || 0, type: a.contentType })),
-            seen: true,
-        };
+        const opened = await readOne(client, uid, true);
+        if (!opened) return null;
+        const t = ticketOf(opened.subject);
+        if (!t) return { thread: opened, convo: [opened], ticket: null };
+        const uids = (await envelopes(client)).filter((m) => ticketOf(m.subject) === t).map((m) => m.uid).reverse().slice(-30);
+        const convo = [];
+        for (const u of uids) convo.push(u === Number(uid) ? opened : await readOne(client, u, true));
+        const list = convo.filter(Boolean);
+        return { thread: list[list.length - 1] || opened, convo: list.length ? list : [opened], ticket: t };
     });
 }
 
-async function setSeen(uid, seen) {
+// Merge the emails of a conversation with the staff replies stored on the support ticket
+// (replies written on the Support requests page never land in the inbox, so without this
+// they would be missing). Member messages are skipped: their emails are already in the inbox.
+function buildTimeline(convo, request) {
+    const items = convo.map((m) => ({ kind: 'email', m, at: m.date ? new Date(m.date).getTime() : 0 }));
+    for (const msg of (request && Array.isArray(request.messages) ? request.messages : [])) {
+        if (msg.from === 'staff') items.push({ kind: 'staff', name: msg.name || 'Staff', body: String(msg.body || ''), at: msg.at || 0 });
+    }
+    items.sort((a, b) => a.at - b.at);
+    return items;
+}
+
+// Remember a reply sent from the mailbox on the ticket too, so it shows in the conversation.
+async function recordMailboxReply(ctx, ticket, name, body) {
+    try {
+        const list = ctx?.getRequests?.();
+        const r = Array.isArray(list) ? list.find((x) => String(x.id).toUpperCase() === ticket) : null;
+        if (!r) return;
+        if (!Array.isArray(r.messages)) r.messages = [];
+        r.messages.push({ id: 'm' + Math.random().toString(16).slice(2, 10), from: 'staff', name: name || 'Staff', body: String(body).slice(0, 3000), at: Date.now() });
+        r.updatedAt = Date.now();
+        await ctx.save?.();
+    } catch (err) {
+        console.error('📭 [mail] could not record reply on the ticket:', err.message);
+    }
+}
+
+// Mark read/unread. With a ticket reference it applies to the whole conversation.
+async function setSeen(uid, seen, ticket) {
     return withInbox(async (client) => {
-        if (seen) await client.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true });
-        else await client.messageFlagsRemove(String(uid), ['\\Seen'], { uid: true });
+        let uids = [String(uid)];
+        if (ticket && TICKET_RE.test(ticket)) {
+            const t = ticket.toUpperCase();
+            const group = (await envelopes(client)).filter((m) => ticketOf(m.subject) === t).map((m) => String(m.uid));
+            if (group.length) uids = group;
+        }
+        if (seen) await client.messageFlagsAdd(uids.join(','), ['\\Seen'], { uid: true });
+        else await client.messageFlagsRemove(uids.join(','), ['\\Seen'], { uid: true });
     });
 }
 
@@ -283,7 +374,9 @@ async function sendRequesterConfirmation(r) {
         ...(r.threadUrl
             ? [`Follow this request and reply to staff here: ${r.threadUrl}`, '']
             : []),
-        `Please keep your reference (${r.id}) if you contact us again. You can reply to this email to add more information.`,
+        ...(r.threadUrl
+            ? [`Please keep your reference (${r.id}) if you contact us again.`, '', `Please do not reply directly to this email, use the link above to respond in your ticket.`]
+            : [`Please keep your reference (${r.id}) if you contact us again. You can reply to this email to add more information.`]),
         '',
         `If you didn't send this request, you can ignore this email.`,
         '',
@@ -325,6 +418,7 @@ async function sendRequesterReplyNotice(r, { body, solved, url }) {
         String(body || '').slice(0, 3000),
         '',
         url ? `View the full thread and reply here: ${url}` : `You can reply to this email to answer.`,
+        ...(url ? ['', `Please do not reply directly to this email, use the link above to respond in your ticket.`] : []),
         '',
         `${name} Support`,
     ].join('\n');
@@ -359,7 +453,7 @@ async function sendStaffReplyNotice(r, body) {
 // ─── Express routes ──────────────────────────────────────────────────────────
 // Every route is admin-only. State-changing routes are covered by the global
 // CSRF middleware (forms carry `_csrf`).
-function registerRoutes(app, { isAdminRank }) {
+function registerRoutes(app, { isAdminRank, getRequests, save }) {
     const guard = (req, res, next) => {
         if (!isAdminRank(req.session?.user)) return res.status(403).send('<h1>403 Forbidden</h1><p>Access denied.</p>');
         next();
@@ -385,7 +479,7 @@ function registerRoutes(app, { isAdminRank }) {
             user: req.session.user,
             msg: req.query.msg || null,
             err: req.query.err || null,
-            view: 'list', thread: null, list: null, filters: { q: '', unread: false }, compose: null,
+            view: 'list', thread: null, convo: null, ticket: null, timeline: null, list: null, filters: { q: '', unread: false }, compose: null,
             ...view,
         });
 
@@ -410,9 +504,10 @@ function registerRoutes(app, { isAdminRank }) {
     app.get('/settings/mail/:uid(\\d+)', guard, async (req, res) => {
         if (!isConfigured()) return res.redirect('/settings/mail');
         try {
-            const thread = await getMessage(req.params.uid);
-            if (!thread) return go(res, '/settings/mail', 'That message was not found.', true);
-            render(req, res, { view: 'read', thread });
+            const c = await getConversation(req.params.uid);
+            if (!c) return go(res, '/settings/mail', 'That message was not found.', true);
+            const request = c.ticket && getRequests ? (getRequests() || []).find((x) => String(x.id).toUpperCase() === c.ticket) : null;
+            render(req, res, { view: 'read', thread: c.thread, convo: c.convo, ticket: c.ticket, timeline: buildTimeline(c.convo, request) });
         } catch (err) {
             console.error('📭 [mail] read failed:', err.message);
             go(res, '/settings/mail', `Could not open message: ${err.message}`, true);
@@ -427,6 +522,8 @@ function registerRoutes(app, { isAdminRank }) {
         if (throttled()) return go(res, back, 'Send limit reached (20/hour). Try again later.', true);
         try {
             const r = await sendReply(req.params.uid, body);
+            const tk = ticketOf(r.subject);
+            if (tk) await recordMailboxReply({ getRequests, save }, tk, req.session.user.username, body);
             console.log(`📤 [mail] ${req.session.user.username} replied to ${r.to}`);
             go(res, back, `Reply sent to ${r.to}`);
         } catch (err) {
@@ -457,7 +554,7 @@ function registerRoutes(app, { isAdminRank }) {
 
     app.post('/settings/mail/:uid(\\d+)/toggle-read', guard, async (req, res) => {
         try {
-            await setSeen(req.params.uid, req.body.seen === '1');
+            await setSeen(req.params.uid, req.body.seen === '1', String(req.body.ticket || ''));
             go(res, '/settings/mail', req.body.seen === '1' ? 'Marked as read' : 'Marked as unread');
         } catch (err) {
             go(res, '/settings/mail', `Could not update message: ${err.message}`, true);
@@ -465,4 +562,4 @@ function registerRoutes(app, { isAdminRank }) {
     });
 }
 
-module.exports = { isConfigured, registerRoutes, sendStatusChangeEmail, sendSupportRequestEmail, sendRequesterConfirmation, sendRequesterReplyNotice, sendStaffReplyNotice };
+module.exports = { buildTimeline, isConfigured, registerRoutes, sendStatusChangeEmail, sendSupportRequestEmail, sendRequesterConfirmation, sendRequesterReplyNotice, sendStaffReplyNotice };
