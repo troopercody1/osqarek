@@ -464,9 +464,15 @@ const supportPage = (req, res, extra = {}) => res.render('support-request', {
     ...legalLocals(), member: req.session.supportMember || null, types: SUPPORT_TYPES, sent: null, emailedTo: null, error: null,
     form: { type: '', discord: '', email: '', subject: '', message: '' }, ...extra
 });
-app.get('/support/request', (req, res) => supportPage(req, res));
+// Logging in with Discord is required to submit a request (so it is tied to a real account).
+const supportLoginRedirect = (res) => res.redirect('/support/login?next=/support/request');
+app.get('/support/request', (req, res) => {
+    if (!req.session.supportMember) return supportLoginRedirect(res);
+    supportPage(req, res);
+});
 app.post('/support/request', async (req, res) => {
     const member = req.session.supportMember || null; // logged-in members can't spoof who the request is from
+    if (!member) return supportLoginRedirect(res);
     const form = {
         type: SUPPORT_TYPES.includes(req.body.type) ? req.body.type : SUPPORT_TYPES[SUPPORT_TYPES.length - 1],
         discord: member ? member.username : supportClean(req.body.discord, 64), email: supportClean(req.body.email, 254),
