@@ -137,7 +137,7 @@ const GUILD_ID = process.env.GUILD_ID || '771423231114084353';
 const ALLOWED_ROLES = ["850513944329191445", "1511810524818440243", "771423764511981599", "850513087399329823", "801828933800296478", "772558550555295794"];
 // Base URL used to build absolute, shareable links (e.g. the co-owner application
 // status page). Override with PUBLIC_BASE_URL in .env if the domain changes.
-const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || 'https://osqareks-universe.onrender.com').replace(/\/$/, '');
+const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || 'https://osqarek-universe-ivym.onrender.com').replace(/\/$/, '');
 
 let client;
 
