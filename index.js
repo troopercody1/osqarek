@@ -335,9 +335,9 @@ app.set('views', path.join(__dirname, 'views'));
 // Wraps res.render so every full HTML page gets a small fixed "Terms · Privacy" bar just before
 // </body>. It is position:fixed so it works on the centred login/maintenance cards and the
 // dashboard layouts alike. The Terms/Privacy pages already have their own footer, so they're skipped.
-const LEGAL_TERMS_URL = 'https://osqareks-universe.onrender.com/terms';
-const LEGAL_PRIVACY_URL = 'https://osqareks-universe.onrender.com/privacy';
-const LEGAL_SUPPORT_URL = 'https://osqareks-universe.onrender.com/support';
+const LEGAL_TERMS_URL = 'https://osqarek-universe-ivym.onrender.com/terms';
+const LEGAL_PRIVACY_URL = 'https://osqarek-universe-ivym.onrender.com/privacy';
+const LEGAL_SUPPORT_URL = 'https://osqarek-universe-ivym.onrender.com/support';
 const LEGAL_FOOTER_HTML =
     '<div id="legal-footer" style="position:fixed;left:50%;bottom:0;transform:translateX(-50%);z-index:50;' +
     'padding:5px 16px;font:12px/1.4 \'Segoe UI\',system-ui,sans-serif;color:#9aa0ac;background:rgba(14,15,19,0.92);' +
