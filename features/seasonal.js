@@ -1,5 +1,5 @@
 // Seasonal / event messages.
-//   ecodrops  - 1-6 random "eco drop" announcements per day (ET). Message only, no currency is given.
+//   ecodrops  - 3-6 random "eco drop" announcements per day (ET). Message only, no currency is given.
 //               Each one picks a random amount between 50M and 500M and pings a role.
 //   christmas - one Christmas fact per day at 11:00 AM ET until Christmas Day.
 // Both are driven by the shared 10s scheduler in features/index.js (tick), survive restarts
@@ -96,7 +96,8 @@ async function tickDrops(t) {
     if (d.drop.day !== t.key) {
         const from = Math.min(cfg.startHour, cfg.endHour - 1) * 60;
         const to = Math.max(cfg.endHour, cfg.startHour + 1) * 60;
-        const count = randInt(1, cfg.maxPerDay);
+        const hi = Math.max(1, cfg.maxPerDay);
+        const count = randInt(Math.min(cfg.minPerDay, hi), hi);
         const times = planTimes(count, from, to);
         d.drop = { day: t.key, times, done: times.map(() => false) };
         touch();
