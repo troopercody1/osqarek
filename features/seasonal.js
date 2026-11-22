@@ -79,11 +79,11 @@ async function getChannel(id) {
 const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
 // Random times (minutes since midnight ET), at least `gap` minutes apart.
-function planTimes(count, from, to, gap = 20) {
+function planTimes(count, from, to, gap = 20, existing = []) {
     const times = [];
     for (let tries = 0; times.length < count && tries < 500; tries++) {
         const m = randInt(from, to - 1);
-        if (times.every((x) => Math.abs(x - m) >= gap)) times.push(m);
+        if (times.every((x) => Math.abs(x - m) >= gap) && existing.every((x) => Math.abs(x - m) >= gap)) times.push(m);
     }
     return times.sort((a, b) => a - b);
 }
@@ -93,14 +93,29 @@ async function tickDrops(t) {
     if (!cfg.enabled || !cfg.channels.length) return;
     const d = data();
 
+    const from = Math.min(cfg.startHour, cfg.endHour - 1) * 60;
+    const to = Math.max(cfg.endHour, cfg.startHour + 1) * 60;
+    const hi = Math.max(1, cfg.maxPerDay);
+    const lo = Math.min(cfg.minPerDay, hi);
+
     if (d.drop.day !== t.key) {
-        const from = Math.min(cfg.startHour, cfg.endHour - 1) * 60;
-        const to = Math.max(cfg.endHour, cfg.startHour + 1) * 60;
-        const hi = Math.max(1, cfg.maxPerDay);
-        const count = randInt(Math.min(cfg.minPerDay, hi), hi);
-        const times = planTimes(count, from, to);
+        const times = planTimes(randInt(lo, hi), from, to);
         d.drop = { day: t.key, times, done: times.map(() => false) };
         touch();
+    }
+
+    // Top-off: if today's plan has fewer drops than the minimum (e.g. the minimum was raised
+    // mid-day), schedule the missing ones at random times in the rest of today.
+    const missing = lo - d.drop.times.length;
+    if (missing > 0 && t.minutes + 1 < to) {
+        const extra = planTimes(missing, Math.max(from, t.minutes + 1), to, 20, d.drop.times);
+        if (extra.length) {
+            const pairs = d.drop.times.map((m, i) => [m, d.drop.done[i]]).concat(extra.map((m) => [m, false]));
+            pairs.sort((x, y) => x[0] - y[0]);
+            d.drop.times = pairs.map((x) => x[0]);
+            d.drop.done = pairs.map((x) => x[1]);
+            touch();
+        }
     }
 
     for (let i = 0; i < d.drop.times.length; i++) {
