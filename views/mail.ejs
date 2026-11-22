@@ -92,39 +92,54 @@
 
     <% } else if (view === 'read' && thread) {
         const cspMeta = '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data:; style-src \'unsafe-inline\'"><base target="_blank">'; %>
+        <% if (ticket && timeline && timeline.length > 1) { %><div class="meta" style="margin-bottom:10px;">Conversation for <b><%= ticket %></b> &middot; <%= timeline.length %> messages, oldest first</div><% } %>
+        <% (timeline || [{ kind: 'email', m: thread }]).forEach((item, i) => {
+            if (item.kind === 'staff') { %>
+        <div class="card" style="border-left:3px solid #9ece6a;">
+            <div class="pad">
+                <div class="meta"><b>Staff reply</b> &middot; <%= item.name %> &middot; via the ticket page<% if (item.at) { %> &middot; <%= new Date(item.at).toLocaleString('en-GB', { timeZone: 'UTC' }) %> UTC<% } %></div>
+            </div>
+            <div class="body-text"><%= item.body %></div>
+        </div>
+        <% return; }
+            const em = item.m; %> %>
         <div class="card">
             <div class="pad">
-                <div class="subject"><%= thread.subject %></div>
+                <div class="subject"><%= em.subject %></div>
                 <div class="meta">
-                    <b>From:</b> <%= thread.from.map(a => a.name ? a.name + ' <' + a.address + '>' : a.address).join(', ') %><br>
-                    <b>To:</b> <%= thread.to.map(a => a.address).join(', ') %><br>
-                    <% if (thread.cc.length) { %><b>Cc:</b> <%= thread.cc.map(a => a.address).join(', ') %><br><% } %>
-                    <% if (thread.date) { %><b>Date:</b> <%= new Date(thread.date).toLocaleString('en-GB', { timeZone: 'UTC' }) %> UTC<% } %>
+                    <b>From:</b> <%= em.from.map(a => a.name ? a.name + ' <' + a.address + '>' : a.address).join(', ') %><br>
+                    <b>To:</b> <%= em.to.map(a => a.address).join(', ') %><br>
+                    <% if (em.cc.length) { %><b>Cc:</b> <%= em.cc.map(a => a.address).join(', ') %><br><% } %>
+                    <% if (em.date) { %><b>Date:</b> <%= new Date(em.date).toLocaleString('en-GB', { timeZone: 'UTC' }) %> UTC<% } %>
                 </div>
+                <% if (em.uid === thread.uid) { %>
                 <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
-                    <form method="POST" action="/settings/mail/<%= thread.uid %>/toggle-read" style="display:contents;">
+                    <form method="POST" action="/settings/mail/<%= em.uid %>/toggle-read" style="display:contents;">
                         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <input type="hidden" name="seen" value="0">
-                        <button class="btn" type="submit">Mark unread</button>
+                        <% if (ticket) { %><input type="hidden" name="ticket" value="<%= ticket %>"><% } %>
+                        <button class="btn" type="submit"><%= ticket ? 'Mark conversation unread' : 'Mark unread' %></button>
                     </form>
                 </div>
+                <% } %>
             </div>
 
-            <% if (thread.html) { %>
+            <% if (em.html) { %>
                 <!-- Sender HTML is untrusted: scripts disabled via sandbox, remote content blocked via CSP. -->
                 <iframe class="mail-html" sandbox="" referrerpolicy="no-referrer"
-                        srcdoc="<%= cspMeta + thread.html %>"></iframe>
-                <div class="atts">Remote images are blocked for privacy. <a href="#plain" onclick="document.getElementById('plain').style.display='block'; return false;">Show plain-text version</a></div>
-                <div class="body-text" id="plain" style="display:none;"><%= thread.text %></div>
+                        srcdoc="<%= cspMeta + em.html %>"></iframe>
+                <div class="atts">Remote images are blocked for privacy. <a href="#plain-<%= i %>" onclick="document.getElementById('plain-<%= i %>').style.display='block'; return false;">Show plain-text version</a></div>
+                <div class="body-text" id="plain-<%= i %>" style="display:none;"><%= em.text %></div>
             <% } else { %>
-                <div class="body-text"><%= thread.text || '(empty message)' %></div>
+                <div class="body-text"><%= em.text || '(empty message)' %></div>
             <% } %>
 
-            <% if (thread.attachments.length) { %>
-                <div class="atts">&#128206; <%= thread.attachments.length %> attachment(s) not shown here:
-                    <%= thread.attachments.map(a => a.name + ' (' + Math.max(1, Math.round(a.size / 1024)) + ' KB)').join(', ') %></div>
+            <% if (em.attachments.length) { %>
+                <div class="atts">&#128206; <%= em.attachments.length %> attachment(s) not shown here:
+                    <%= em.attachments.map(a => a.name + ' (' + Math.max(1, Math.round(a.size / 1024)) + ' KB)').join(', ') %></div>
             <% } %>
         </div>
+        <% }) %>
 
         <form class="card pad" method="POST" action="/settings/mail/<%= thread.uid %>/reply">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -152,13 +167,14 @@
                 <div class="msg-row <%= m.seen ? '' : 'unread' %>">
                     <span class="dot"></span>
                     <a class="msg-main" href="/settings/mail/<%= m.uid %>">
-                        <div class="msg-from"><%= m.from %><% if (m.answered) { %><span class="tag">replied</span><% } %></div>
+                        <div class="msg-from"><%= m.from %><% if (m.count > 1) { %><span class="tag"><%= m.count %> messages<%= m.unreadCount ? ', ' + m.unreadCount + ' new' : '' %></span><% } %><% if (m.answered) { %><span class="tag">replied</span><% } %></div>
                         <div class="msg-subject"><%= m.subject %></div>
                     </a>
                     <div class="msg-date"><%= m.date ? new Date(m.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : '' %></div>
                     <form method="POST" action="/settings/mail/<%= m.uid %>/toggle-read" style="display:contents;">
                         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <input type="hidden" name="seen" value="<%= m.seen ? '0' : '1' %>">
+                        <% if (m.ticket) { %><input type="hidden" name="ticket" value="<%= m.ticket %>"><% } %>
                         <button class="btn" type="submit" title="Toggle read"><%= m.seen ? 'Unread' : 'Read' %></button>
                     </form>
                 </div>
