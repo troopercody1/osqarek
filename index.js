@@ -1140,7 +1140,7 @@ app.get('/settings', (req, res) => {
 });
 
 // Mailbox: /settings/mail (inbox), /settings/mail/:uid (read + reply), /settings/mail/compose
-mailbox.registerRoutes(app, { isAdminRank });
+mailbox.registerRoutes(app, { isAdminRank, getRequests: () => db.supportRequests, save: () => safeSave() });
 
 // Support threads: /support/requests/:id (member) and /settings/support[/:id] (staff)
 supportThreads.registerRoutes(app, {
