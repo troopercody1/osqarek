@@ -299,14 +299,19 @@ function importMarriageBotMessage(m, botIds, stats) {
     stats.fromBot++;
     const i = m.interaction;
     const cmd = i?.commandName ? String(i.commandName).split(' ')[0].toLowerCase() : null;
-    const actor = i?.user?.id;
-    if (!cmd || !actor) return;
+    const actor = i?.user?.id || m.interactionMetadata?.user?.id;
+    const sample = (why) => {
+        if (!stats.samples || stats.samples.length >= 8) return;
+        const t = messageText(m).replace(/\s+/g, ' ').slice(0, 170);
+        stats.samples.push(`• ${why} | cmd=${cmd || '?'} | interaction=${i ? 'yes' : 'no'} meta=${m.interactionMetadata ? 'yes' : 'no'} | ${t || '(no text)'}`);
+    };
+    if (!cmd || !actor) { sample('no command info'); return; }
     const kind = MB_ADD[cmd] || MB_END[cmd];
-    if (!kind) return;
+    if (!kind) { sample('other command'); return; }
     const text = messageText(m);
     const others = mentionedIds(text).filter((id) => id !== actor);
     const other = others[0];
-    const skip = () => { stats.skipped++; };
+    const skip = () => { stats.skipped++; sample('skipped'); };
 
     if (MB_ADD[cmd]) {
         const ids = mentionedIds(text);
@@ -331,18 +336,20 @@ function importMarriageBotMessage(m, botIds, stats) {
     } else if (kind === 'disown') unlink(actor, other);
     else unlink(other, actor); // runaway
     stats.applied++;
+    sample('imported');
 }
 
 const SYNC_TIME_BUDGET_MS = 13 * 60 * 1000; // interaction replies stop working after 15 minutes
 
-async function syncMarriage(interaction, channels, limit, label) {
+async function syncMarriage(interaction, channels, limit, label, debug = false) {
     const { db, safeSave } = context.get();
     const cfg = getConfig(db, 'family');
     if (!cfg.enabled) return interaction.editReply('❌ Marriage is turned off.');
     const botIds = [MB_DEFAULT_ID];
     const started = Date.now();
     const found = [];
-    let scanned = 0, channelsRead = 0, unreadable = 0, timedOut = false;
+    let scanned = 0, channelsRead = 0, unreadable = 0, timedOut = false, hitLimit = 0;
+    const hits = [];
 
     for (const channel of channels) {
         if (Date.now() - started > SYNC_TIME_BUDGET_MS) { timedOut = true; break; }
@@ -352,7 +359,10 @@ async function syncMarriage(interaction, channels, limit, label) {
         if (!msgs) { unreadable++; continue; }
         channelsRead++;
         scanned += msgs.length;
-        for (const m of msgs) if (botIds.includes(m.author?.id)) found.push(m);
+        if (msgs.length >= limit) hitLimit++;
+        let n = 0;
+        for (const m of msgs) if (botIds.includes(m.author?.id)) { found.push(m); n++; }
+        if (n) hits.push(`${channel} (${n}${msgs.length >= limit ? ', limit reached' : ''})`);
         if (channels.length > 1 && channelsRead % 5 === 0) {
             await interaction.editReply(`⏳ Reading channels… ${channelsRead}/${channels.length} done, ${found.length} MarriageBot messages so far.`).catch(() => { });
         }
@@ -361,12 +371,15 @@ async function syncMarriage(interaction, channels, limit, label) {
 
     // Apply across all channels in time order (a marriage in one channel and a divorce in another still end up right).
     found.sort((x, y) => x.createdTimestamp - y.createdTimestamp);
-    const stats = { scanned, fromBot: 0, applied: 0, skipped: 0 };
+    const stats = { scanned, fromBot: 0, applied: 0, skipped: 0, samples: debug ? [] : null };
     for (const m of found) importMarriageBotMessage(m, botIds, stats);
     if (stats.applied) await safeSave();
 
     const notes = [];
     if (stats.fromBot === 0) notes.push(`No MarriageBot messages found in the last ${limit} messages of ${label}. Try a higher \`messages\` value or the channel where it is used.`);
+    if (hits.length) notes.push(`MarriageBot found in: ${hits.slice(0, 15).join(', ')}${hits.length > 15 ? ', …' : ''}`);
+    if (hitLimit) notes.push(`⚠️ Hit the ${limit}-message limit in ${hitLimit} channel${hitLimit === 1 ? '' : 's'}, so older messages there were not read. Raise \`messages\` (up to 50000) to go further back.`);
+    if (debug && stats.samples.length) notes.push('**Samples**\n' + stats.samples.join('\n'));
     if (unreadable) notes.push(`Couldn't read ${unreadable} channel${unreadable === 1 ? '' : 's'} (missing permissions).`);
     if (timedOut) notes.push('Stopped early to stay inside Discord\'s 15-minute limit. Run it again with a lower `messages` value, or pick specific channels.');
     return interaction.editReply({ content: '', embeds: [brandEmbed({
@@ -379,15 +392,16 @@ async function syncMarriage(interaction, channels, limit, label) {
 // Called by /syncstats marriage:True (commands/staff/handler.js, which has already checked Admin+ and deferred).
 function syncMarriageCommand(interaction) {
     const limit = interaction.options.getInteger('messages') || 1000;
+    const debug = !!interaction.options.getBoolean('debug');
     if (interaction.options.getBoolean('allchannels')) {
         const types = new Set([0, 5]); // text + announcement channels
         const channels = [...interaction.guild.channels.cache.values()].filter((c) => types.has(c.type));
         if (!channels.length) return interaction.editReply('❌ No text channels found.');
-        return syncMarriage(interaction, channels, limit, 'all channels');
+        return syncMarriage(interaction, channels, limit, 'all channels', debug);
     }
     const channel = interaction.options.getChannel('channel') || interaction.channel;
     if (!channel?.messages) return interaction.editReply('❌ Pick a text channel.');
-    return syncMarriage(interaction, [channel], limit, `${channel}`);
+    return syncMarriage(interaction, [channel], limit, `${channel}`, debug);
 }
 
 // ---------- buttons ----------
