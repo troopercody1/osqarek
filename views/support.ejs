@@ -63,16 +63,8 @@ const cats = [
   { id:'feedback', icon:'💡', name:'Bugs & Feedback',        desc:'Report a problem or suggest an idea.' }
 ];
 const esc = (v) => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const articles = [
-  { c:'account', t:'I can’t verify', b:`<ol><li>Make sure you’ve joined the server first.</li><li>Open the <a href="/verify">verification page</a> and sign in with Discord.</li><li>Complete the CAPTCHA and tick the rules agreement, then submit.</li></ol><p>If the CAPTCHA doesn’t show up, a privacy extension, ad blocker or VPN may be blocking it. Try turning it off for this page or using another browser. Still stuck? <a href="/support/request">Submit a request</a> with a short description of what you see.</p>` },
-  { c:'mod', t:'I was warned, muted, kicked or banned and think it’s a mistake', b:`<p>Submit a request (or DM the bot) and include your Discord username and what you think went wrong. Staff will review it. Automatic flags and actions can be wrong, and they’re not a final judgment about you. If you’re banned, use the <a href="/support/request">request form</a> or DM the bot. See the <a href="/terms#moderation">Terms</a> for how moderation works.</p>` },
-  { c:'bot', t:'A command isn’t working or the bot is offline', b:`<ul><li>Use <strong>/help</strong> to see what’s available, and check you have permission for the command.</li><li>Wait a moment and try again. Discord can lag, and the bot restarts after updates.</li><li>If the bot is down or the website says it’s in maintenance, that’s usually temporary. If it lasts, let staff know.</li></ul>` },
-  { c:'bot', t:'How do confessions work?', b:`<p>Confessions are posted publicly without your name, but they are not anonymous to staff, who can see the author so abuse can be handled. If a confession breaks the rules, report it to staff. More in the <a href="/terms#confessions">Terms</a> and the <a href="/privacy#collect">Privacy Policy</a>.</p>` },
-  { c:'bot', t:'How do I message staff through the bot?', b:`<p>Send {{bot}} a direct message. It’s relayed privately to staff, who reply to you in your DMs. Keep your DMs open so you can get the reply.</p>` },
-  { c:'staff', t:'How do staff applications work?', b:`<p>You can apply for <a href="/mod-apps/apply">moderator</a> or <a href="/apply-co-owner">co-owner</a> when applications are open. The owners review them, and not every application gets a position. If you’ve been waiting a while or something looks broken, <a href="/support/request">submit a request</a>.</p>` },
-  { c:'privacy', t:'I want to see, correct or delete my data', b:`<p>Submit a request and say what you need. We may ask you to confirm you control the Discord account first. Leaving the server doesn’t delete your data automatically, so you do need to ask. Some records, such as moderation history, may be kept for safety reasons. Details are in the <a href="/privacy#rights">Privacy Policy</a>.</p>` },
-  { c:'feedback', t:'I found a bug or have a suggestion', b:`<p>The most useful reports say what you did, what you expected, what happened instead, and roughly when. If it’s a security problem, please use the <a href="/support/request">request form</a> or DM the bot instead of posting it publicly.</p>` }
-];
+// Popular articles come from the database (Dashboard → Help Center); bodies are already safe HTML.
+const articles = (typeof locals.articles !== 'undefined' && Array.isArray(locals.articles)) ? locals.articles : [];
 %>
 <header class="bar"><div class="bar-in">
     <a class="brand" href="/support" style="text-decoration:none;"><%= botName %> <span>Help Center</span></a>

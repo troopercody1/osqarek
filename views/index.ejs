@@ -257,6 +257,7 @@
         <a href="/analytics" class="tab-btn <%= activePage === 'fx-analytics' ? 'active' : '' %>">📈 Analytics</a>
         <a href="/community" class="tab-btn <%= activePage === 'fx-community' ? 'active' : '' %>">🎉 Giveaways &amp; Polls</a>
         <a href="/timed" class="tab-btn <%= activePage === 'fx-timed' ? 'active' : '' %>">⏲️ Timed Actions</a>
+        <% if (user && user.id === 'admin') { %><a href="/helpcenter" class="tab-btn <%= activePage === 'fx-helpcenter' ? 'active' : '' %>">📚 Help Center</a><% } %>
         <div style="margin-top: auto; display: flex; flex-direction: column; gap: 6px;">
             <% if (user && user.id === 'admin') { %>
             <a href="/settings" class="sidebar-link">🔧 Site Settings</a>

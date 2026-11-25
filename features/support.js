@@ -11,6 +11,9 @@
 //   { id, type, discord, discordId, avatar, email, subject, message, status, createdAt, updatedAt,
 //     messages: [{ id, from: 'member' | 'staff' | 'system', name, body, at }] }
 // Requests saved before threads existed are upgraded on first read (see normalize()).
+// Requests opened through the ticket system (features/tickets.js) also carry `ticket: {...}`. Their website
+// replies and status changes are announced on the internal bus ('support:message' / 'support:status') so the
+// ticket channel can mirror them.
 //
 // Member routes (Discord login from /support/login, only the request's owner gets in):
 //   GET  /support/requests/:id            thread page
@@ -23,10 +26,13 @@
 //   POST /settings/support/:id/status     set Open / Awaiting reply / Solved
 const crypto = require('crypto');
 const mailbox = require('./mail');
+const { bus } = require('./context');
 
 const ID_RE = /^SR-[0-9A-F]{6}$/;
 const MAX_BODY = 3000;          // characters per message
 const MAX_MESSAGES = 60;        // member + staff messages per request (system lines don't count)
+const TICKET_MAX_MESSAGES = 150; // tickets are live chats, so they get a bigger thread
+const limitFor = (r) => (r.ticket ? TICKET_MAX_MESSAGES : MAX_MESSAGES);
 const REPLY_LIMIT = 8;          // member replies ...
 const REPLY_WINDOW = 10 * 60000; // ... per 10 minutes, per Discord account
 
@@ -75,11 +81,13 @@ function registerRoutes(app, { getDb, getClient, isAdminRank, safeSave, sendDisc
 
     const addMessage = (r, from, name, body) => {
         const at = Date.now();
-        r.messages.push({ id: newMsgId(), from, name, body, at });
+        const msg = { id: newMsgId(), from, name, body, at };
+        r.messages.push(msg);
         r.updatedAt = at;
+        if (r.ticket) bus.emit('support:message', r, msg); // mirrored into the ticket channel
     };
     const addEvent = (r, text) => addMessage(r, 'system', '', text);
-    const setStatus = (r, status) => { r.status = status; r.updatedAt = Date.now(); };
+    const setStatus = (r, status) => { r.status = status; r.updatedAt = Date.now(); if (r.ticket) bus.emit('support:status', r, status); };
     const realMessages = (r) => r.messages.filter((m) => m.from !== 'system').length;
 
     // ── Tell the member staff answered (Discord DM and/or email, whichever works) ──
@@ -143,7 +151,7 @@ function registerRoutes(app, { getDb, getClient, isAdminRank, safeSave, sendDisc
         const member = req.session.supportMember;
         const body = clean(req.body.body, MAX_BODY);
         if (body.length < 2) return back(res, path, 'Write a reply before sending.', true);
-        if (realMessages(r) >= MAX_MESSAGES) return back(res, path, 'This thread is full. Please submit a new request and mention this reference.', true);
+        if (realMessages(r) >= limitFor(r)) return back(res, path, 'This thread is full. Please submit a new request and mention this reference.', true);
         if (rateLimited(member.id)) return back(res, path, 'You are sending replies too quickly. Please wait a few minutes.', true);
 
         const reopened = r.status === 'solved';
@@ -203,7 +211,7 @@ function registerRoutes(app, { getDb, getClient, isAdminRank, safeSave, sendDisc
         const path = `/settings/support/${r.id}`;
         const body = clean(req.body.body, MAX_BODY);
         if (!body) return back(res, path, 'Write a reply before sending.', true);
-        if (realMessages(r) >= MAX_MESSAGES) return back(res, path, 'This thread has reached its message limit.', true);
+        if (realMessages(r) >= limitFor(r)) return back(res, path, 'This thread has reached its message limit.', true);
 
         const solve = req.body.solve === '1';
         addMessage(r, 'staff', req.session.user.username || 'Staff', body); // members only ever see "Support Team"
@@ -233,4 +241,4 @@ function registerRoutes(app, { getDb, getClient, isAdminRank, safeSave, sendDisc
     });
 }
 
-module.exports = { registerRoutes, normalize, countOpen, ago, full, avatarUrl, STATUS, MAX_BODY };
+module.exports = { registerRoutes, normalize, countOpen, ago, full, avatarUrl, STATUS, MAX_BODY, MAX_MESSAGES, TICKET_MAX_MESSAGES, limitFor };

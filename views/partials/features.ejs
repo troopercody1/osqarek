@@ -452,4 +452,68 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
     </div>
 <% } %>
 </div>
+<!-- ═══════════════ HELP CENTER (popular articles) ═══════════════ -->
+<div id="fx-helpcenter" class="tab-content<%= tab === 'fx-helpcenter' ? ' active' : '' %>">
+<% if (tab === 'fx-helpcenter') { banner(); const ed = fx_.editing; %>
+    <% (fx_.errors || []).forEach(e => { %><div class="fx-err"><%= e %></div><% }) %>
+    <div class="panel">
+        <h2>📚 Popular articles <span class="fx-pill <%= fx_.customised ? 'warn' : '' %>"><%= fx_.customised ? 'customised' : 'built-in list' %></span></h2>
+        <p class="fx-sub">These are the articles shown on the public <a href="/support" target="_blank" rel="noopener" style="color:#7aa2f7">Help Center</a>. Changes go live as soon as you save. Hidden articles stay here but are not shown to members.</p>
+        <% if (fx_.articles.length) { %>
+        <table>
+            <tr><th style="width:40px">#</th><th>Article</th><th>Category</th><th>Status</th><th style="width:330px">Actions</th></tr>
+            <% fx_.articles.forEach((a, i) => { const cat = fx_.cats.find(c => c.id === a.c); %>
+            <tr>
+                <td><%= i + 1 %></td>
+                <td>
+                    <details><summary style="cursor:pointer;color:#c0caf5;"><%= a.t %></summary><div class="fx-small" style="margin-top:8px;padding:8px 10px;background:#16161e;border-radius:6px;"><%- a.html %></div></details>
+                </td>
+                <td class="fx-small"><%= cat ? cat.name : a.c %></td>
+                <td><span class="fx-pill <%= a.hidden ? 'off' : 'on' %>"><%= a.hidden ? 'hidden' : 'visible' %></span></td>
+                <td>
+                    <div class="fx-inline">
+                        <form action="/helpcenter/<%= a.id %>/move" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="dir" value="up"><button class="fx-btn" type="submit" <%= i === 0 ? 'disabled' : '' %> title="Move up">↑</button></form>
+                        <form action="/helpcenter/<%= a.id %>/move" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="dir" value="down"><button class="fx-btn" type="submit" <%= i === fx_.articles.length - 1 ? 'disabled' : '' %> title="Move down">↓</button></form>
+                        <a class="fx-btn" style="text-decoration:none" href="/helpcenter?edit=<%= a.id %>#editor">Edit</a>
+                        <form action="/helpcenter/<%= a.id %>/toggle" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="fx-btn" type="submit"><%= a.hidden ? 'Show' : 'Hide' %></button></form>
+                        <form action="/helpcenter/<%= a.id %>/delete" method="POST" onsubmit="return confirm('Delete this article?');"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="fx-btn danger" type="submit">Delete</button></form>
+                    </div>
+                </td>
+            </tr>
+            <% }) %>
+        </table>
+        <% } else { %><p class="fx-sub">No articles yet. Add one below.</p><% } %>
+        <form action="/helpcenter/reset" method="POST" onsubmit="return confirm('Throw away your changes and go back to the built-in articles?');" style="margin-top:12px"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="fx-btn danger" type="submit">Reset to built-in articles</button></form>
+    </div>
+
+    <div class="panel" id="editor">
+        <h2><%= ed ? '✏️ Edit article' : '➕ Add an article' %></h2>
+        <form action="/helpcenter/save" method="POST" class="fx-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <% if (ed) { %><input type="hidden" name="id" value="<%= ed.id %>"><% } %>
+            <div>
+                <label for="hc-c">Category</label>
+                <select id="hc-c" name="c" required><% fx_.cats.forEach(c => { %><option value="<%= c.id %>" <%= ed && ed.c === c.id ? 'selected' : '' %>><%= c.name %></option><% }) %></select>
+            </div>
+            <div class="wide">
+                <label for="hc-t">Title</label>
+                <input id="hc-t" type="text" name="t" maxlength="<%= fx_.max.title %>" required value="<%= ed ? ed.t : '' %>" placeholder="e.g. How do I change my nickname?">
+            </div>
+            <div class="wide">
+                <label for="hc-b">Article text</label>
+                <textarea id="hc-b" name="b" rows="10" maxlength="<%= fx_.max.body %>" required placeholder="Write the answer here."><%= ed ? ed.b : '' %></textarea>
+                <div class="fx-small" style="margin-top:6px;color:#565f89;">
+                    Blank line = new paragraph. Start lines with <code>- </code> for bullets or <code>1. </code> for numbers.
+                    <code>**bold**</code>, <code>[link text](/support/request)</code> or <code>[link](https://example.com)</code>, and <code>{{bot}}</code> for the bot's name. Raw HTML is shown as plain text.
+                </div>
+            </div>
+            <div class="wide fx-inline">
+                <button type="submit" class="btn-submit" style="margin:0"><%= ed ? 'Save changes' : 'Add article' %></button>
+                <% if (ed) { %><a href="/helpcenter" class="fx-btn" style="text-decoration:none">Cancel</a><% } %>
+                <span class="fx-small"><%= fx_.articles.length %> / <%= fx_.max.articles %> articles</span>
+            </div>
+        </form>
+    </div>
+<% } %>
+</div>
 <% } %>

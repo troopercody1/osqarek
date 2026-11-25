@@ -17,8 +17,12 @@ const modules = {
     analytics: require('./analytics'),
     voice: require('./voice'),
     seasonal: require('./seasonal'),
+    serverstats: require('./serverstats'),
+    tickets: require('./tickets'),
+    family: require('./family'),
     featurecmd: require('./featurecmd'),
 };
+const helpcenter = require('./helpcenter'); // dashboard-only (no slash commands)
 
 const definitions = Object.values(modules).flatMap((m) => m.definitions || []);
 const handlers = Object.assign({}, ...Object.values(modules).map((m) => m.commands || {}));
@@ -29,7 +33,7 @@ const safe = (label, fn) => async (...args) => {
 
 let started = false;
 
-// ctx: { client, db, GUILD_ID, safeSave, logAction, STAFF_ROLE_IDS, isStaffMember, getCachedMembers, app, checkAuth, renderDashboard }
+// ctx: { client, db, GUILD_ID, safeSave, logAction, STAFF_ROLE_IDS, isStaffMember, getCachedMembers, app, checkAuth, renderDashboard, isAdminRank, baseUrl }
 function init(ctx) {
     if (started) return;
     started = true;
@@ -49,7 +53,8 @@ function init(ctx) {
     }));
     client.on('guildMemberRemove', safe('leave', async (member) => { if (guildOk(member.guild)) analytics.onLeave(member); }));
     client.on('guildMemberUpdate', safe('update', (o, n) => impersonation.onMemberUpdate(o, n)));
-    client.on('messageCreate', safe('message', async (m) => analytics.onMessage(m)));
+    client.on('messageCreate', safe('message', async (m) => { analytics.onMessage(m); modules.tickets.onMessage(m); }));
+    modules.tickets.init(); // Help Center → ticket channel direction
     client.on('voiceStateUpdate', safe('voice', async (o, n) => { if (guildOk(n.guild || o.guild)) modules.voice.onVoiceState(o, n); }));
     client.on('guildBanAdd', safe('ban', async (ban) => {
         if (!guildOk(ban.guild)) return;
@@ -71,7 +76,7 @@ function init(ctx) {
         await evasion.backfillBans(guild);
         analytics.snapshot(guild);
         modules.voice.reconcile(guild, { resume: true });
-        console.log('🧩 Features online: raid, lockdown, drills, evasion, impersonation, timed, giveaways, polls, audit, analytics, voice, eco drops, christmas facts.');
+        console.log('🧩 Features online: raid, lockdown, drills, evasion, impersonation, timed, giveaways, polls, audit, analytics, voice, eco drops, christmas facts, server stats, tickets, family.');
     });
     if (client.isReady()) onReady(); else client.once('clientReady', onReady);
 
@@ -81,7 +86,7 @@ function init(ctx) {
         if (busy || !client.isReady()) return;
         busy = true;
         try {
-            for (const [label, fn] of [['raid', raid.tick], ['lockdown', modules.lockdown.tick], ['timed', modules.timed.tick], ['giveaways', modules.giveaways.tick], ['polls', modules.polls.tick], ['evasion', evasion.tick], ['analytics', analytics.tick], ['voice', modules.voice.tick], ['seasonal', modules.seasonal.tick]]) {
+            for (const [label, fn] of [['raid', raid.tick], ['lockdown', modules.lockdown.tick], ['timed', modules.timed.tick], ['giveaways', modules.giveaways.tick], ['polls', modules.polls.tick], ['evasion', evasion.tick], ['analytics', analytics.tick], ['voice', modules.voice.tick], ['seasonal', modules.seasonal.tick], ['serverstats', modules.serverstats.tick], ['tickets', modules.tickets.tick]]) {
                 try { await fn(); } catch (err) { console.error(`❌ [features:${label}] tick failed:`, err.message); }
             }
         } finally { busy = false; }
@@ -89,16 +94,22 @@ function init(ctx) {
 
     // Dashboard routes
     require('./dashboard').register(ctx, modules);
+    helpcenter.register(ctx); // Features → Help Center (popular articles editor)
 }
 
-// Returns true when the interaction belonged to a feature (buttons).
+// Returns true when the interaction belonged to a feature (buttons, plus the ticket form).
 async function handleInteraction(interaction) {
-    if (!interaction.isButton()) return false;
+    const isButton = interaction.isButton();
+    if (!isButton && !interaction.isModalSubmit()) return false;
     const id = interaction.customId;
     try {
-        if (id.startsWith('gw:')) { await modules.giveaways.handleButton(interaction); return true; }
-        if (id.startsWith('poll:')) { await modules.polls.handleButton(interaction); return true; }
-        if (id.startsWith('ev:')) { await modules.evasion.handleButton(interaction); return true; }
+        if (isButton) {
+            if (id.startsWith('gw:')) { await modules.giveaways.handleButton(interaction); return true; }
+            if (id.startsWith('poll:')) { await modules.polls.handleButton(interaction); return true; }
+            if (id.startsWith('ev:')) { await modules.evasion.handleButton(interaction); return true; }
+            if (id.startsWith('tk:')) { await modules.tickets.handleButton(interaction); return true; }
+            if (id.startsWith('fam:')) { await modules.family.handleButton(interaction); return true; }
+        } else if (id.startsWith('tk:')) { await modules.tickets.handleModal(interaction); return true; }
     } catch (err) {
         console.error('❌ [features] button failed:', err);
         if (!interaction.replied && !interaction.deferred) interaction.reply({ content: '❌ Something went wrong.', flags: 64 }).catch(() => { });

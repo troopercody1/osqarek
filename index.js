@@ -39,6 +39,7 @@ const { sendStatusChangeEmail } = mailbox;
 
 // Help Center threads: member replies, staff replies, statuses (Open / Awaiting your reply / Solved).
 const supportThreads = require('./features/support');
+const helpCenter = require('./features/helpcenter');
 
 // Runs slash-command registration in the background. This is intentionally
 // NOT awaited/blocking anywhere in startup — if Discord's API is slow or
@@ -453,7 +454,7 @@ const legalLocals = () => ({
 });
 app.get('/terms', (req, res) => res.render('terms', legalLocals()));
 app.get('/privacy', (req, res) => res.render('privacy', legalLocals()));
-app.get('/support', (req, res) => res.render('support', { ...legalLocals(), member: req.session.supportMember || null, error: String(req.query.error || '').slice(0, 200) || null }));
+app.get('/support', (req, res) => res.render('support', { ...legalLocals(), member: req.session.supportMember || null, error: String(req.query.error || '').slice(0, 200) || null, articles: helpCenter.articlesForSite(db) })); // popular articles are edited in Dashboard → Help Center
 
 // --- SUPPORT REQUESTS (public "Submit a request" form) ---
 const SUPPORT_TYPES = ['Verification problem', 'Moderation appeal', 'Bot or command issue', 'Staff application', 'Data request (see / correct / delete)', 'Bug or suggestion', 'Something else'];
@@ -3008,7 +3009,7 @@ client.on('guildMemberAdd', async (member) => {
 });
 
 // Staff-only feature commands reply privately (their output includes user/mod data).
-const FEATURE_EPHEMERAL_COMMANDS = new Set(['raid', 'evasion', 'impersonation', 'timed', 'case-search', 'audit', 'analytics', 'feature', 'giveaway']);
+const FEATURE_EPHEMERAL_COMMANDS = new Set(['raid', 'evasion', 'impersonation', 'timed', 'case-search', 'audit', 'analytics', 'feature', 'giveaway', 'serverstats', 'ticket']);
 const features = require('./features');
 
 // --- COMMAND HANDLER ---
@@ -7245,7 +7246,7 @@ features.init({
     client, db, app, GUILD_ID,
     safeSave, logAction, createEmbed,
     STAFF_ROLE_IDS, isStaffMember, getCachedMembers,
-    checkAuth, renderDashboard,
+    checkAuth, renderDashboard, isAdminRank, baseUrl: PUBLIC_BASE_URL,
 });
 
 // --- BOT STARTUP ---

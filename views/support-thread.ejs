@@ -102,7 +102,7 @@
             <% }) %>
 
             <section class="reply" id="reply">
-                <% if (r.messages.filter(m => m.from !== 'system').length >= 60) { %>
+                <% if (r.messages.filter(m => m.from !== 'system').length >= (r.ticket ? 150 : 60)) { %>
                     <div class="full">This thread has reached its message limit. Please <a href="/support/request">submit a new request</a> and mention <strong><%= r.id %></strong>.</div>
                 <% } else { %>
                     <h2><%= r.status === 'solved' ? 'Need more help?' : 'Add a reply' %></h2>

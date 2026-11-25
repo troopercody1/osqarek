@@ -154,6 +154,48 @@ const FEATURES = {
             { key: 'startNumber', type: 'int', min: 1, max: 100000, default: 263, label: 'FOTD number on Nov 21, 2026', desc: 'The number goes up by 1 each day after that.' },
         ],
     },
+    serverstats: {
+        label: 'Server Stats Channels',
+        icon: '📊',
+        description: 'Locked voice channels under a \"📊 Server Stats\" category that show live counts (like the server-stats bots). The bot creates and updates them while this is enabled. Deleting one by hand just makes the bot recreate it, so turn the stat off here instead. Needs Manage Channels.',
+        defaultEnabled: false,
+        settings: [
+            { key: 'showMembers', type: 'bool', default: true, label: 'Members', desc: 'Total member count.' },
+            { key: 'showHumans', type: 'bool', default: false, label: 'Humans', desc: 'Members who are not bots.' },
+            { key: 'showBots', type: 'bool', default: false, label: 'Bots', desc: 'Bot accounts in the server.' },
+            { key: 'showBoosts', type: 'bool', default: false, label: 'Boosts', desc: 'Server boost count.' },
+            { key: 'showChannels', type: 'bool', default: false, label: 'Channels', desc: 'Text, voice, forum and stage channels (categories and the stat channels themselves are not counted).' },
+            { key: 'showRoles', type: 'bool', default: false, label: 'Roles', desc: 'Roles in the server (not counting @everyone).' },
+            { key: 'showOpenTickets', type: 'bool', default: false, label: 'Open tickets', desc: 'Tickets that are not solved yet.' },
+            { key: 'intervalMinutes', type: 'int', min: 10, max: 1440, default: 10, label: 'Update every (minutes)', desc: 'Discord only lets a channel be renamed twice per 10 minutes, so 10 is the fastest allowed.' },
+        ],
+    },
+    tickets: {
+        label: 'Tickets',
+        icon: '🎫',
+        description: 'Button-and-form tickets in private channels (like TicketTool). Every ticket is also a Help Center request: it shows up under \"My Help Requests\" for the member and in Settings → Support requests for staff, and messages are synced both ways until it is closed. Post the panel with /ticket panel.',
+        defaultEnabled: false,
+        settings: [
+            { key: 'categories', type: 'list', default: ['General support', 'Report a user', 'Appeal'], label: 'Ticket types', desc: 'Comma separated, up to 5. Each becomes a button on the panel. Leave empty for a single \"Open a ticket\" button. Re-post the panel after changing these.' },
+            { key: 'supportRole', type: 'role', default: '', label: 'Extra support role', desc: 'Can see every ticket and is pinged when one opens. All staff roles can see tickets already.' },
+            { key: 'logChannel', type: 'channel', default: '', label: 'Log channel', desc: 'Opened / closed notices and transcripts go here. Falls back to the mod log channel.' },
+            { key: 'maxOpenPerUser', type: 'int', min: 1, max: 10, default: 2, label: 'Open tickets per member', desc: 'Members at this limit have to close one before opening another.' },
+            { key: 'allowClaim', type: 'bool', default: true, label: 'Claim button', desc: 'Lets a staff member claim a ticket so others know it is handled.' },
+            { key: 'closeDelaySeconds', type: 'int', min: 0, max: 300, default: 10, label: 'Delete channel after close (seconds)', desc: 'The conversation stays in the Help Center after the channel is gone.' },
+            { key: 'dmTranscript', type: 'bool', default: true, label: 'DM transcript on close', desc: 'Send the member a text transcript when their ticket closes (skipped if their DMs are closed).' },
+        ],
+    },
+    family: {
+        label: 'Marriage & Family',
+        icon: '💍',
+        description: '/marry, /divorce, /adopt and /family tree. Family data is kept when someone leaves the server.',
+        defaultEnabled: true,
+        settings: [
+            { key: 'proposalMinutes', type: 'int', min: 1, max: 60, default: 5, label: 'Proposal timeout (minutes)', desc: 'How long a marriage or adoption request waits for an answer.' },
+            { key: 'allowAdoption', type: 'bool', default: true, label: 'Allow adoption', desc: 'Turns /adopt on or off. Existing families are kept.' },
+            { key: 'maxChildren', type: 'int', min: 1, max: 50, default: 10, label: 'Max children per person', desc: 'Adopted children a single member can have.' },
+        ],
+    },
 };
 
 const FEATURE_NAMES = Object.keys(FEATURES);
