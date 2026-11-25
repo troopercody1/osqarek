@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help Center – <%= botName %></title>
+    <meta name="description" content="Help Center for <%= botName %>: verification, moderation appeals, staff applications, data requests and bug reports.">
+    <style>
+        :root { --bg:#313338; --bg2:#2b2d31; --bg3:#1e1f22; --hero:#5865F2; --text:#f2f3f5; --dim:#b5bac1; --line:#3f4147; --link:#00a8fc; }
+        * { box-sizing: border-box; }
+        body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 'gg sans','Segoe UI',system-ui,-apple-system,sans-serif; }
+        a { color: var(--link); text-decoration: none; } a:hover { text-decoration: underline; }
+        header.bar { background: var(--bg3); border-bottom: 1px solid var(--line); }
+        .bar-in { max-width: 1100px; margin: 0 auto; padding: 14px 24px; display:flex; align-items:center; gap:18px; }
+        .brand { font-weight:700; color:#fff; font-size:17px; } .brand span { color: var(--dim); font-weight:500; }
+        .bar-in .sp { flex:1; }
+        .bar-in a.link { color: var(--dim); font-size:14px; } .bar-in a.link:hover { color:#fff; text-decoration:none; }
+        .btn { display:inline-block; background:var(--hero); color:#fff !important; font-weight:600; font-size:14px; padding:9px 18px; border-radius:6px; border:none; cursor:pointer; font-family:inherit; text-decoration:none !important; }
+        .btn:hover { background:#4752c4; }
+        .btn.alt { background:transparent; border:1px solid #4e5058; }
+        .btn.alt:hover { background:#3f4147; }
+        .as-btn { background:none; border:none; cursor:pointer; font-family:inherit; padding:0; }
+        .hero { background: linear-gradient(135deg,#5865F2 0%,#3b45b8 100%); padding: 64px 24px 72px; text-align:center; }
+        .hero h1 { margin:0 0 22px; font-size:40px; letter-spacing:-.5px; color:#fff; }
+        .search { max-width: 620px; margin: 0 auto; position:relative; }
+        .search input { width:100%; padding:16px 20px 16px 48px; border-radius:8px; border:none; font-size:17px; font-family:inherit; background:#fff; color:#23272a; outline:none; box-shadow:0 4px 20px rgba(0,0,0,.25); }
+        .search::before { content:'\1F50D'; position:absolute; left:17px; top:50%; transform:translateY(-50%); font-size:17px; opacity:.6; }
+        .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 60px; }
+        h2 { font-size:22px; margin:44px 0 18px; }
+        .cats { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; margin-top:-34px; position:relative; }
+        .cat { background:var(--bg2); border:1px solid var(--line); border-radius:10px; padding:22px; cursor:pointer; text-align:left; color:inherit; font-family:inherit; transition: transform .12s, border-color .12s; }
+        .cat:hover, .cat.on { border-color: var(--hero); transform: translateY(-2px); }
+        .cat .ic { font-size:28px; display:block; margin-bottom:10px; }
+        .cat b { display:block; font-size:16px; color:#fff; margin-bottom:4px; }
+        .cat small { color:var(--dim); font-size:13px; line-height:1.4; display:block; }
+        .crumb { color:var(--dim); font-size:14px; margin-bottom:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+        .crumb button { background:none; border:none; color:var(--link); cursor:pointer; font:inherit; padding:0; }
+        details.art { background:var(--bg2); border:1px solid var(--line); border-radius:8px; margin-bottom:10px; }
+        details.art summary { cursor:pointer; list-style:none; padding:15px 20px; font-weight:600; color:#fff; display:flex; justify-content:space-between; gap:12px; }
+        details.art summary::-webkit-details-marker { display:none; }
+        details.art summary::after { content:'\203A'; color:var(--dim); font-size:22px; line-height:1; transition:transform .15s; }
+        details.art[open] summary::after { transform: rotate(90deg); }
+        details.art .body { padding: 2px 20px 18px; color:#dbdee1; border-top:1px solid var(--line); padding-top:14px; }
+        details.art .body ul, details.art .body ol { padding-left:22px; margin:0 0 10px; } details.art .body li { margin:4px 0; }
+        .tagline { font-size:12px; color:var(--dim); font-weight:500; margin-left:8px; }
+        .empty { display:none; background:var(--bg2); border:1px dashed var(--line); border-radius:10px; padding:28px; text-align:center; color:var(--dim); }
+        .cta { margin-top:44px; background:var(--bg2); border:1px solid var(--line); border-radius:12px; padding:30px; display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; }
+        .cta h3 { margin:0 0 4px; font-size:20px; } .cta p { margin:0; color:var(--dim); }
+        .note { border-left:3px solid var(--hero); background:var(--bg2); padding:14px 20px; margin-top:26px; border-radius:0 8px 8px 0; color:var(--dim); font-size:15px; }
+        footer { background:var(--bg3); border-top:1px solid var(--line); padding:26px 24px; color:var(--dim); font-size:13px; text-align:center; }
+        footer a { color:var(--dim); } footer a:hover { color:#fff; }
+        @media (max-width:700px) { .hero h1 { font-size:30px; } .bar-in .link { display:none; } .bar-in { gap:10px; flex-wrap:wrap; } }
+    </style>
+</head>
+<body>
+<%
+const cats = [
+  { id:'account',  icon:'🔐', name:'Account & Verification', desc:'Joining, verifying and getting access.' },
+  { id:'mod',      icon:'🛡️', name:'Moderation & Appeals',   desc:'Warnings, mutes, bans and how to appeal.' },
+  { id:'bot',      icon:'🤖', name:'Bot & Commands',         desc:'Commands, confessions and bot status.' },
+  { id:'staff',    icon:'📝', name:'Staff Applications',     desc:'Applying for moderator or co-owner.' },
+  { id:'privacy',  icon:'🔒', name:'Privacy & Data',         desc:'See, correct or delete your data.' },
+  { id:'feedback', icon:'💡', name:'Bugs & Feedback',        desc:'Report a problem or suggest an idea.' }
+];
+const esc = (v) => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// Popular articles come from the database (Dashboard → Help Center); bodies are already safe HTML.
+const articles = (typeof locals.articles !== 'undefined' && Array.isArray(locals.articles)) ? locals.articles : [];
+%>
+<header class="bar"><div class="bar-in">
+    <a class="brand" href="/support" style="text-decoration:none;"><%= botName %> <span>Help Center</span></a>
+    <span class="sp"></span>
+    <% if (supportUrl) { %><a class="link" href="<%= supportUrl %>" rel="noopener" target="_blank">Join the server</a><% } %>
+    <a class="link" href="/terms">Terms</a><a class="link" href="/privacy">Privacy</a>
+    <a class="btn alt" href="/support/my-requests">My Help Requests</a>
+    <% if (member) { %>
+    <form method="POST" action="/support/logout" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="link as-btn" type="submit" title="Signed in as <%= member.username %>">Log out (<%= member.username %>)</button></form>
+    <% } else { %>
+    <a class="link" href="/support/login?next=/support">Log in</a>
+    <% } %>
+    <a class="btn" href="/support/request">Submit a request</a>
+</div></header>
+<% if (typeof error !== 'undefined' && error) { %><div style="background:#4a1c1c;color:#ffb4b4;text-align:center;padding:10px 16px;font-size:14px;"><%= error %></div><% } %>
+
+<section class="hero">
+    <h1>How can we help?</h1>
+    <div class="search"><input id="q" type="search" placeholder="Search for answers" autocomplete="off" aria-label="Search the help center"></div>
+</section>
+
+<div class="wrap">
+    <div class="cats" id="cats">
+        <% cats.forEach(c => { %>
+        <button class="cat" data-cat="<%= c.id %>" type="button"><span class="ic"><%= c.icon %></span><b><%= c.name %></b><small><%= c.desc %></small></button>
+        <% }) %>
+    </div>
+
+    <h2 id="list-title">Popular articles</h2>
+    <div class="crumb" id="crumb" style="display:none;"><button type="button" id="clear">All categories</button><span>›</span><span id="crumb-name"></span></div>
+    <div id="list">
+        <% articles.forEach(a => { const cat = cats.find(c => c.id === a.c); %>
+        <details class="art" data-cat="<%= a.c %>">
+            <summary><span><%= a.t %><span class="tagline"><%= cat.name %></span></span></summary>
+            <div class="body"><%- a.b.replace(/\{\{bot\}\}/g, esc(botName)) %></div>
+        </details>
+        <% }) %>
+        <div class="empty" id="empty">No articles match that. <a href="/support/request">Submit a request</a> and we’ll help.</div>
+    </div>
+
+    <div class="cta">
+        <div><h3>Still need help?</h3><p>Send us a request and a staff member will get back to you.<% if (supportUrl) { %> Or ask in the <a href="<%= supportUrl %>" rel="noopener" target="_blank">Discord server</a> for the fastest reply.<% } %></p></div>
+        <a class="btn" href="/support/request">Submit a request</a>
+    </div>
+
+    <div class="note">If someone is in danger or a message involves a serious threat, report it to Discord as well: <a href="https://discord.com/safety" rel="noopener" target="_blank">discord.com/safety</a>. Staff here can’t act on things that happen outside the server.</div>
+</div>
+
+<footer>
+    <a href="/support">Help Center</a> · <a href="/terms">Terms of Service</a> · <a href="/privacy">Privacy Policy</a><% if (contactEmail) { %> · <a href="mailto:<%= contactEmail %>"><%= contactEmail %></a><% } %><br>
+    <%= botName %> is an independent community project and is not affiliated with or endorsed by Discord Inc.
+</footer>
+
+<script>
+(function () {
+    var q = document.getElementById('q'), arts = [].slice.call(document.querySelectorAll('details.art')),
+        cats = [].slice.call(document.querySelectorAll('.cat')), empty = document.getElementById('empty'),
+        title = document.getElementById('list-title'), crumb = document.getElementById('crumb'), crumbName = document.getElementById('crumb-name'),
+        active = '';
+    function apply() {
+        var term = q.value.trim().toLowerCase(), n = 0;
+        arts.forEach(function (a) {
+            var ok = (!active || a.dataset.cat === active) && (!term || a.textContent.toLowerCase().indexOf(term) !== -1);
+            a.style.display = ok ? '' : 'none'; if (ok) n++;
+            if (term && ok && n === 1) a.open = true; else if (!term) a.open = false;
+        });
+        empty.style.display = n ? 'none' : 'block';
+        title.textContent = term ? 'Search results' : (active ? '' : 'Popular articles');
+        title.style.display = (active && !term) ? 'none' : '';
+        crumb.style.display = active ? 'flex' : 'none';
+        cats.forEach(function (c) { c.classList.toggle('on', c.dataset.cat === active); });
+    }
+    cats.forEach(function (c) { c.addEventListener('click', function () {
+        active = active === c.dataset.cat ? '' : c.dataset.cat; crumbName.textContent = active ? c.querySelector('b').textContent : ''; apply();
+        document.getElementById('list').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }); });
+    document.getElementById('clear').addEventListener('click', function () { active = ''; apply(); });
+    q.addEventListener('input', apply);
+})();
+</script>
+</body>
+</html>

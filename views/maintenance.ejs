@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Maintenance Mode</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #16161e; color: #a9b1d6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; text-align: center; }
+        .card { background-color: #1a1b26; padding: 40px; border-radius: 12px; border: 1px solid #2f3549; max-width: 350px; }
+        h1 { color: #f7768e; margin-bottom: 20px; }
+        p { margin-bottom: 30px; }
+        
+        .btn-admin {
+            background-color: transparent;
+            color: #a9b1d6;
+            padding: 12px 24px;
+            border-radius: 6px;
+            border: 1px solid #565f89;
+            text-decoration: none;
+            font-weight: bold;
+            display: inline-block;
+            transition: all 0.2s;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .btn-admin:hover {
+            background-color: #24283b;
+            color: #c0caf5;
+            border-color: #7aa2f7;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🚧 Maintenance Mode</h1>
+        
+        <p>The dashboard is currently offline for updates. Please check back later.</p>
+        
+        <% if (settings && settings.maintenanceETA) { %>
+            <p style="color: #7aa2f7; font-weight: bold;">
+                Estimated Return: <%= settings.maintenanceETA %>
+            </p>
+        <% } %>
+        
+        <a href="/auth/admin" class="btn-admin">Login as Administrator</a>
+    </div>
+</body>
+</html>

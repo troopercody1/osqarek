@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy – <%= botName %></title>
+    <meta name="description" content="Privacy Policy for <%= botName %>: what data the Discord bot, dashboard and verification pages collect and how it is used.">
+    <style>
+        :root {
+            --bg: #0e0f13;
+            --panel: #16181f;
+            --panel-border: #262a35;
+            --accent: #5865F2;
+            --accent-hover: #7983f5;
+            --text: #e7e9ee;
+            --text-dim: #9aa0ac;
+        }
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font: 16px/1.7 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        .wrap { max-width: 820px; margin: 0 auto; padding: 40px 20px 80px; }
+        .topnav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
+        .topnav a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 14px;
+            padding: 6px 14px;
+            border: 1px solid var(--panel-border);
+            border-radius: 999px;
+        }
+        .topnav a:hover { color: var(--text); border-color: var(--accent); }
+        .topnav a.active { color: #fff; background: var(--accent); border-color: var(--accent); }
+        h1 { font-size: 34px; margin: 0 0 6px; letter-spacing: -0.5px; }
+        .updated { color: var(--text-dim); font-size: 14px; margin: 0 0 28px; }
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 22px 26px;
+            margin-bottom: 20px;
+        }
+        .card h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin: 0 0 10px; }
+        .card ol { margin: 0; padding-left: 20px; columns: 2; column-gap: 32px; }
+        .card li { break-inside: avoid; margin: 2px 0; }
+        .summary { border-left: 3px solid var(--accent); }
+        .summary ul { margin: 0; }
+        section { margin: 34px 0; scroll-margin-top: 20px; }
+        section h2 { font-size: 21px; margin: 0 0 10px; }
+        section h3 { font-size: 16px; margin: 18px 0 6px; color: #fff; }
+        p { margin: 0 0 12px; }
+        ul { margin: 0 0 12px; padding-left: 22px; }
+        li { margin: 4px 0; }
+        a { color: var(--accent-hover); }
+        strong { color: #fff; }
+        .table-wrap { overflow-x: auto; margin: 8px 0 14px; }
+        table { width: 100%; border-collapse: collapse; font-size: 15px; }
+        th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--panel-border); }
+        th { color: var(--text-dim); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; }
+        footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--panel-border); color: var(--text-dim); font-size: 14px; }
+        @media (max-width: 600px) { .card ol { columns: 1; } h1 { font-size: 28px; } }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <nav class="topnav">
+        <a href="/support">Support</a>
+        <a href="/terms">Terms of Service</a>
+        <a class="active" href="/privacy">Privacy Policy</a>
+    </nav>
+
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: <%= updated %></p>
+
+    <p>
+        This Privacy Policy explains what information <strong><%= botName %></strong> (the Discord bot, web
+        dashboard, verification and application pages, and the related Discord community) collects, why, who
+        can see it, and the choices you have. It should be read together with our
+        <a href="/terms">Terms of Service</a>.
+    </p>
+
+    <div class="card summary">
+        <h2>The short version</h2>
+        <ul>
+            <li>We process Discord account data (like your user ID and username) so the bot can run, moderate and keep the community safe.</li>
+            <li>We do <strong>not</strong> sell your data and we don’t run ads or analytics trackers.</li>
+            <li>Moderation records, edited/deleted message logs and confession authorship are visible to staff.</li>
+            <li>Some features send text to third-party services (for example AI replies and CAPTCHA).</li>
+            <li>We keep your data after you leave, are kicked or banned, or your Discord account is banned. You can ask us what we hold and ask for it to be corrected or deleted.</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>Contents</h2>
+        <ol>
+            <li><a href="#collect">Information we collect</a></li>
+            <li><a href="#use">How we use it</a></li>
+            <li><a href="#sharing">Who we share it with</a></li>
+            <li><a href="#cookies">Cookies and sessions</a></li>
+            <li><a href="#retention">How long we keep it</a></li>
+            <li><a href="#rights">Your choices and rights</a></li>
+            <li><a href="#security">Security</a></li>
+            <li><a href="#children">Children</a></li>
+            <li><a href="#transfers">International transfers</a></li>
+            <li><a href="#changes">Changes to this policy</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ol>
+    </div>
+
+    <section id="collect">
+        <h2>1. Information we collect</h2>
+
+        <h3>Discord account and server data</h3>
+        <p>
+            Through Discord, the bot receives your user ID, username, display name, avatar, roles, nickname,
+            account creation date, when you joined the server, and your server membership. When you join, it
+            may also record which invite you used, and for security checks it computes a small numeric
+            fingerprint (a perceptual hash) of your avatar image so look-alike accounts can be compared.
+        </p>
+
+        <h3>Messages and activity</h3>
+        <ul>
+            <li>The bot reads messages in the server in real time to run commands, auto-moderation (banned words, spam, etc.) and features such as the confessions channel.</li>
+            <li>We store <strong>activity counts</strong> – such as messages per day, hour and channel, active users, and member counts – for analytics and leaderboards. These are counts, not message text.</li>
+            <li>We track <strong>voice channel time</strong> per member, channel and day. Bots and the AFK channel are ignored.</li>
+            <li>If a log channel is configured, <strong>edited and deleted messages</strong> (including their text, your username and ID, and the channel) are posted to a staff-only channel. Channels staff have marked as ignored are skipped.</li>
+        </ul>
+
+        <h3>Moderation records</h3>
+        <p>
+            Warnings, strikes, offences, notes, timeouts, kicks, bans, timed actions and the related case
+            history (who, when, why, and which moderator), plus ban-evasion flags and impersonation-guard hits
+            that staff may review.
+        </p>
+
+        <h3>Direct messages to the bot</h3>
+        <p>
+            If you DM the bot, your message (including text and attachments) is relayed to a staff channel
+            along with your username and ID so staff can reply. Staff replies are sent back to you the same way.
+        </p>
+
+        <h3>Confessions</h3>
+        <p>
+            The public confession post does not include your name. The author’s name and ID are written to a
+            private staff channel. Recent confessions are also stored so replies and moderation can work.
+        </p>
+
+        <h3>Verification</h3>
+        <p>
+            When you verify on our website, you sign in with Discord (we request only the <em>identify</em>
+            scope, which gives us your user ID, username and avatar), complete an hCaptcha challenge, and tick
+            a rules agreement. hCaptcha processes the challenge itself and may collect device and network
+            signals such as your IP address under its own privacy policy; we only receive whether it passed.
+        </p>
+
+        <h3>Staff applications</h3>
+        <p>
+            If you apply to be a moderator or co-owner, we store what you submit: your Discord username and ID
+            (via Discord sign-in), when you joined, your country and time zone, your age (or age range), and
+            your written answers, along with the application’s status and the owners’ review notes.
+        </p>
+
+        <h3>Features you choose to use</h3>
+        <p>
+            Depending on what you use, we may store reminders you set, AFK status, quiz and game results,
+            giveaway entries, poll votes, and music requests/queues. “Nerd Mode” is only used for the April Fools
+            update. While it’s switched on for your account, some of your messages may be sent to an AI service
+            (see below).
+        </p>
+
+        <h3>Staff dashboard</h3>
+        <p>
+            Staff who sign in to the dashboard do so with Discord (scopes <em>identify</em> and
+            <em>guilds.members.read</em>, used to confirm your membership and roles) or with a local admin
+            account. Dashboard actions may be recorded in an audit log, and admins can restrict access by IP
+            address, in which case IP addresses configured by staff are stored.
+        </p>
+
+        <h3>Technical data</h3>
+        <p>
+            Our web host (Render), database provider and other infrastructure may keep standard server logs (such as IP
+            address, user agent and request times). The bot also keeps a short rolling log of recent events and
+            errors in memory, which may include user IDs.
+        </p>
+    </section>
+
+    <section id="use">
+        <h2>2. How we use it</h2>
+        <ul>
+            <li>To run the bot’s commands and features.</li>
+            <li>To moderate the community, enforce the rules, investigate reports and handle appeals.</li>
+            <li>To protect against raids, spam, ban evasion and impersonation.</li>
+            <li>To verify members and review staff applications.</li>
+            <li>To produce analytics and leaderboards for staff and members.</li>
+            <li>To maintain, secure and improve the Service and fix problems.</li>
+        </ul>
+        <p>
+            If you are in the EEA or UK, our legal bases are mainly our legitimate interests in running and
+            securing the community, your consent where you actively provide information (for example
+            verification or an application), and compliance with legal obligations.
+        </p>
+    </section>
+
+    <section id="sharing">
+        <h2>3. Who we share it with</h2>
+        <p>
+            We don’t sell your personal information. Within the community, staff members can see moderation,
+            logging and application data according to their rank. We use these service providers to run the Service:
+        </p>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>Provider</th><th>What for</th><th>What they may receive</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Discord</td><td>Platform, sign-in, bot API</td><td>Everything you do on Discord and the dashboard sign-in</td></tr>
+                    <tr><td>Upstash (Redis)</td><td>Database hosting</td><td>The bot’s stored data, such as cases, settings, stats and applications</td></tr>
+                    <tr><td>hCaptcha</td><td>Bot protection on verification</td><td>CAPTCHA challenge data and device/network signals</td></tr>
+                    <tr><td>Hugging Face and its inference provider (Featherless AI)</td><td>AI text replies</td><td>The text sent to an AI feature, without your name or ID</td></tr>
+                    <tr><td>Brevo</td><td>Transactional email for staff status alerts</td><td>A staff email address and the alert text, if email alerts are enabled</td></tr>
+                    <tr><td>Music sources via our Lavalink server</td><td>Playing audio in voice channels</td><td>The search terms or links that members request</td></tr>
+                    <tr><td>Render</td><td>Hosting the bot and website</td><td>Standard request and server logs</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p>
+            We may also disclose information if required by law, to enforce our Terms, or to protect the
+            safety of our members and the Service – for example, reporting content to Discord.
+        </p>
+    </section>
+
+    <section id="cookies">
+        <h2>4. Cookies and sessions</h2>
+        <p>
+            Our website uses a session cookie to keep you signed in and to protect forms against forgery
+            (CSRF). It is HTTP-only and expires after 24 hours. We don’t use advertising or analytics
+            cookies. hCaptcha, which is loaded on the verification page, may set its own cookies or similar
+            technologies.
+        </p>
+    </section>
+
+    <section id="retention">
+        <h2>5. How long we keep it</h2>
+        <p>
+            <strong>We keep your data after you leave.</strong> Data we hold about you is not deleted automatically when
+            you leave the server, are kicked or banned, or when your Discord account is banned, suspended or deleted.
+            It stays until staff remove it or you ask us to delete it (see <a href="#rights">Your choices and rights</a>).
+        </p>
+        <ul>
+            <li><strong>Moderation cases and offences:</strong> kept for as long as staff consider them useful for keeping the community safe, or until staff delete them.</li>
+            <li><strong>Security logs</strong> (ban-evasion flags, join information, raid and impersonation records): kept in size-limited lists, so the oldest entries roll off as new ones arrive.</li>
+            <li><strong>Confessions:</strong> only a limited number of recent confessions are stored; staff channel logs stay until staff delete them.</li>
+            <li><strong>Applications:</strong> kept until the owners delete them.</li>
+            <li><strong>Activity counts and voice time:</strong> kept as aggregated statistics for as long as the feature is enabled.</li>
+            <li><strong>Sessions:</strong> expire after 24 hours.</li>
+            <li><strong>Discord message logs:</strong> messages in staff log channels stay there until staff remove them, and Discord’s own retention rules apply to Discord itself.</li>
+        </ul>
+        <p>Backups of the database may persist for a while after data is deleted.</p>
+    </section>
+
+    <section id="rights">
+        <h2>6. Your choices and rights</h2>
+        <ul>
+            <li><strong>Access, correction and deletion:</strong> you can ask us what we hold about you, to correct it, or to delete it. We may keep records we reasonably need for safety and moderation (for example, a ban record), or that the law requires.</li>
+            <li><strong>Leave or revoke:</strong> you can leave the server at any time, but leaving doesn’t delete the data we hold (see <a href="#retention">How long we keep it</a>), so send a deletion request if you want it removed. To revoke the website’s access to your Discord account, remove the app under <em>Authorized Apps</em> in your Discord settings.</li>
+            <li><strong>Features:</strong> you can stop using optional features such as reminders or music at any time. Ask staff if you want a feature that involves you (like Nerd Mode during the April Fools update) turned off.</li>
+            <li><strong>Objection and complaints:</strong> depending on where you live, you may have extra rights, such as objecting to processing or complaining to your local data protection authority.</li>
+        </ul>
+        <p>To make a request, contact us using the details below. We may ask you to confirm you control the Discord account first.</p>
+    </section>
+
+    <section id="security">
+        <h2>7. Security</h2>
+        <p>
+            We use reasonable measures to protect your information, including HTTPS, HTTP-only session
+            cookies, CSRF protection, and rank-based access to the dashboard. No system is perfectly secure,
+            so we can’t guarantee absolute security.
+        </p>
+    </section>
+
+    <section id="children">
+        <h2>8. Children</h2>
+        <p>
+            The Service is intended for people who meet Discord’s minimum age (13, or higher where local law
+            requires). We don’t knowingly collect information from anyone younger. If you believe a child has
+            provided us information, contact us and we’ll delete it.
+        </p>
+    </section>
+
+    <section id="transfers">
+        <h2>9. International transfers</h2>
+        <p>
+            Our providers may process information in countries other than your own, including the United
+            States. By using the Service you understand that your information may be transferred there.
+        </p>
+    </section>
+
+    <section id="changes">
+        <h2>10. Changes to this policy</h2>
+        <p>
+            We may update this policy from time to time. The “Last updated” date shows the latest version, and
+            for significant changes we’ll try to give notice in the community.
+        </p>
+    </section>
+
+    <section id="contact">
+        <h2>11. Contact</h2>
+        <p>
+            For privacy questions or requests, reach the staff team
+            <% if (supportUrl) { %>through our <a href="<%= supportUrl %>" rel="noopener" target="_blank">Discord server</a><% } else { %>through the Discord server or by direct-messaging the bot (your message is relayed to staff)<% } %><% if (contactEmail) { %>
+            or by email at <a href="mailto:<%= contactEmail %>"><%= contactEmail %></a><% } %>.
+        </p>
+    </section>
+
+    <footer>
+        <a href="/support">Support</a> · <a href="/terms">Terms of Service</a> · <a href="/privacy">Privacy Policy</a>
+        <br>
+        <%= botName %> is an independent community project and is not affiliated with or endorsed by Discord Inc.
+    </footer>
+</div>
+</body>
+</html>
