@@ -284,12 +284,6 @@ async function syncstats({ interaction, isAtLeastAdmin, db }) {
         await interaction.deferReply();
     }
 
-    // /syncstats marriage:True -> import MarriageBot's past replies instead of the weekly staff stats.
-    if (interaction.options.getBoolean('marriage')) {
-        try { return await require('../../features/family').syncMarriageCommand(interaction); }
-        catch (err) { console.error('❌ syncstats marriage failed:', err); return interaction.editReply('❌ Marriage sync failed. Check the console.').catch(() => { }); }
-    }
-
     try {
         const syncStartedAt = Date.now();
         const runAudit = interaction.options.getBoolean('audit') || false;

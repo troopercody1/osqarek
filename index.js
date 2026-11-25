@@ -2648,10 +2648,41 @@ async function runStartupStatsSync(guild) {
     let lastHeartbeatAt = Date.now();
     const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000; // console every 5min — cheap, no Discord API cost
 
+    // --- Time estimate ---
+    // Discord can't tell us how many messages a server has without reading them, so the estimate leans on the
+    // previous completed sync (its duration and message total), saved at the end of every run. Once the scan is
+    // running, the time left is worked out from the live speed; on a first run (nothing saved) it falls back to
+    // a rougher estimate from channels finished so far.
+    const prevMessages = Number(db.lastStatsSyncMessages) || 0;
+    const prevDurationMs = Number(db.lastStatsSyncDurationMs) || 0;
+    let messagesScanned = 0;
+    const estimateRemainingMs = () => {
+        const elapsed = Date.now() - startedAt;
+        if (elapsed < 20000 || messagesScanned === 0) return null; // too early to be meaningful
+        if (prevMessages > 0) {
+            const left = prevMessages - messagesScanned;
+            if (left <= 0) return 0; // the server grew since the last sync; the end is close but unknown
+            return left / (messagesScanned / elapsed);
+        }
+        if (channelsDone === 0) return null;
+        const frac = channelsDone / totalChannelsToScan;
+        return elapsed * (1 - frac) / frac;
+    };
+    const etaText = () => {
+        const rem = estimateRemainingMs();
+        if (rem === null) return null;
+        if (rem === 0) return 'almost done (the server has grown since the last sync)';
+        return `~${formatLongDuration(rem)} left (done around <t:${Math.floor((Date.now() + rem) / 1000)}:t>)${prevMessages > 0 ? '' : ', rough guess'}`;
+    };
+    const startEstimate = prevDurationMs > 0
+        ? `~${formatLongDuration(prevDurationMs)} (based on the last sync, ${prevMessages.toLocaleString()} messages)`
+        : 'not known yet on a first run, it will show up in the progress updates';
+    console.log(`📊 Startup sync: estimated time ${startEstimate.replace(/<[^>]+>/g, '')}.`);
+
     logAction(
         guild,
         '📊 Startup Stats Sync Starting',
-        `Rebuilding staff stats from full channel history across **${totalChannelsToScan}** channels. This can take a while on large servers — progress every ${PROGRESS_PERCENT_STEP}%, with a console heartbeat every 5 minutes so a big channel doesn't look like a hang.` +
+        `Rebuilding staff stats from full channel history across **${totalChannelsToScan}** channels. This can take a while on large servers — progress every ${PROGRESS_PERCENT_STEP}%, with a console heartbeat every 5 minutes so a big channel doesn't look like a hang.\n⏱️ Estimated time: ${startEstimate}.` +
         (useOriginalMethod ? `\n⚠️ **Failsafe active:** ${priorFailures} consecutive incomplete runs detected — using the original memory-safe method (no full message caching) for this run.` : ''),
         0x5865F2
     );
@@ -2674,6 +2705,7 @@ async function runStartupStatsSync(guild) {
                 retriesLeft = MAX_RETRIES_PER_PAGE;
                 pagesFetchedInChannel++;
                 if (messages.size === 0) break;
+                messagesScanned += messages.size;
                 for (const msg of messages.values()) {
                     analyticsHistory?.add(msg);
                     if (staffIds.includes(msg.author.id)) {
@@ -2705,7 +2737,7 @@ async function runStartupStatsSync(guild) {
             // doesn't touch the Discord API or spam the mod log.
             if (fetching && Date.now() - lastHeartbeatAt >= HEARTBEAT_INTERVAL_MS) {
                 lastHeartbeatAt = Date.now();
-                console.log(`💓 Startup sync heartbeat: still on #${channel.name} (channel ${channelsDone + 1}/${totalChannelsToScan}, ${pagesFetchedInChannel} pages / ~${pagesFetchedInChannel * 100} messages fetched in this channel so far). ${allTimeScannedCount} staff messages found total.`);
+                console.log(`💓 Startup sync heartbeat: still on #${channel.name} (channel ${channelsDone + 1}/${totalChannelsToScan}, ${pagesFetchedInChannel} pages / ~${pagesFetchedInChannel * 100} messages fetched in this channel so far). ${allTimeScannedCount} staff messages found total.${etaText() ? ` ETA: ${etaText().replace(/<[^>]+>/g, '').replace(/\s*\(done around \)/, '')}` : ''}`);
             }
         }
 
@@ -2733,7 +2765,7 @@ async function runStartupStatsSync(guild) {
                 '📊 Startup Stats Sync Progress',
                 `**${percent}%** (${channelsDone}/${totalChannelsToScan} channels) — ` +
                 `**${allTimeScannedCount}** staff messages all-time / **${scannedCount}** this week so far.\n` +
-                `Elapsed: ${formatMsDuration(Date.now() - startedAt)}`,
+                `Elapsed: ${formatMsDuration(Date.now() - startedAt)}` + (channelsDone < totalChannelsToScan && etaText() ? `\n⏱️ Estimated: ${etaText()}` : ''),
                 0x5865F2
             );
         }
@@ -2748,6 +2780,8 @@ async function runStartupStatsSync(guild) {
     });
 
     db.lastStatsSyncAt = Date.now();
+    db.lastStatsSyncDurationMs = Date.now() - startedAt; // baseline for the next run's time estimate
+    db.lastStatsSyncMessages = messagesScanned;
     db.startupSyncConsecutiveFailures = 0; // this run completed cleanly — clear the failsafe marker
     startupSyncRunning = false;
     try {
@@ -2772,7 +2806,7 @@ async function runStartupStatsSync(guild) {
     }
 
     let summary = `✅ Done in **${formatMsDuration(Date.now() - startedAt)}**.\n` +
-        `Found **${allTimeScannedCount}** staff messages all-time, **${scannedCount}** this week.` + analyticsLine;
+        `Scanned **${messagesScanned.toLocaleString()}** messages. Found **${allTimeScannedCount}** staff messages all-time, **${scannedCount}** this week.` + analyticsLine;
     if (skippedChannels.length > 0) {
         summary += `\n⚠️ Skipped ${skippedChannels.length} channel(s) after repeated failures: \`${skippedChannels.join(', ')}\``;
     }
