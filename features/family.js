@@ -108,6 +108,13 @@ async function nameMap(interaction, ids) {
 
 // ---------- commands ----------
 const commands = {
+    async syncstats({ interaction, options, isAtLeastAdmin }) {
+        if (!isAtLeastAdmin) return interaction.editReply('❌ You need **Admin+** to use this.');
+        if (options.getSubcommand() !== 'marriage') return interaction.editReply('❌ Unknown subcommand.');
+        const channel = options.getChannel('channel') || interaction.channel;
+        return syncMarriage(interaction, channel, options.getInteger('messages') || 1000);
+    },
+
     async marry({ interaction, options }) {
         const cfg = getConfig(context.get().db, 'family');
         if (!cfg.enabled) return fail(interaction, 'Marriage is turned off.');
@@ -258,6 +265,103 @@ async function tree(interaction, user) {
     });
 }
 
+
+// ---------- /syncstats marriage ----------
+// MarriageBot has no API and a bot can't run another bot's commands, so this reads MarriageBot's past replies in a
+// channel (oldest first) and copies what they show into the family data:
+//   /marry, /adopt, /makeparent (only when the reply reads as accepted and names both people), /divorce, /disown, /runaway.
+// Who ran the command comes from the interaction on MarriageBot's message; the other person from the mention in its text.
+// Anything it can't read clearly is skipped, never guessed. Existing relationships are never overwritten.
+const MB_DEFAULT_ID = '468281173072805889';
+const MB_ADD = { marry: 'marry', propose: 'marry', adopt: 'adopt', makeparent: 'makeparent' };
+const MB_END = { divorce: 'divorce', disown: 'disown', runaway: 'runaway', emancipate: 'runaway' };
+const MB_ACCEPT = /(congrat|accepted|said yes|now (married|partners?|a family|family)|are (now )?(married|partners?|family)|welcome to the family|adopted)/i;
+const MB_DECLINE = /(declin|reject|denied|\bsaid no\b|turned down|time[ds]? ?out|expired|cancel|ignored|no response)/i;
+const MB_FAIL = /\b(can['’]?t|cannot|not married|aren['’]?t|isn['’]?t|already|invalid|error|unable|failed|don['’]?t have|no (partner|parent|child))\b/i;
+
+function messageText(m) {
+    const parts = [m.content || ''];
+    for (const e of m.embeds || []) {
+        parts.push(e.title || '', e.description || '');
+        for (const f of e.fields || []) parts.push(f.name || '', f.value || '');
+    }
+    return parts.join('\n');
+}
+const mentionedIds = (text) => [...new Set([...text.matchAll(/<@!?(\d{15,25})>/g)].map((x) => x[1]))];
+
+async function fetchHistory(channel, limit) {
+    const out = [];
+    let before;
+    while (out.length < limit) {
+        const batch = await channel.messages.fetch({ limit: Math.min(100, limit - out.length), ...(before ? { before } : {}) });
+        if (!batch.size) break;
+        out.push(...batch.values());
+        before = batch.last().id;
+    }
+    return out.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+}
+
+function importMarriageBotMessage(m, botIds, stats) {
+    if (!botIds.includes(m.author?.id)) return;
+    stats.fromBot++;
+    const i = m.interaction;
+    const cmd = i?.commandName ? String(i.commandName).split(' ')[0].toLowerCase() : null;
+    const actor = i?.user?.id;
+    if (!cmd || !actor) return;
+    const kind = MB_ADD[cmd] || MB_END[cmd];
+    if (!kind) return;
+    const text = messageText(m);
+    const others = mentionedIds(text).filter((id) => id !== actor);
+    const other = others[0];
+    const skip = () => { stats.skipped++; };
+
+    if (MB_ADD[cmd]) {
+        const ids = mentionedIds(text);
+        if (!other || MB_DECLINE.test(text) || !MB_ACCEPT.test(text) || !ids.includes(actor)) return skip();
+    } else if (MB_FAIL.test(text) && !MB_ACCEPT.test(text)) return skip();
+    if (!other) return skip();
+
+    if (kind === 'marry') {
+        const a = P(actor), b = P(other);
+        if ((a.spouse && a.spouse !== other) || (b.spouse && b.spouse !== actor)) return skip();
+        if (a.spouse === other) return;
+        Object.assign(a, { spouse: other, marriedAt: m.createdTimestamp });
+        Object.assign(b, { spouse: actor, marriedAt: m.createdTimestamp });
+    } else if (kind === 'adopt' || kind === 'makeparent') {
+        const [parent, child] = kind === 'adopt' ? [actor, other] : [other, actor];
+        if (P(child, false).parents.includes(parent)) return;
+        link(parent, child);
+    } else if (kind === 'divorce') {
+        const a = P(actor), b = P(other);
+        if (a.spouse !== other) return;
+        a.spouse = null; a.marriedAt = null; b.spouse = null; b.marriedAt = null;
+    } else if (kind === 'disown') unlink(actor, other);
+    else unlink(other, actor); // runaway
+    stats.applied++;
+}
+
+async function syncMarriage(interaction, channel, limit) {
+    const { db, safeSave } = context.get();
+    const cfg = getConfig(db, 'family');
+    if (!cfg.enabled) return interaction.editReply('❌ Marriage is turned off.');
+    if (!channel?.messages) return interaction.editReply('❌ Pick a text channel.');
+    const me = channel.guild?.members?.me;
+    if (me && !channel.permissionsFor(me)?.has(['ViewChannel', 'ReadMessageHistory'])) {
+        return interaction.editReply(`❌ I need **View Channel** and **Read Message History** in ${channel}.`);
+    }
+    const msgs = await fetchHistory(channel, limit).catch((e) => { console.error('[family] sync fetch failed', e); return null; });
+    if (!msgs) return interaction.editReply('❌ Couldn\'t read that channel\'s history.');
+    const stats = { scanned: msgs.length, fromBot: 0, applied: 0, skipped: 0 };
+    for (const m of msgs) importMarriageBotMessage(m, [MB_DEFAULT_ID], stats);
+    if (stats.applied) await safeSave();
+    const note = stats.fromBot === 0 ? `\nNo MarriageBot messages found in the last ${stats.scanned}. Pick the channel where people use it.` : '';
+    return interaction.editReply({ embeds: [brandEmbed({
+        title: '💍 Marriage sync',
+        description: `Read **${stats.scanned}** messages in ${channel}.\nMarriageBot messages: **${stats.fromBot}**\nImported: **${stats.applied}**\nSkipped (unclear, declined or conflicting): **${stats.skipped}**${note}`,
+        color: 0xEB459E,
+    })] });
+}
+
 // ---------- buttons ----------
 const ID_RE = /^fam:([mad]):([yn]):(\d{15,25}):(\d{15,25})$/;
 
@@ -316,6 +420,17 @@ async function handleButton(interaction) {
 const userOpt = (description) => ({ name: 'user', description, type: 6, required: true });
 
 const definitions = [
+    {
+        name: 'syncstats',
+        description: 'Import data from other bots (Admin+)',
+        options: [{
+            name: 'marriage', description: 'Import marriages and families from MarriageBot\'s past replies', type: 1,
+            options: [
+                { name: 'channel', description: 'Channel where MarriageBot is used (default: here)', type: 7, channel_types: [0, 5, 11, 12] },
+                { name: 'messages', description: 'How many recent messages to read (default 1000)', type: 4, min_value: 50, max_value: 5000 },
+            ],
+        }],
+    },
     { name: 'marry', description: 'Propose to someone 💍', options: [userOpt('Who to propose to')] },
     { name: 'divorce', description: 'End your marriage' },
     { name: 'adopt', description: 'Ask someone to become your child', options: [userOpt('Who to adopt')] },
