@@ -333,26 +333,61 @@ function importMarriageBotMessage(m, botIds, stats) {
     stats.applied++;
 }
 
-async function syncMarriage(interaction, channel, limit) {
+const SYNC_TIME_BUDGET_MS = 13 * 60 * 1000; // interaction replies stop working after 15 minutes
+
+async function syncMarriage(interaction, channels, limit, label) {
     const { db, safeSave } = context.get();
     const cfg = getConfig(db, 'family');
     if (!cfg.enabled) return interaction.editReply('❌ Marriage is turned off.');
-    if (!channel?.messages) return interaction.editReply('❌ Pick a text channel.');
-    const me = channel.guild?.members?.me;
-    if (me && !channel.permissionsFor(me)?.has(['ViewChannel', 'ReadMessageHistory'])) {
-        return interaction.editReply(`❌ I need **View Channel** and **Read Message History** in ${channel}.`);
+    const botIds = [MB_DEFAULT_ID];
+    const started = Date.now();
+    const found = [];
+    let scanned = 0, channelsRead = 0, unreadable = 0, timedOut = false;
+
+    for (const channel of channels) {
+        if (Date.now() - started > SYNC_TIME_BUDGET_MS) { timedOut = true; break; }
+        const me = channel.guild?.members?.me;
+        if (me && !channel.permissionsFor(me)?.has(['ViewChannel', 'ReadMessageHistory'])) { unreadable++; continue; }
+        const msgs = await fetchHistory(channel, limit).catch(() => null);
+        if (!msgs) { unreadable++; continue; }
+        channelsRead++;
+        scanned += msgs.length;
+        for (const m of msgs) if (botIds.includes(m.author?.id)) found.push(m);
+        if (channels.length > 1 && channelsRead % 5 === 0) {
+            await interaction.editReply(`⏳ Reading channels… ${channelsRead}/${channels.length} done, ${found.length} MarriageBot messages so far.`).catch(() => { });
+        }
     }
-    const msgs = await fetchHistory(channel, limit).catch((e) => { console.error('[family] sync fetch failed', e); return null; });
-    if (!msgs) return interaction.editReply('❌ Couldn\'t read that channel\'s history.');
-    const stats = { scanned: msgs.length, fromBot: 0, applied: 0, skipped: 0 };
-    for (const m of msgs) importMarriageBotMessage(m, [MB_DEFAULT_ID], stats);
+    if (!channelsRead) return interaction.editReply('❌ I couldn\'t read any channel. I need **View Channel** and **Read Message History**.');
+
+    // Apply across all channels in time order (a marriage in one channel and a divorce in another still end up right).
+    found.sort((x, y) => x.createdTimestamp - y.createdTimestamp);
+    const stats = { scanned, fromBot: 0, applied: 0, skipped: 0 };
+    for (const m of found) importMarriageBotMessage(m, botIds, stats);
     if (stats.applied) await safeSave();
-    const note = stats.fromBot === 0 ? `\nNo MarriageBot messages found in the last ${stats.scanned}. Pick the channel where people use it.` : '';
-    return interaction.editReply({ embeds: [brandEmbed({
+
+    const notes = [];
+    if (stats.fromBot === 0) notes.push(`No MarriageBot messages found in the last ${limit} messages of ${label}. Try a higher \`messages\` value or the channel where it is used.`);
+    if (unreadable) notes.push(`Couldn't read ${unreadable} channel${unreadable === 1 ? '' : 's'} (missing permissions).`);
+    if (timedOut) notes.push('Stopped early to stay inside Discord\'s 15-minute limit. Run it again with a lower `messages` value, or pick specific channels.');
+    return interaction.editReply({ content: '', embeds: [brandEmbed({
         title: '💍 Marriage sync',
-        description: `Read **${stats.scanned}** messages in ${channel}.\nMarriageBot messages: **${stats.fromBot}**\nImported: **${stats.applied}**\nSkipped (unclear, declined or conflicting): **${stats.skipped}**${note}`,
+        description: `Read **${scanned}** messages in ${label} (${channelsRead} channel${channelsRead === 1 ? '' : 's'}).\nMarriageBot messages: **${stats.fromBot}**\nImported: **${stats.applied}**\nSkipped (unclear, declined or conflicting): **${stats.skipped}**${notes.length ? '\n\n' + notes.join('\n') : ''}`,
         color: 0xEB459E,
     })] });
+}
+
+// Called by /syncstats marriage:True (commands/staff/handler.js, which has already checked Admin+ and deferred).
+function syncMarriageCommand(interaction) {
+    const limit = interaction.options.getInteger('messages') || 1000;
+    if (interaction.options.getBoolean('allchannels')) {
+        const types = new Set([0, 5]); // text + announcement channels
+        const channels = [...interaction.guild.channels.cache.values()].filter((c) => types.has(c.type));
+        if (!channels.length) return interaction.editReply('❌ No text channels found.');
+        return syncMarriage(interaction, channels, limit, 'all channels');
+    }
+    const channel = interaction.options.getChannel('channel') || interaction.channel;
+    if (!channel?.messages) return interaction.editReply('❌ Pick a text channel.');
+    return syncMarriage(interaction, [channel], limit, `${channel}`);
 }
 
 // ---------- buttons ----------
@@ -426,11 +461,5 @@ const definitions = [
         ],
     },
 ];
-
-// Called by /syncstats marriage:True (commands/staff/handler.js, which has already checked Admin+ and deferred).
-function syncMarriageCommand(interaction) {
-    const channel = interaction.options.getChannel('channel') || interaction.channel;
-    return syncMarriage(interaction, channel, interaction.options.getInteger('messages') || 1000);
-}
 
 module.exports = { commands, definitions, syncMarriageCommand, handleButton, isRelative, adoptionError };
