@@ -2650,7 +2650,7 @@ async function runStartupStatsSync(guild) {
     catch (err) { console.error(`⚠️ Startup sync: analytics collector unavailable: ${err.message}`); }
     let lastReportedPercent = 0;
     let lastHeartbeatAt = Date.now();
-    const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000; // console every 5min — cheap, no Discord API cost
+    const HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000; // console every 5min — cheap, no Discord API cost
 
     // --- Time estimate ---
     // Discord can't tell us how many messages a server has without reading them, so the estimate leans on the
@@ -2742,7 +2742,7 @@ async function runStartupStatsSync(guild) {
             // doesn't touch the Discord API or spam the mod log.
             if (fetching && Date.now() - lastHeartbeatAt >= HEARTBEAT_INTERVAL_MS) {
                 lastHeartbeatAt = Date.now();
-                console.log(`💓 Startup sync heartbeat: still on #${channel.name} (channel ${channelsDone + 1}/${totalChannelsToScan}, ${pagesFetchedInChannel} pages / ~${pagesFetchedInChannel * 100} messages fetched in this channel so far). ${allTimeScannedCount} staff messages found total.${etaText() ? ` ETA: ${etaText().replace(/<[^>]+>/g, '').replace(/\s*\(done around \)/, '')}` : ''}`);
+                console.log(`💓 Startup sync heartbeat: still on #${channel.name} (channel ${channelsDone + 1}/${totalChannelsToScan}, ${pagesFetchedInChannel} pages / ~${pagesFetchedInChannel * 100} messages fetched in this channel so far). ${allTimeScannedCount} staff messages found total. 🧠 heap ${Math.round(process.memoryUsage().heapUsed/1048576)}MB / rss ${Math.round(process.memoryUsage().rss/1048576)}MB.${etaText() ? ` ETA: ${etaText().replace(/<[^>]+>/g, '').replace(/\s*\(done around \)/, '')}` : ''}`);
             }
         }
 
