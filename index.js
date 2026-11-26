@@ -1936,7 +1936,7 @@ client = new Client({
         ...Options.DefaultMakeCacheSettings,
         MessageManager: Number.isFinite(Number(process.env.MESSAGE_CACHE_LIMIT)) && Number(process.env.MESSAGE_CACHE_LIMIT) > 0
             ? Number(process.env.MESSAGE_CACHE_LIMIT)
-            : Infinity
+            : 200 // was Infinity: unbounded caching OOM-crashed the 512MB Render free tier
     }),
     // User/GuildMember partials matter for messageReactionRemove: Discord doesn't send the member
     // with it, so without these the event is silently dropped when the reactor isn't cached
@@ -1954,7 +1954,11 @@ client.on('raw', (d) => client.lavalink.sendRawData(d));
 // --- GATEWAY DIAGNOSTICS ---
 // Temporary verbose logging to trace exactly where login() is stalling.
 // Safe to remove/comment out once the hang is diagnosed.
-client.on('debug', (info) => console.log('🔧 [gateway debug]', info));
+client.on('debug', (info) => {
+    const t = String(info);
+    if (t.includes('Provided token') || t.includes('Heartbeat acknowledged')) return; // token prefix + noise
+    console.log('🔧 [gateway debug]', t);
+});
 client.on('warn', (info) => console.warn('⚠️ [gateway warn]', info));
 client.on('error', (err) => console.error('❌ [client error]', err));
 client.on('shardError', (err, shardId) => console.error(`❌ [shard ${shardId} error]`, err));
@@ -2624,13 +2628,13 @@ async function runStartupStatsSync(guild) {
     // and reset to 0 only once a run completes successfully below.
     const FAILSAFE_THRESHOLD = 2;
     const priorFailures = db.startupSyncConsecutiveFailures || 0;
-    const useOriginalMethod = priorFailures >= FAILSAFE_THRESHOLD;
+    const useOriginalMethod = true; // ALWAYS memory-safe (cache:false + clear per channel). Caching the full history OOM-crashes small hosts.
     db.startupSyncConsecutiveFailures = priorFailures + 1;
     await withTimeout(db.save(), DB_SAVE_TIMEOUT_MS, 'db.save() startup sync failsafe marker').catch((err) => {
         console.error(`❌ Startup sync: couldn't persist failsafe marker before starting: ${err.message}`);
     });
-    if (useOriginalMethod) {
-        console.log(`⚠️ Startup sync: ${priorFailures} consecutive incomplete runs detected — falling back to the original cache:false method for this run.`);
+    if (priorFailures >= FAILSAFE_THRESHOLD) {
+        console.log(`⚠️ Startup sync: ${priorFailures} previous incomplete runs recorded (counter reset when this run finishes).`);
     }
 
     startupSyncRunning = true;
@@ -2683,7 +2687,7 @@ async function runStartupStatsSync(guild) {
         guild,
         '📊 Startup Stats Sync Starting',
         `Rebuilding staff stats from full channel history across **${totalChannelsToScan}** channels. This can take a while on large servers — progress every ${PROGRESS_PERCENT_STEP}%, with a console heartbeat every 5 minutes so a big channel doesn't look like a hang.\n⏱️ Estimated time: ${startEstimate}.` +
-        (useOriginalMethod ? `\n⚠️ **Failsafe active:** ${priorFailures} consecutive incomplete runs detected — using the original memory-safe method (no full message caching) for this run.` : ''),
+        '',
         0x5865F2
     );
 
@@ -2718,6 +2722,7 @@ async function runStartupStatsSync(guild) {
                     }
                 }
                 lastId = messages.last()?.id;
+                if (pagesFetchedInChannel % 20 === 0) channel.messages.cache.clear();
                 if (messages.size < 100) fetching = false;
             } catch (err) {
                 if (retriesLeft > 0) {
