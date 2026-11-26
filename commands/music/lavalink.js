@@ -34,6 +34,11 @@ function getLavalink(client) {
                 port: Number(process.env.LAVALINK_PORT) || 2333,
                 authorization: process.env.LAVALINK_PASSWORD || 'youshallnotpass',
                 secure: process.env.LAVALINK_SECURE === 'true',
+                // Render's free Lavalink service takes ~2 minutes to boot (JVM + plugin download) after a
+                // sleep or deploy. The defaults (5 tries x 10s) give up before it is ready, so keep trying
+                // for ~15 minutes at a gentler pace instead of hammering it (which also draws 429s).
+                retryAmount: Number(process.env.LAVALINK_RETRY_AMOUNT) || 60,
+                retryDelay: Number(process.env.LAVALINK_RETRY_DELAY_MS) || 15000,
             },
         ],
         sendToShard: (guildId, payload) => client.guilds.cache.get(guildId)?.shard?.send(payload),
