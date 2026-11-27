@@ -1,34 +1,7 @@
 <% if (locals.fx) { const fx_ = locals.fx; const E = fx_.esc; const when = (ms) => ms ? new Date(ms).toLocaleString('en-GB') : '—'; const tab = locals.activeTab;
 const chanSel = (name) => '<select name="' + name + '" required>' + (fx_.channels || []).map(c => '<option value="' + E(c.id) + '">#' + E(c.name) + '</option>').join('') + '</select>';
 const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? '' : ' required') + '>' + (optional ? '<option value="">— none —</option>' : '') + (fx_.roles || []).map(r => '<option value="' + E(r.id) + '">' + E(r.name) + '</option>').join('') + '</select>'; %>
-<style>
-    .fx-msg { background:#1f2a1f; border:1px solid #2e5c2e; color:#9ece6a; padding:10px 14px; border-radius:6px; margin-bottom:18px; }
-    .fx-err { background:#2a1f1f; border:1px solid #5c2e2e; color:#f7768e; padding:10px 14px; border-radius:6px; margin-bottom:18px; }
-    .fx-sub { color:#565f89; font-size:.85rem; margin-top:-10px; }
-    .fx-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:0 28px; }
-    .fx-field { padding:10px 0; border-bottom:1px solid #2f3549; }
-    .fx-field label { display:block; color:#c0caf5; font-weight:600; margin-bottom:4px; }
-    .fx-field .d { color:#565f89; font-size:.8rem; margin-top:3px; }
-    .fx-field select, .fx-field textarea { background:#16161e; border:1px solid #2f3549; color:#fff; padding:9px; border-radius:4px; width:100%; box-sizing:border-box; font-family:inherit; }
-    .fx-inline { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
-    .fx-inline form { margin:0; }
-    .fx-inline input, .fx-inline select { width:auto; background:#16161e; border:1px solid #2f3549; color:#fff; padding:9px; border-radius:4px; }
-    .fx-btn { background:#2f3549; color:#7aa2f7; border:none; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer; }
-    .fx-btn.danger { color:#f7768e; }
-    .fx-pill { display:inline-block; padding:2px 8px; border-radius:99px; font-size:11px; background:#2f3549; color:#c0caf5; }
-    .fx-pill.on { background:#1f2a1f; color:#9ece6a; } .fx-pill.off { background:#2a1f1f; color:#f7768e; } .fx-pill.warn { background:#2e2a1a; color:#e0af68; }
-    .fx-stat { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:18px; }
-    .fx-stat div { background:#16161e; border:1px solid #2f3549; border-radius:6px; padding:12px; } .fx-stat b { display:block; font-size:1.4rem; color:#c0caf5; } .fx-stat span { font-size:.72rem; color:#7dcfff; text-transform:uppercase; }
-    .fx-pager a { color:#7aa2f7; margin-right:14px; }
-    .fx-chart h3 { color:#c0caf5; font-size:1rem; margin:18px 0 6px; }
-    .fx-small { font-size:.8rem; color:#a9b1d6; }
-    .fx-form { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; align-items:end; margin:14px 0 4px; padding:14px; background:#16161e; border:1px solid #2f3549; border-radius:6px; }
-    .fx-form h3 { grid-column:1/-1; margin:0; font-size:.95rem; color:#c0caf5; }
-    .fx-form label { display:block; font-size:.75rem; color:#7dcfff; text-transform:uppercase; margin-bottom:3px; }
-    .fx-form input, .fx-form select, .fx-form textarea { width:100%; box-sizing:border-box; background:#1a1b26; border:1px solid #2f3549; color:#fff; padding:9px; border-radius:4px; font-family:inherit; }
-    .fx-form .wide { grid-column:1/-1; } .fx-form .chk { display:flex; gap:8px; align-items:center; } .fx-form .chk input { width:auto; }
-    .fx-form button { margin:0; }
-</style>
+
 <% const banner = () => { %>
     <% if (fx_.msg) { %><div class="fx-msg"><%= fx_.msg %></div><% } %>
 <% }; %>
@@ -78,7 +51,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
 <div id="fx-protection" class="tab-content<%= tab === 'fx-protection' ? ' active' : '' %>">
 <% if (tab === 'fx-protection') { banner(); const st = fx_.raid.state; %>
     <div class="panel">
-        <h2>🚨 Raid Protection <span class="fx-pill <%= fx_.raidCfg.enabled ? 'on' : 'off' %>"><%= fx_.raidCfg.enabled ? 'enabled' : 'disabled' %></span></h2>
+        <h2>Raid Protection <span class="fx-pill <%= fx_.raidCfg.enabled ? 'on' : 'off' %>"><%= fx_.raidCfg.enabled ? 'enabled' : 'disabled' %></span></h2>
         <p class="fx-sub">Trigger: <b><%= fx_.raidCfg.joinThreshold %></b> joins in <b><%= fx_.raidCfg.windowSeconds %>s</b> → action <b><%= fx_.raidCfg.action %></b>. Edit on the Features page.</p>
         <div class="fx-stat">
             <div><span>Raid mode</span><b><%= st.active ? '🚨 ON' : '🟢 off' %></b></div>
@@ -96,7 +69,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
     </div>
 
     <div class="panel">
-        <h2>🕵️ Ban Evasion Flags <span class="fx-pill <%= fx_.evCfg.enabled ? 'on' : 'off' %>"><%= fx_.evCfg.enabled ? 'enabled' : 'disabled' %></span></h2>
+        <h2>Ban Evasion Flags <span class="fx-pill <%= fx_.evCfg.enabled ? 'on' : 'off' %>"><%= fx_.evCfg.enabled ? 'enabled' : 'disabled' %></span></h2>
         <p class="fx-sub">Tracking <b><%= fx_.trackedBans %></b> banned users • flag score <b><%= fx_.evCfg.flagScore %></b> • automatic action <b><%= fx_.evCfg.autoAction %></b></p>
         <div class="fx-inline" style="margin:10px 0">
             <form method="GET" action="/protection" class="fx-inline"><input name="evUser" placeholder="Check a user ID against bans" pattern="\d{15,25}" style="min-width:260px" value="<%= (locals.fx.evCheck && locals.fx.evCheck.target && locals.fx.evCheck.target.id) || '' %>"><button class="fx-btn">Check user</button></form>
@@ -120,7 +93,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
     </div>
 
     <div class="panel">
-        <h2>🎭 Impersonation Guard <span class="fx-pill <%= fx_.impCfg.enabled ? 'on' : 'off' %>"><%= fx_.impCfg.enabled ? 'enabled' : 'disabled' %></span></h2>
+        <h2>Impersonation Guard <span class="fx-pill <%= fx_.impCfg.enabled ? 'on' : 'off' %>"><%= fx_.impCfg.enabled ? 'enabled' : 'disabled' %></span></h2>
         <div class="fx-inline" style="margin:10px 0">
             <form action="/protection/impersonation/add" method="POST" class="fx-inline"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input name="name" placeholder="Protect a name…" required maxlength="100"><button class="fx-btn">Add</button></form>
             <form action="/protection/impersonation/remove" method="POST" class="fx-inline"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input name="name" placeholder="Remove a custom name…" required maxlength="100"><button class="fx-btn danger">Remove</button></form>
@@ -147,7 +120,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
 <div id="fx-lockdown" class="tab-content<%= tab === 'fx-lockdown' ? ' active' : '' %>">
 <% if (tab === 'fx-lockdown') { banner(); const sv = fx_.server; const dr = sv.active && sv.drill; %>
     <div class="panel">
-        <h2>🔒 Server Lockdown
+        <h2>Server Lockdown
             <span class="fx-pill <%= sv.active ? 'off' : 'on' %>"><%= dr ? 'drill running' : (sv.active ? 'LOCKED' : 'unlocked') %></span>
             <% if (fx_.busy) { %><span class="fx-pill warn">working…</span><% } %>
         </h2>
@@ -176,7 +149,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
     </div>
 
     <div class="panel">
-        <h2>🔒 Channel Lockdown</h2>
+        <h2>Channel Lockdown</h2>
         <p class="fx-sub">Lock or unlock a single channel for @everyone.</p>
         <form method="POST" class="fx-form" id="fx-chan-form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <div><label>Channel</label><select name="channel" required><% fx_.lockable.forEach(c => { %><option value="<%= c.id %>">#<%= c.name %></option><% }) %></select></div>
@@ -194,13 +167,13 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
     </div>
 
     <div class="panel">
-        <h2>🧪 Drills</h2>
+        <h2>Drills</h2>
         <p class="fx-sub">A drill posts a clearly-labelled "this is only a drill" notice in every channel the bot can post in <b>and locks the server</b>. When the time is up (or you end it) the server is unlocked and the notices are <b>deleted</b>. If you're logged in with Discord, the bot also DMs you a copy of the message.</p>
         <% fx_.drills.forEach(d => { %>
         <div class="fx-form" style="display:block;margin-top:14px">
             <h3><%= d.label %></h3>
             <p class="fx-small" style="margin:6px 0 4px">What it says (preview):</p>
-            <div style="background:#1a1b26;border:1px solid #2f3549;border-radius:6px;padding:12px;white-space:pre-wrap;color:#c0caf5;font-size:.85rem"><b><%= d.title %></b>
+            <div style="background:#171337;border:1px solid #2a2561;border-radius:6px;padding:12px;white-space:pre-wrap;color:#f3f1ff;font-size:.85rem"><b><%= d.title %></b>
 
 <%= d.preview %></div>
             <form action="/lockdown/drill/<%= d.kind %>" method="POST" class="fx-inline" style="margin-top:12px" onsubmit="return confirm('Start the <%= d.label.toLowerCase() %>? It will post in every channel and lock the server until it ends.');"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -213,7 +186,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
     </div>
 
     <div class="panel">
-        <h2>🕘 Last action</h2>
+        <h2>Last action</h2>
         <% const l = fx_.last; if (l) { %>
             <div class="fx-stat">
                 <div><span>What</span><b style="font-size:1rem"><%= l.label %></b></div>
@@ -226,7 +199,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
             </div>
             <% if (l.failed && l.failed.length) { %><p class="fx-small">⚠️ Problems: <%= l.failed.join(', ') %></p><% } %>
             <% if (l.text) { %><p class="fx-small" style="margin-bottom:4px">The message that was posted:</p>
-            <div style="background:#1a1b26;border:1px solid #2f3549;border-radius:6px;padding:12px;white-space:pre-wrap;color:#c0caf5;font-size:.85rem"><%= l.text %></div><% } %>
+            <div style="background:#171337;border:1px solid #2a2561;border-radius:6px;padding:12px;white-space:pre-wrap;color:#f3f1ff;font-size:.85rem"><%= l.text %></div><% } %>
         <% } else { %><p class="fx-sub">Nothing has been run yet.</p><% } %>
     </div>
 <% } %>
@@ -236,7 +209,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
 <div id="fx-cases" class="tab-content<%= tab === 'fx-cases' ? ' active' : '' %>">
 <% if (tab === 'fx-cases') { banner(); const q = fx_.q; %>
     <div class="panel">
-        <h2>🔎 Case Search</h2>
+        <h2>Case Search</h2>
         <form method="GET" action="/cases" class="fx-inline">
             <input name="user" placeholder="User tag or ID" value="<%= q.user || '' %>">
             <input name="type" placeholder="Type (warn, ban…)" value="<%= q.type || '' %>">
@@ -248,7 +221,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
         <p class="fx-sub" style="margin-top:14px"><%= fx_.result.total %> case<%= fx_.result.total === 1 ? '' : 's' %> • page <%= fx_.result.page %> of <%= fx_.result.pages %></p>
         <% if (fx_.rows.length) { %>
         <table><tr><th>#</th><th>Type</th><th>User</th><th>Moderator</th><th>Reason</th><th>When</th></tr>
-            <% fx_.rows.forEach(c => { %><tr><td><%= c.id %></td><td><%= c.type %></td><td><% if (c.userId) { %><a href="/admin/user/<%= c.userId %>" style="color:#7aa2f7"><%= c.user %></a><% } else { %><%= c.user %><% } %></td><td><%= c.moderator %></td><td class="fx-small"><%= c.reason %></td><td><%= when(c.at) %></td></tr><% }) %>
+            <% fx_.rows.forEach(c => { %><tr><td><%= c.id %></td><td><%= c.type %></td><td><% if (c.userId) { %><a href="/admin/user/<%= c.userId %>" style="color:#a58bff"><%= c.user %></a><% } else { %><%= c.user %><% } %></td><td><%= c.moderator %></td><td class="fx-small"><%= c.reason %></td><td><%= when(c.at) %></td></tr><% }) %>
         </table>
         <div class="fx-pager" style="margin-top:12px">
             <% if (fx_.result.page > 1) { %><a href="/cases?<%= fx_.qs %>&page=<%= fx_.result.page - 1 %>">← Newer</a><% } %>
@@ -263,7 +236,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
 <div id="fx-audit" class="tab-content<%= tab === 'fx-audit' ? ' active' : '' %>">
 <% if (tab === 'fx-audit') { banner(); const q = fx_.q; %>
     <div class="panel">
-        <h2>📜 Server Audit Log</h2>
+        <h2>Server Audit Log</h2>
         <form method="GET" action="/audit" class="fx-inline">
             <select name="type"><option value="">All events</option><% fx_.filters.forEach(f => { %><option value="<%= f %>" <%= q.type === f ? 'selected' : '' %>><%= f %></option><% }) %></select>
             <input name="executor" placeholder="Executor user ID" value="<%= q.executor || '' %>">
@@ -282,7 +255,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
         <% } %>
     </div>
     <div class="panel">
-        <h2>🤖 Bot Activity</h2>
+        <h2>Bot Activity</h2>
         <p class="fx-sub">Automatic actions and events from the feature bundle (raids, flags, impersonation, timed actions, giveaways, polls).</p>
         <% if (fx_.events.length) { %>
         <table><tr><th>When</th><th>Type</th><th>Event</th></tr>
@@ -296,7 +269,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
 <div id="fx-analytics" class="tab-content<%= tab === 'fx-analytics' ? ' active' : '' %>">
 <% if (tab === 'fx-analytics') { banner(); const r = fx_.r; %>
     <div class="panel">
-        <h2>📈 Analytics <span class="fx-pill <%= fx_.cfg.enabled ? 'on' : 'off' %>"><%= fx_.cfg.enabled ? 'collecting' : 'disabled' %></span></h2>
+        <h2>Analytics <span class="fx-pill <%= fx_.cfg.enabled ? 'on' : 'off' %>"><%= fx_.cfg.enabled ? 'collecting' : 'disabled' %></span></h2>
         <form method="GET" action="/analytics" class="fx-inline"><% [7,14,30,90].forEach(n => { %><a class="fx-btn" style="text-decoration:none;<%= fx_.days === n ? 'color:#fff' : '' %>" href="/analytics?days=<%= n %>"><%= n %>d</a><% }) %></form>
         <p class="fx-sub" style="margin-top:12px"><%= r.trackedDays %> of <%= r.days %> days have data. Counts only — no message content is stored. "Active users" is a per-day floor that restarts after a bot restart.</p>
         <% if (r.lastSync) { %><p class="fx-sub">📈 Last startup-sync update: <%= when(r.lastSync.at) %> — <%= Number(r.lastSync.messages || 0).toLocaleString() %> messages across <%= r.lastSync.days %> days merged from channel history.</p><% } %>
@@ -328,7 +301,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
 
     <% const v = fx_.voice; %>
     <div class="panel">
-        <h2>🎙️ Voice Time <span class="fx-pill <%= v.cfg.enabled ? 'on' : 'off' %>"><%= v.cfg.enabled ? 'tracking' : 'disabled' %></span></h2>
+        <h2>Voice Time <span class="fx-pill <%= v.cfg.enabled ? 'on' : 'off' %>"><%= v.cfg.enabled ? 'tracking' : 'disabled' %></span></h2>
         <p class="fx-sub">Time members spent in voice channels over the last <%= fx_.days %> days. Counts only — no audio. Stats start from when tracking was enabled<%= v.cfg.excludeAfk ? '; the AFK channel is excluded' : '' %>. Settings are on the Features page.</p>
         <div class="fx-stat">
             <div><span>Total voice time</span><b style="font-size:1.1rem"><%= v.fmt(v.totalMs) %></b></div>
@@ -339,17 +312,17 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
         <div class="fx-chart"><h3>Voice hours per day</h3><%- v.chart %></div>
         <div class="fx-grid" style="margin-top:14px">
             <div>
-                <h3 style="color:#c0caf5;font-size:1rem">Top members (last <%= fx_.days %>d)</h3>
+                <h3 style="color:#f3f1ff;font-size:1rem">Top members (last <%= fx_.days %>d)</h3>
                 <% if (v.topUsers.length) { %><table><tr><th>#</th><th>Member</th><th>Time</th></tr><% v.topUsers.forEach((u, i) => { %><tr><td><%= i + 1 %></td><td><%= u.name %></td><td><%= v.fmt(u.ms) %></td></tr><% }) %></table>
                 <% } else { %><p class="fx-sub">No voice time yet.</p><% } %>
             </div>
             <div>
-                <h3 style="color:#c0caf5;font-size:1rem">Top voice channels</h3>
+                <h3 style="color:#f3f1ff;font-size:1rem">Top voice channels</h3>
                 <% if (v.topChannels.length) { %><table><tr><th>Channel</th><th>Time</th></tr><% v.topChannels.forEach(c => { %><tr><td>🔊 <%= c.name %></td><td><%= v.fmt(c.ms) %></td></tr><% }) %></table>
                 <% } else { %><p class="fx-sub">No voice time yet.</p><% } %>
             </div>
             <div>
-                <h3 style="color:#c0caf5;font-size:1rem">All-time leaderboard</h3>
+                <h3 style="color:#f3f1ff;font-size:1rem">All-time leaderboard</h3>
                 <% if (v.allTime.length) { %><table><tr><th>#</th><th>Member</th><th>Time</th></tr><% v.allTime.forEach((u, i) => { %><tr><td><%= i + 1 %></td><td><%= u.name %></td><td><%= v.fmt(u.ms) %></td></tr><% }) %></table>
                 <% } else { %><p class="fx-sub">No voice time yet.</p><% } %>
             </div>
@@ -362,8 +335,8 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
 <div id="fx-ecodrops" class="tab-content<%= tab === 'fx-ecodrops' ? ' active' : '' %>">
 <% if (tab === 'fx-ecodrops') { banner(); const eco = fx_.eco; const cfgE = fx_.cfg; %>
     <div class="panel">
-        <h2>💸 Eco Drops <span class="fx-pill <%= cfgE.enabled ? 'on' : 'off' %>">scheduled drops <%= cfgE.enabled ? 'on' : 'off' %></span></h2>
-        <p class="fx-sub">Every drop has a <b>Claim</b> button. The first person to press it wins and the button switches off. Drops never expire on their own. The bot only records the winner, so pay them out yourself. The random daily drops are set up on the <a href="/features" style="color:#7aa2f7">Feature Settings</a> page.</p>
+        <h2>Eco Drops <span class="fx-pill <%= cfgE.enabled ? 'on' : 'off' %>">scheduled drops <%= cfgE.enabled ? 'on' : 'off' %></span></h2>
+        <p class="fx-sub">Every drop has a <b>Claim</b> button. The first person to press it wins and the button switches off. Drops never expire on their own. The bot only records the winner, so pay them out yourself. The random daily drops are set up on the <a href="/features" style="color:#a58bff">Feature Settings</a> page.</p>
         <div class="fx-stat">
             <div><b><%= eco.stats.open %></b><span>Waiting to be claimed</span></div>
             <div><b><%= eco.stats.claimed %></b><span>Claimed</span></div>
@@ -373,14 +346,14 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
     </div>
 
     <div class="panel">
-        <h2>➕ Post a drop</h2>
+        <h2>Post a drop</h2>
         <form class="fx-form" action="/ecodrops/manual" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <h3>Manual eco drop</h3>
             <div><label>Amount (millions)</label><input name="amount" type="number" step="0.01" min="0.01" max="1000000" required placeholder="e.g. 250 = 250M"></div>
             <div><label>Channel</label><%- chanSel('channelId') %></div>
             <div><label>Expire date (optional, bot time)</label><input name="expiresAt" type="datetime-local"></div>
-            <div class="chk"><input type="checkbox" name="ping" id="eco-ping"><label for="eco-ping" style="margin:0;text-transform:none;color:#c0caf5">Ping the eco-drop role<%= cfgE.pingRole ? '' : ' (none set)' %></label></div>
-            <div class="chk"><input type="checkbox" name="repeat" id="eco-rep"><label for="eco-rep" style="margin:0;text-transform:none;color:#c0caf5">Repeat</label></div>
+            <div class="chk"><input type="checkbox" name="ping" id="eco-ping"><label for="eco-ping" style="margin:0;text-transform:none;color:#f3f1ff">Ping the eco-drop role<%= cfgE.pingRole ? '' : ' (none set)' %></label></div>
+            <div class="chk"><input type="checkbox" name="repeat" id="eco-rep"><label for="eco-rep" style="margin:0;text-transform:none;color:#f3f1ff">Repeat</label></div>
             <div><label>Repeat every</label><input name="repeatEvery" type="number" min="1" step="any" value="1"></div>
             <div><label>Unit</label><select name="repeatUnit"><option value="m">minutes</option><option value="h" selected>hours</option><option value="d">days</option></select></div>
             <div class="wide fx-small">Leave the expire date empty and the drop stays claimable forever. With a date, it can't be claimed after it (the button switches off). For a <b>repeating</b> drop, the date is also when the repeating stops. Each repeat posts a fresh drop of the same amount (5 minutes to 30 days apart); older unclaimed ones stay claimable until the date. The first drop is posted right away.</div>
@@ -389,12 +362,12 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
     </div>
 
     <div class="panel">
-        <h2>📝 Logging <span class="fx-pill <%= cfgE.logEnabled ? 'on' : 'off' %>"><%= cfgE.logEnabled ? 'enabled' : 'disabled' %></span></h2>
+        <h2>Logging <span class="fx-pill <%= cfgE.logEnabled ? 'on' : 'off' %>"><%= cfgE.logEnabled ? 'enabled' : 'disabled' %></span></h2>
         <p class="fx-sub">Logs drops, claims, expiries and cancellations to a channel so staff can see who needs paying. Off by default.</p>
         <form class="fx-form" action="/ecodrops/logging" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <div class="chk"><input type="checkbox" name="logEnabled" id="eco-l1" <%= cfgE.logEnabled ? 'checked' : '' %>><label for="eco-l1" style="margin:0;text-transform:none;color:#c0caf5">Log eco drops</label></div>
-            <div class="chk"><input type="checkbox" name="logDrops" id="eco-l2" <%= cfgE.logDrops ? 'checked' : '' %>><label for="eco-l2" style="margin:0;text-transform:none;color:#c0caf5">Log drops posted</label></div>
-            <div class="chk"><input type="checkbox" name="logClaims" id="eco-l3" <%= cfgE.logClaims ? 'checked' : '' %>><label for="eco-l3" style="margin:0;text-transform:none;color:#c0caf5">Log claims</label></div>
+            <div class="chk"><input type="checkbox" name="logEnabled" id="eco-l1" <%= cfgE.logEnabled ? 'checked' : '' %>><label for="eco-l1" style="margin:0;text-transform:none;color:#f3f1ff">Log eco drops</label></div>
+            <div class="chk"><input type="checkbox" name="logDrops" id="eco-l2" <%= cfgE.logDrops ? 'checked' : '' %>><label for="eco-l2" style="margin:0;text-transform:none;color:#f3f1ff">Log drops posted</label></div>
+            <div class="chk"><input type="checkbox" name="logClaims" id="eco-l3" <%= cfgE.logClaims ? 'checked' : '' %>><label for="eco-l3" style="margin:0;text-transform:none;color:#f3f1ff">Log claims</label></div>
             <div><label>Log channel (empty = mod log)</label><select name="logChannel"><option value="">— mod log channel —</option><% (fx_.channels || []).forEach(c => { %><option value="<%= c.id %>" <%= cfgE.logChannel === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %></select></div>
             <div><button class="btn-submit">Save logging</button></div>
         </form>
@@ -402,7 +375,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
 
     <% if (eco.series.length) { %>
     <div class="panel">
-        <h2>🔁 Repeating drops</h2>
+        <h2>Repeating drops</h2>
         <table><tr><th>#</th><th>Amount</th><th>Channel</th><th>Every</th><th>Next</th><th>Until</th><th>Posted</th><th>By</th><th></th></tr>
         <% eco.series.forEach(s => { const mins = Math.round(s.everyMs / 60000); %><tr>
             <td><%= s.id %></td><td><%= eco.fmtAmount(s.amount) %></td><td>#<%= (fx_.channels.find(c => c.id === s.channelId) || {}).name || s.channelId %></td>
@@ -413,7 +386,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
     <% } %>
 
     <div class="panel">
-        <h2>🧾 Recent drops</h2>
+        <h2>Recent drops</h2>
         <% if (eco.drops.length) { %>
         <table><tr><th>#</th><th>Amount</th><th>Channel</th><th>Source</th><th>Posted</th><th>Status</th><th>Claimed by</th><th></th></tr>
         <% eco.drops.forEach(d => { %><tr>
@@ -432,24 +405,23 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
 <div id="fx-reactionroles" class="tab-content<%= tab === 'fx-reactionroles' ? ' active' : '' %>">
 <% if (tab === 'fx-reactionroles') { banner(); const blank = Object.assign({ id: '', enabled: true, channelId: '', messageId: null, items: [] }, fx_.defaults); %>
 <style>
-    .rr-panel summary { cursor:pointer; font-size:1.05rem; color:#c0caf5; list-style:none; } .rr-panel summary::-webkit-details-marker { display:none; }
+    .rr-panel summary { cursor:pointer; font-size:1.05rem; color:#f3f1ff; list-style:none; } .rr-panel summary::-webkit-details-marker { display:none; }
     .rr-row { display:flex; gap:8px; align-items:center; margin:6px 0; flex-wrap:wrap; }
-    .rr-row select, .rr-row input { background:#16161e; border:1px solid #2f3549; color:#fff; padding:9px; border-radius:4px; font-family:inherit; }
+    .rr-row select, .rr-row input { background:#0f0d27; border:1px solid #2a2561; color:#fff; padding:9px; border-radius:4px; font-family:inherit; }
     .rr-row .rr-role { min-width:220px; } .rr-row .rr-text { flex:1; min-width:180px; }
-    .rr-emoji { width:52px; height:42px; font-size:1.5rem; background:#16161e; border:1px dashed #565f89; color:#c0caf5; border-radius:6px; cursor:pointer; line-height:1; padding:0; }
+    .rr-emoji { width:52px; height:42px; font-size:1.5rem; background:#0f0d27; border:1px dashed #8f8abf; color:#f3f1ff; border-radius:6px; cursor:pointer; line-height:1; padding:0; }
     .rr-emoji img { width:26px; height:26px; vertical-align:middle; }
-    .rr-del { background:none; border:none; color:#f7768e; cursor:pointer; font-size:1.1rem; }
+    .rr-del { background:none; border:none; color:#ff6b8a; cursor:pointer; font-size:1.1rem; }
     #rr-pick { position:fixed; inset:0; background:rgba(0,0,0,.65); display:none; align-items:center; justify-content:center; z-index:9999; }
-    #rr-pick.open { display:flex; } #rr-pick .box { background:#1a1b26; border:1px solid #2f3549; border-radius:10px; width:min(640px,94vw); max-height:86vh; display:flex; flex-direction:column; padding:14px; }
-    #rr-pick .bar { display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; } #rr-pick input, #rr-pick select { background:#16161e; border:1px solid #2f3549; color:#fff; padding:8px; border-radius:4px; }
+    #rr-pick.open { display:flex; } #rr-pick .box { background:#171337; border:1px solid #2a2561; border-radius:10px; width:min(640px,94vw); max-height:86vh; display:flex; flex-direction:column; padding:14px; }
+    #rr-pick .bar { display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; } #rr-pick input, #rr-pick select { background:#0f0d27; border:1px solid #2a2561; color:#fff; padding:8px; border-radius:4px; }
     #rr-pick .bar input { flex:1; min-width:140px; } #rr-pick .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
-    #rr-pick .tabs button { background:#2f3549; color:#c0caf5; border:none; padding:4px 9px; border-radius:99px; cursor:pointer; font-size:12px; } #rr-pick .tabs button.on { background:#7aa2f7; color:#16161e; }
+    #rr-pick .tabs button { background:#2a2561; color:#f3f1ff; border:none; padding:4px 9px; border-radius:99px; cursor:pointer; font-size:12px; } #rr-pick .tabs button.on { background:#a58bff; color:#0f0d27; }
     #rr-pick .grid { overflow:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(42px,1fr)); gap:4px; }
-    #rr-pick .grid button { background:none; border:none; font-size:1.55rem; padding:4px; border-radius:6px; cursor:pointer; } #rr-pick .grid button:hover { background:#2f3549; } #rr-pick .grid img { width:28px; height:28px; }
-    #rr-pick .hint { color:#565f89; font-size:12px; margin-top:6px; min-height:16px; }
+    #rr-pick .grid button { background:none; border:none; font-size:1.55rem; padding:4px; border-radius:6px; cursor:pointer; } #rr-pick .grid button:hover { background:#2a2561; } #rr-pick .grid img { width:28px; height:28px; }
+    #rr-pick .hint { color:#8f8abf; font-size:12px; margin-top:6px; min-height:16px; }
 </style>
     <div class="panel">
-        <h2>🎭 Reaction Roles</h2>
         <p class="fx-sub">Each panel is an embed in a channel. Members react with an emoji to get a role and remove the reaction to lose it. Everything is set up here (there is no slash command). Pick any standard emoji or one of this server's emojis, and any role in the server. Roles the bot can't hand out are greyed out with the reason.</p>
         <% if (!fx_.canManageRoles) { %><div class="fx-err">I don't have the <b>Manage Roles</b> permission, so no role can be given until that is fixed.</div><% } %>
         <p class="fx-small">In texts you can use <code>{role}</code> and <code>{server}</code>. Discord allows <b>20</b> reactions per message, so a panel has at most <%= fx_.max %> rows. Use more panels for more roles. My own role has to sit above the roles I give out.</p>
@@ -457,7 +429,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
 
     <% [...fx_.panels, blank].forEach((p) => { const isNew = !p.id; %>
     <details class="panel rr-panel" <%= (isNew && fx_.newPanel) || (isNew && !fx_.panels.length) ? 'open' : '' %>>
-        <summary><%= isNew ? '➕ New panel' : '🎭 Panel #' + p.id + ' — ' + (p.title || '(no title)') %> <% if (!isNew) { %><span class="fx-pill <%= !p.enabled ? 'off' : (p.messageId ? 'on' : 'warn') %>"><%= !p.enabled ? 'disabled' : (p.messageId ? 'published' : 'not published') %></span> <span class="fx-small">#<%= (fx_.channels.find(c => c.id === p.channelId) || {}).name || p.channelId %> • <%= p.items.length %> role<%= p.items.length === 1 ? '' : 's' %></span><% } %></summary>
+        <summary><%= isNew ? 'New panel' : 'Panel #' + p.id + ' — ' + (p.title || '(no title)') %> <% if (!isNew) { %><span class="fx-pill <%= !p.enabled ? 'off' : (p.messageId ? 'on' : 'warn') %>"><%= !p.enabled ? 'disabled' : (p.messageId ? 'published' : 'not published') %></span> <span class="fx-small">#<%= (fx_.channels.find(c => c.id === p.channelId) || {}).name || p.channelId %> • <%= p.items.length %> role<%= p.items.length === 1 ? '' : 's' %></span><% } %></summary>
         <form action="/reaction-roles/save" method="POST" class="rr-form" onsubmit="return rrSubmit(this)" style="margin-top:12px"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <input type="hidden" name="id" value="<%= p.id %>">
             <input type="hidden" name="items" class="rr-items" value="<%= JSON.stringify(p.items || []) %>">
@@ -479,8 +451,8 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
                 <h3>Behaviour &amp; messages</h3>
                 <div><label>Mode</label><select name="mode"><option value="multi" <%= p.mode === 'multi' ? 'selected' : '' %>>Members can pick several roles</option><option value="unique" <%= p.mode === 'unique' ? 'selected' : '' %>>One role only (picking another swaps it)</option></select></div>
                 <div><label>Tell the member by DM</label><select name="notify"><option value="none" <%= p.notify === 'none' ? 'selected' : '' %>>No DM</option><option value="dm" <%= p.notify === 'dm' ? 'selected' : '' %>>Send a DM when a role is added or removed</option></select></div>
-                <div class="chk"><input type="checkbox" name="removeOnUnreact" id="rr-rm-<%= p.id || 'new' %>" <%= p.removeOnUnreact ? 'checked' : '' %>><label for="rr-rm-<%= p.id || 'new' %>" style="margin:0;text-transform:none;color:#c0caf5">Remove the role when the reaction is removed</label></div>
-                <div class="chk"><input type="checkbox" name="enabled" id="rr-en-<%= p.id || 'new' %>" <%= p.enabled ? 'checked' : '' %>><label for="rr-en-<%= p.id || 'new' %>" style="margin:0;text-transform:none;color:#c0caf5">Panel enabled</label></div>
+                <div class="chk"><input type="checkbox" name="removeOnUnreact" id="rr-rm-<%= p.id || 'new' %>" <%= p.removeOnUnreact ? 'checked' : '' %>><label for="rr-rm-<%= p.id || 'new' %>" style="margin:0;text-transform:none;color:#f3f1ff">Remove the role when the reaction is removed</label></div>
+                <div class="chk"><input type="checkbox" name="enabled" id="rr-en-<%= p.id || 'new' %>" <%= p.enabled ? 'checked' : '' %>><label for="rr-en-<%= p.id || 'new' %>" style="margin:0;text-transform:none;color:#f3f1ff">Panel enabled</label></div>
                 <div class="wide"><label>DM text when a role is added</label><input name="addedText" maxlength="<%= fx_.limits.dm %>" value="<%= p.addedText %>"></div>
                 <div class="wide"><label>DM text when a role is removed</label><input name="removedText" maxlength="<%= fx_.limits.dm %>" value="<%= p.removedText %>"></div>
             </div>
@@ -581,8 +553,8 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
 <div id="fx-community" class="tab-content<%= tab === 'fx-community' ? ' active' : '' %>">
 <% if (tab === 'fx-community') { banner(); %>
     <div class="panel">
-        <h2>🎉 Giveaways</h2>
-        <p class="fx-sub">Start one here or with <code>/giveaway start</code>. <% if (!fx_.cfgG.enabled) { %><b style="color:#f7768e">Giveaways are disabled — enable them on the Features page.</b><% } %></p>
+        <h2>Giveaways</h2>
+        <p class="fx-sub">Start one here or with <code>/giveaway start</code>. <% if (!fx_.cfgG.enabled) { %><b style="color:#ff6b8a">Giveaways are disabled — enable them on the Features page.</b><% } %></p>
         <form class="fx-form" action="/community/giveaway/start" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <h3>Start a giveaway</h3>
             <div class="wide"><label>Prize</label><input name="prize" required maxlength="200" placeholder="Discord Nitro"></div>
@@ -607,8 +579,8 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
         </table><% } else { %><p class="fx-sub">No giveaways yet.</p><% } %>
     </div>
     <div class="panel">
-        <h2>📊 Polls</h2>
-        <p class="fx-sub">Create one here or with <code>/poll create</code>. <% if (!fx_.cfgP.enabled) { %><b style="color:#f7768e">Polls are disabled — enable them on the Features page.</b><% } %></p>
+        <h2>Polls</h2>
+        <p class="fx-sub">Create one here or with <code>/poll create</code>. <% if (!fx_.cfgP.enabled) { %><b style="color:#ff6b8a">Polls are disabled — enable them on the Features page.</b><% } %></p>
         <form class="fx-form" action="/community/poll/create" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <h3>Create a poll</h3>
             <div class="wide"><label>Question</label><input name="question" required maxlength="250"></div>
@@ -616,7 +588,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
             <div><label>Channel</label><%- chanSel('channelId') %></div>
             <div><label>Auto-close after (optional)</label><input name="duration" placeholder="e.g. 1h, 2d"></div>
             <div><label>Voters</label><select name="anonymity"><option value="default">Default (<%= fx_.cfgP.defaultAnonymous ? 'anonymous' : 'public' %>)</option><option value="anonymous">Anonymous</option><option value="public">Public</option></select></div>
-            <div class="chk"><input type="checkbox" name="multi" id="pollmulti"><label for="pollmulti" style="margin:0;text-transform:none;color:#c0caf5">Allow multiple choices</label></div>
+            <div class="chk"><input type="checkbox" name="multi" id="pollmulti"><label for="pollmulti" style="margin:0;text-transform:none;color:#f3f1ff">Allow multiple choices</label></div>
             <div><button class="btn-submit">Post poll</button></div>
         </form>
         <% if (fx_.polls.length) { %>
@@ -632,10 +604,10 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
 <div id="fx-timed" class="tab-content<%= tab === 'fx-timed' ? ' active' : '' %>">
 <% if (tab === 'fx-timed') { banner(); %>
     <div class="panel">
-        <h2>⏲️ Scheduled Actions</h2>
-        <p class="fx-sub">Schedule here or with <code>/timed …</code>. Durations look like <code>30m</code>, <code>12h</code>, <code>3d</code>, <code>1w</code> (max <%= fx_.cfgT.maxDays %> days). <% if (!fx_.cfgT.enabled) { %><b style="color:#f7768e">Timed Actions are disabled — enable them on the Features page.</b><% } %></p>
+        <h2>Scheduled Actions</h2>
+        <p class="fx-sub">Schedule here or with <code>/timed …</code>. Durations look like <code>30m</code>, <code>12h</code>, <code>3d</code>, <code>1w</code> (max <%= fx_.cfgT.maxDays %> days). <% if (!fx_.cfgT.enabled) { %><b style="color:#ff6b8a">Timed Actions are disabled — enable them on the Features page.</b><% } %></p>
         <form class="fx-form" action="/timed/ban" method="POST" onsubmit="return confirm('Ban this user now and unban automatically later?');"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <h3>⏰ Temp-ban</h3>
+            <h3>Temp-ban</h3>
             <div><label>User ID</label><input name="userId" required pattern="\d{15,25}"></div>
             <div><label>Duration</label><input name="duration" required placeholder="3d"></div>
             <div><label>Delete msgs (days 0-7)</label><input name="deleteDays" type="number" min="0" max="7" value="0"></div>
@@ -643,7 +615,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
             <div><button class="btn-submit">Temp-ban</button></div>
         </form>
         <form class="fx-form" action="/timed/role" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <h3>🎭 Temporary role</h3>
+            <h3>Temporary role</h3>
             <div><label>User ID</label><input name="userId" required pattern="\d{15,25}"></div>
             <div><label>Role</label><%- roleSel('roleId') %></div>
             <div><label>Duration</label><input name="duration" required placeholder="2h"></div>
@@ -651,13 +623,13 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
             <div><button class="btn-submit">Apply</button></div>
         </form>
         <form class="fx-form" action="/timed/unban" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <h3>🔓 Scheduled unban</h3>
+            <h3>Scheduled unban</h3>
             <div><label>User ID</label><input name="userId" required pattern="\d{15,25}"></div>
             <div><label>In</label><input name="duration" required placeholder="1d"></div>
             <div><button class="btn-submit">Schedule unban</button></div>
         </form>
         <form class="fx-form" action="/timed/message" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <h3>💬 Delayed message</h3>
+            <h3>Delayed message</h3>
             <div><label>Channel</label><%- chanSel('channelId') %></div>
             <div><label>In</label><input name="duration" required placeholder="2h"></div>
             <div class="wide"><label>Message (no @everyone / @here)</label><textarea name="text" required rows="2" maxlength="1800"></textarea></div>
@@ -682,8 +654,8 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
 <% if (tab === 'fx-helpcenter') { banner(); const ed = fx_.editing; %>
     <% (fx_.errors || []).forEach(e => { %><div class="fx-err"><%= e %></div><% }) %>
     <div class="panel">
-        <h2>📚 Popular articles <span class="fx-pill <%= fx_.customised ? 'warn' : '' %>"><%= fx_.customised ? 'customised' : 'built-in list' %></span></h2>
-        <p class="fx-sub">These are the articles shown on the public <a href="/support" target="_blank" rel="noopener" style="color:#7aa2f7">Help Center</a>. Changes go live as soon as you save. Hidden articles stay here but are not shown to members.</p>
+        <h2>Popular articles <span class="fx-pill <%= fx_.customised ? 'warn' : '' %>"><%= fx_.customised ? 'customised' : 'built-in list' %></span></h2>
+        <p class="fx-sub">These are the articles shown on the public <a href="/support" target="_blank" rel="noopener" style="color:#a58bff">Help Center</a>. Changes go live as soon as you save. Hidden articles stay here but are not shown to members.</p>
         <% if (fx_.articles.length) { %>
         <table>
             <tr><th style="width:40px">#</th><th>Article</th><th>Category</th><th>Status</th><th style="width:330px">Actions</th></tr>
@@ -691,7 +663,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
             <tr>
                 <td><%= i + 1 %></td>
                 <td>
-                    <details><summary style="cursor:pointer;color:#c0caf5;"><%= a.t %></summary><div class="fx-small" style="margin-top:8px;padding:8px 10px;background:#16161e;border-radius:6px;"><%- a.html %></div></details>
+                    <details><summary style="cursor:pointer;color:#f3f1ff;"><%= a.t %></summary><div class="fx-small" style="margin-top:8px;padding:8px 10px;background:#0f0d27;border-radius:6px;"><%- a.html %></div></details>
                 </td>
                 <td class="fx-small"><%= cat ? cat.name : a.c %></td>
                 <td><span class="fx-pill <%= a.hidden ? 'off' : 'on' %>"><%= a.hidden ? 'hidden' : 'visible' %></span></td>
@@ -727,7 +699,7 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
             <div class="wide">
                 <label for="hc-b">Article text</label>
                 <textarea id="hc-b" name="b" rows="10" maxlength="<%= fx_.max.body %>" required placeholder="Write the answer here."><%= ed ? ed.b : '' %></textarea>
-                <div class="fx-small" style="margin-top:6px;color:#565f89;">
+                <div class="fx-small" style="margin-top:6px;color:#8f8abf;">
                     Blank line = new paragraph. Start lines with <code>- </code> for bullets or <code>1. </code> for numbers.
                     <code>**bold**</code>, <code>[link text](/support/request)</code> or <code>[link](https://example.com)</code>, and <code>{{bot}}</code> for the bot's name. Raw HTML is shown as plain text.
                 </div>

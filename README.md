@@ -87,5 +87,18 @@ TicketTool-style tickets that are also Help Center requests. Enable **Tickets** 
 Locked voice channels under a "📊 Server Stats" category (members, humans, bots, boosts, channels, roles, open tickets). Pick the stats under Dashboard → Feature Settings → Server Stats Channels, or run `/serverstats setup`. The bot needs **Manage Channels**. Code: `features/serverstats.js`.
 
 ## Marriage & family (`/marry`, `/divorce`, `/adopt`, `/family`)
-`/marry @user`, `/divorce`, `/adopt @user` (a married adopter's spouse becomes co-parent; max 2 parents), `/family tree [user]`, `/family disown @child`, `/family leave`. Proposals use buttons and expire. Data is kept when someone leaves the server. Code: `features/family.js`.
+`/marry @user`, `/divorce`, `/adopt @user` (a married adopter's spouse becomes co-parent; max 2 parents; married people can be adopted), `/force marry @a @b` and `/force adopt @parent @child` (Admin+, no consent needed), `/family tree [user]`, `/family disown @child`, `/family leave`. Proposals use buttons and expire. Data is kept when someone leaves the server. Code: `features/family.js`.
 
+
+
+## Eco drops (`features/ecodrops.js`)
+Random daily drops plus manual / repeating drops from **Dashboard → Eco Drops**. Every drop has a **Claim** button (first click wins, then it is disabled). Drops never expire unless a manual drop has an expire date (for repeating drops that date also ends the repeating). Logging (drops, claims, expiries) is switched on/off and pointed at a channel on the same page.
+
+## Reaction roles (`features/reactionroles.js`)
+Dashboard-only (**Dashboard → Reaction Roles**): embedded panels, every standard emoji (from the `unicode-emoji-json` package) plus server emojis, every server role, all texts editable. Max 20 rows per panel (Discord's reaction limit).
+
+## Giveaway requirements
+`/giveaway start` and the dashboard form accept level roles (any one of several), and minimum messages today / this week (Mon start) / this month. Counts live in `features/analytics.js` and are rebuilt by the startup sync.
+
+## `/help`
+Generated from the registered commands, so new commands always appear. `/help command:<name>` shows one command in detail.

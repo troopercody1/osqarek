@@ -6,50 +6,50 @@
     <title>Mailbox</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: #16161e; color: #a9b1d6; padding: 40px 20px; }
+        body { font-family: 'Figtree', 'Segoe UI', system-ui, sans-serif; background-color: #0f0d27; color: #d6d2f5; padding: 40px 20px; }
         .page { max-width: 760px; margin: 0 auto; }
-        a { color: #7aa2f7; text-decoration: none; }
+        a { color: #a58bff; text-decoration: none; }
         a:hover { color: #a9c5ff; }
         a.back { font-size: 13px; display: inline-flex; gap: 6px; margin-bottom: 24px; }
-        h1 { color: #7aa2f7; font-size: 22px; font-weight: 600; margin-bottom: 4px; }
-        .page-sub { font-size: 13px; color: #565f89; margin-bottom: 20px; }
+        h1 { color: #a58bff; font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+        .page-sub { font-size: 13px; color: #8f8abf; margin-bottom: 20px; }
         .flash { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 18px; border: 1px solid; }
-        .flash.ok  { background: rgba(158,206,106,.1); color: #9ece6a; border-color: #9ece6a; }
-        .flash.bad { background: rgba(247,118,142,.1); color: #f7768e; border-color: #f7768e; }
-        .card { background: #1a1b26; border: 1px solid #2f3549; border-radius: 12px; overflow: hidden; margin-bottom: 18px; }
+        .flash.ok  { background: rgba(158,206,106,.1); color: #5fe3a1; border-color: #5fe3a1; }
+        .flash.bad { background: rgba(255,107,138,.1); color: #ff6b8a; border-color: #ff6b8a; }
+        .card { background: #171337; border: 1px solid #2a2561; border-radius: 12px; overflow: hidden; margin-bottom: 18px; }
         .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
         .toolbar form { display: flex; gap: 8px; flex: 1; min-width: 220px; }
-        input[type=text], input[type=email], textarea { background: #1a1b26; border: 1px solid #2f3549; color: #c0caf5; padding: 8px 10px; border-radius: 6px; width: 100%; font-family: 'Segoe UI', sans-serif; font-size: 13px; }
+        input[type=text], input[type=email], textarea { background: #171337; border: 1px solid #2a2561; color: #f3f1ff; padding: 8px 10px; border-radius: 6px; width: 100%; font-family: 'Figtree', 'Segoe UI', system-ui, sans-serif; font-size: 13px; }
         textarea { min-height: 180px; resize: vertical; line-height: 1.5; }
-        input:focus, textarea:focus { outline: none; border-color: #7aa2f7; }
-        label { font-size: 12px; color: #565f89; display: block; margin: 14px 0 6px; }
-        .btn { font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 6px; border: 1px solid #2f3549; background: #1a1b26; color: #c0caf5; cursor: pointer; font-family: 'Segoe UI', sans-serif; white-space: nowrap; display: inline-block; }
-        .btn:hover { background: #252636; color: #c0caf5; }
+        input:focus, textarea:focus { outline: none; border-color: #a58bff; }
+        label { font-size: 12px; color: #8f8abf; display: block; margin: 14px 0 6px; }
+        .btn { font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 6px; border: 1px solid #2a2561; background: #171337; color: #f3f1ff; cursor: pointer; font-family: 'Figtree', 'Segoe UI', system-ui, sans-serif; white-space: nowrap; display: inline-block; }
+        .btn:hover { background: #252636; color: #f3f1ff; }
         .btn-primary { background: #5865f2; color: #fff; border-color: transparent; }
         .btn-primary:hover { background: #4752c4; color: #fff; }
-        .btn.active { border-color: #7aa2f7; color: #7aa2f7; }
-        .msg-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #2f3549; }
+        .btn.active { border-color: #a58bff; color: #a58bff; }
+        .msg-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #2a2561; }
         .msg-row:last-child { border-bottom: none; }
-        .msg-row:hover { background: #1f2030; }
+        .msg-row:hover { background: #1e1a45; }
         .dot { width: 8px; height: 8px; border-radius: 50%; background: transparent; flex-shrink: 0; }
-        .unread .dot { background: #7aa2f7; }
+        .unread .dot { background: #a58bff; }
         .msg-main { flex: 1; min-width: 0; display: block; color: inherit; }
-        .msg-from { font-size: 13px; color: #c0caf5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .msg-subject { font-size: 12px; color: #565f89; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+        .msg-from { font-size: 13px; color: #f3f1ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .msg-subject { font-size: 12px; color: #8f8abf; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
         .unread .msg-from, .unread .msg-subject { font-weight: 600; }
-        .unread .msg-subject { color: #a9b1d6; }
-        .msg-date { font-size: 11px; color: #565f89; flex-shrink: 0; }
-        .tag { font-size: 10px; padding: 2px 7px; border-radius: 99px; background: #1a1f3a; color: #7aa2f7; margin-left: 6px; }
-        .empty { padding: 28px; text-align: center; font-size: 13px; color: #565f89; }
-        .pager { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #565f89; margin-bottom: 18px; }
+        .unread .msg-subject { color: #d6d2f5; }
+        .msg-date { font-size: 11px; color: #8f8abf; flex-shrink: 0; }
+        .tag { font-size: 10px; padding: 2px 7px; border-radius: 99px; background: #211a52; color: #a58bff; margin-left: 6px; }
+        .empty { padding: 28px; text-align: center; font-size: 13px; color: #8f8abf; }
+        .pager { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #8f8abf; margin-bottom: 18px; }
         .pad { padding: 18px; }
-        .meta { font-size: 12px; color: #565f89; line-height: 1.7; }
-        .meta b { color: #a9b1d6; font-weight: 500; }
-        .subject { font-size: 17px; color: #c0caf5; font-weight: 600; margin-bottom: 10px; }
-        .body-text { white-space: pre-wrap; word-wrap: break-word; font-size: 13.5px; line-height: 1.6; color: #c0caf5; padding: 18px; border-top: 1px solid #2f3549; }
-        iframe.mail-html { width: 100%; height: 480px; border: none; border-top: 1px solid #2f3549; background: #fff; }
-        .atts { padding: 12px 18px; border-top: 1px solid #2f3549; font-size: 12px; color: #565f89; }
-        .setup code { background: #13131a; padding: 2px 6px; border-radius: 4px; color: #e0af68; font-size: 12px; }
+        .meta { font-size: 12px; color: #8f8abf; line-height: 1.7; }
+        .meta b { color: #d6d2f5; font-weight: 500; }
+        .subject { font-size: 17px; color: #f3f1ff; font-weight: 600; margin-bottom: 10px; }
+        .body-text { white-space: pre-wrap; word-wrap: break-word; font-size: 13.5px; line-height: 1.6; color: #f3f1ff; padding: 18px; border-top: 1px solid #2a2561; }
+        iframe.mail-html { width: 100%; height: 480px; border: none; border-top: 1px solid #2a2561; background: #fff; }
+        .atts { padding: 12px 18px; border-top: 1px solid #2a2561; font-size: 12px; color: #8f8abf; }
+        .setup code { background: #13131a; padding: 2px 6px; border-radius: 4px; color: #ffc857; font-size: 12px; }
         .setup li { margin: 6px 0 6px 18px; font-size: 13px; line-height: 1.6; }
     </style>
 </head>
@@ -95,7 +95,7 @@
         <% if (ticket && timeline && timeline.length > 1) { %><div class="meta" style="margin-bottom:10px;">Conversation for <b><%= ticket %></b> &middot; <%= timeline.length %> messages, oldest first</div><% } %>
         <% (timeline || [{ kind: 'email', m: thread }]).forEach((item, i) => {
             if (item.kind === 'staff') { %>
-        <div class="card" style="border-left:3px solid #9ece6a;">
+        <div class="card" style="border-left:3px solid #5fe3a1;">
             <div class="pad">
                 <div class="meta"><b>Staff reply</b> &middot; <%= item.name %> &middot; via the ticket page<% if (item.at) { %> &middot; <%= new Date(item.at).toLocaleString('en-GB', { timeZone: 'UTC' }) %> UTC<% } %></div>
             </div>

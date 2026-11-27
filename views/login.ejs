@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - <%= stats?.botName || 'Dashboard' %></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
     <style>
         body { 
-            font-family: 'Segoe UI', sans-serif; 
-            background-color: #16161e; 
-            color: #a9b1d6; 
+            font-family: 'Figtree', 'Segoe UI', system-ui, sans-serif; 
+            background: radial-gradient(ellipse at 50% -10%, #231a5c 0%, #0c0a1f 55%); 
+            color: #d6d2f5; 
             display: flex; 
             justify-content: center; 
             align-items: center; 
@@ -17,22 +19,23 @@
             padding: 20px; 
         }
         .login-card { 
-            background-color: #1a1b26; 
+            background-color: #171337; 
             padding: 40px; 
-            border-radius: 12px; 
-            border: 1px solid #2f3549; 
+            border-radius: 16px; 
+            border: 1px solid #2a2561; 
             text-align: center; 
             width: 100%; 
-            max-width: 350px; 
+            max-width: 380px; 
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-        h1 { color: #7aa2f7; margin-bottom: 10px; }
-        p { color: #565f89; margin-bottom: 30px; font-size: 0.95rem; }
+        h1 { font-family: 'Bricolage Grotesque', 'Segoe UI', sans-serif; font-weight: 700; letter-spacing: -.02em; color: #f3f1ff; margin: 14px 0 8px; font-size: 1.7rem; }
+        .mark { width: 54px; height: 54px; }
+        p { color: #8f8abf; margin-bottom: 30px; font-size: 0.95rem; }
         
         .error-msg {
-            background-color: rgba(247, 118, 142, 0.1);
-            color: #f7768e;
-            border: 1px solid #f7768e;
+            background-color: rgba(255, 107, 138, 0.1);
+            color: #ff6b8a;
+            border: 1px solid #ff6b8a;
             padding: 10px;
             border-radius: 6px;
             margin-bottom: 20px;
@@ -43,7 +46,7 @@
             background-color: #5865F2; 
             color: white; 
             padding: 12px 24px; 
-            border-radius: 6px; 
+            border-radius: 9px; 
             text-decoration: none; 
             font-weight: bold; 
             display: inline-block;
@@ -57,10 +60,10 @@
         /* New Admin Button Styling */
         .btn-admin {
             background-color: transparent;
-            color: #a9b1d6;
+            color: #d6d2f5;
             padding: 12px 24px;
             border-radius: 6px;
-            border: 1px solid #565f89;
+            border: 1px solid #8f8abf;
             text-decoration: none;
             font-weight: bold;
             display: inline-block;
@@ -69,9 +72,9 @@
             box-sizing: border-box;
         }
         .btn-admin:hover {
-            background-color: #24283b;
-            color: #c0caf5;
-            border-color: #7aa2f7;
+            background-color: #1a1640;
+            color: #f3f1ff;
+            border-color: #a58bff;
         }
 
         /* Mobile Optimization */
@@ -85,8 +88,9 @@
 </head>
 <body>
     <div class="login-card">
-        <h1>🌌 <%= stats?.botName || 'Dashboard' %></h1>
-        <p>Access the dashboard for OsQarek's Universe Utilities.</p>
+        <svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="7.5" fill="#7c4dff"/><ellipse cx="20" cy="20" rx="17" ry="7" fill="none" stroke="#a58bff" stroke-width="1.6" transform="rotate(-24 20 20)"/><circle cx="33.6" cy="12.6" r="2.6" fill="#ffc857"/></svg>
+        <h1><%= stats?.botName || 'Dashboard' %></h1>
+        <p>Sign in to manage OsQarek's Universe.</p>
 
         <% if (error) { %>
             <div class="error-msg">
@@ -94,8 +98,8 @@
             </div>
         <% } %>
 
-        <a href="/auth/discord" class="btn-discord">Login with Discord</a>
-        <a href="/auth/admin" class="btn-admin">Login as Administrator</a>
+        <a href="/auth/discord" class="btn-discord">Sign in with Discord</a>
+        <a href="/auth/admin" class="btn-admin">Sign in as administrator</a>
     </div>
 </body>
 </html>

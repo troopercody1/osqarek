@@ -14,7 +14,7 @@
             <h2>📜 Infraction History for <%= userId %></h2>
 
             <% if (history.length === 0) { %>
-                <p style="color:#565f89;">No infractions found for this user.</p>
+                <p style="color:#8f8abf;">No infractions found for this user.</p>
             <% } else { %>
 
             <table class="history-table">
@@ -30,7 +30,7 @@
                 <tbody>
                     <% history.forEach(item => { %>
                     <tr>
-                        <td style="color:#7dcfff;">#<%= item.id %></td>
+                        <td style="color:#8ecbff;">#<%= item.id %></td>
                         <td class="type-<%= item.type %>"><%= item.type %></td>
                         <td><%= item.reason %></td>
                         <td><%= item.timestamp %></td>

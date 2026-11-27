@@ -4,299 +4,143 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
     <title><%= stats.botName %> - Dashboard</title>
-    <style>
-        :root { --sidebar-bg: #1a1b26; --main-bg: #16161e; --accent: #7aa2f7; --card-bg: #24283b; --text: #a9b1d6; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--main-bg); color: var(--text); margin: 0; display: flex; height: 100vh; }
-        
-        /* Sidebar */
-        .sidebar { width: 260px; background: var(--sidebar-bg); border-right: 1px solid #2f3549; display: flex; flex-direction: column; padding: 20px; }
-        .sidebar h2 { color: var(--accent); font-size: 1.2rem; margin-bottom: 2rem; }
-        .tab-btn { display: block; background: transparent; border: none; color: var(--text); padding: 12px 15px; border-radius: 6px; text-align: left; cursor: pointer; font-weight: bold; margin-bottom: 5px; transition: 0.2s; width: 100%; box-sizing: border-box; text-decoration: none; }
-        .tab-btn:hover, .tab-btn.active { background: #2f3549; color: var(--accent); }
-        
-        /* Main Content */
-        .main-content { flex: 1; padding: 40px; overflow-y: auto; }
-        .panel { background: var(--card-bg); padding: 25px; border-radius: 8px; border: 1px solid #2f3549; margin-bottom: 25px; }
-        h2 { color: #fff; font-size: 1.4rem; margin-top: 0; }
-        
-        .grid-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .card-stat { background: var(--card-bg); padding: 20px; border-radius: 6px; border: 1px solid #2f3549; }
-        .card-stat h3 { font-size: 0.75rem; color: #7dcfff; text-transform: uppercase; margin: 0; }
-        .card-stat .val { font-size: 1.5rem; font-weight: bold; color: #c0caf5; margin-top: 5px; }
-        
-        input { background: #16161e; border: 1px solid #2f3549; color: #fff; padding: 10px; border-radius: 4px; width: 100%; box-sizing: border-box; }
-        .btn-submit { background: var(--accent); color: #1a1b26; border: none; padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th { text-align: left; color: #565f89; font-size: 0.8rem; padding: 10px; }
-        td { padding: 10px; border-bottom: 1px solid #2f3549; }
-
-        .terminal-box { background-color: #15161e; font-family: monospace; padding: 15px; border-radius: 8px; height: 300px; overflow-y: auto; border: 1px solid #1f2335; font-size: 0.8rem; }
-
-        /* Module toggle rows */
-        .module-row { display: flex; align-items: center; gap: 16px; padding: 16px 0; border-bottom: 1px solid #2f3549; }
-        .module-row:last-child { border-bottom: none; }
-        .module-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-        .module-body { flex: 1; }
-        .module-title { font-size: 14px; font-weight: 600; color: #c0caf5; }
-        .module-desc { font-size: 12px; color: #565f89; margin-top: 2px; }
-        .module-end { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-        .mod-badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 99px; }
-        .mod-badge.on  { background: #1a2e1a; color: #9ece6a; }
-        .mod-badge.off { background: #2e1a1a; color: #f7768e; }
-        .mod-toggle { width: 40px; height: 22px; background: #2f3549; border: none; border-radius: 99px; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; outline: none; }
-        .mod-toggle.on { background: #9ece6a; }
-        .mod-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #16161e; transition: left 0.2s; }
-        .mod-toggle.on::after { left: 21px; }
-
-        /* Banned words */
-        .word-chip { display: inline-flex; align-items: center; gap: 6px; background: #2e1a1a; color: #f7768e; border: 1px solid #4a1c1c; border-radius: 99px; padding: 4px 10px; font-size: 12px; margin: 4px; }
-        .word-chip form { margin: 0; }
-        .word-chip button { background: none; border: none; color: #f7768e; cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
-        .add-word-row { display: flex; gap: 8px; margin-top: 14px; }
-        .add-word-row input { flex: 1; }
-        .add-word-row .btn-submit { margin-top: 0; }
-        .ng-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid #2f3549; }
-        .ng-row input[type=checkbox] { width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; accent-color: var(--accent); }
-        .ng-row input[type=number] { width: 90px; }
-        .ng-row .ng-title { color: #c0caf5; font-weight: 600; }
-        .ng-row .ng-desc { color: #565f89; font-size: 0.82rem; margin-top: 2px; }
-        .ng-btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
-        .ng-btn-row form { margin: 0; }
-        .btn-secondary { background: #2f3549; color: var(--accent); }
-        .ng-pill { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; background: #2f3549; color: #c0caf5; }
-
-        /* Error log */
-        .terminal-box .err { color: #f7768e; }
-        .terminal-box .log { color: #9ece6a; }
-
-        /* Settings link */
-        .sidebar-link { display: block; color: var(--text); text-decoration: none; padding: 12px 15px; border-radius: 6px; font-weight: bold; margin-bottom: 5px; transition: 0.2s; }
-        .sidebar-link:hover { background: #2f3549; color: var(--accent); }
-
-        @media (max-width: 768px) {
-            body { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid #2f3549; padding: 10px; flex-direction: row; overflow-x: auto; }
-            .sidebar h2 { display: none; }
-            .tab-btn { margin-bottom: 0; padding: 10px; white-space: nowrap; }
-            .main-content { padding: 20px; }
-            .grid-stats { grid-template-columns: 1fr; }
-            .panel { overflow-x: auto; }
-            .module-row { flex-wrap: wrap; }
-        }
-        /* Search + Filters */
-.toolbar {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-}
-
-.search-bar input {
-    padding: 8px;
-    border-radius: 6px;
-    border: 1px solid #565f89;
-    background: #16161e;
-    color: white;
-}
-
-.filter-buttons a {
-    margin-right: 10px;
-    color: #7aa2f7;
-    text-decoration: none;
-}
-.filter-buttons a:hover {
-    color: #a9b1d6;
-}
-
-/* Case Creation */
-.create-form {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-.create-form input {
-    padding: 8px;
-    border-radius: 6px;
-    border: 1px solid #565f89;
-    background: #16161e;
-    color: white;
-}
-
-/* Delete Button */
-.btn-delete {
-    background-color: #f7768e;
-    color: white;
-    border: none;
-    padding: 6px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-}
-.btn-delete:hover {
-    opacity: 0.8;
-}
-
-/* History Link */
-.history-link {
-    font-size: 0.8rem;
-    color: #7aa2f7;
-    text-decoration: none;
-}
-.history-link:hover {
-    color: #a9b1d6;
-}
-
-/* Color-coded types */
-.type-WARN { color: #e0af68; }
-.type-BAN { color: #f7768e; }
-.type-MUTE { color: #7aa2f7; }
-.type-SOFTBAN { color: #bb9af7; }
-
-/* Pagination */
-.pagination {
-    margin-top: 20px;
-}
-.pagination a {
-    margin-right: 8px;
-    padding: 6px 10px;
-    background: #1a1b26;
-    border: 1px solid #565f89;
-    border-radius: 6px;
-    color: #7aa2f7;
-    text-decoration: none;
-}
-.pagination a.active-page {
-    background: #7aa2f7;
-    color: #1a1b26;
-}
-
-/* User History Panel */
-.history-panel {
-    background: #24283b;
-    padding: 25px;
-    border-radius: 8px;
-    border: 1px solid #2f3549;
-    margin-bottom: 25px;
-}
-
-/* Title */
-.history-panel h2 {
-    color: #c0caf5;
-    font-size: 1.4rem;
-    margin-top: 0;
-}
-
-/* Table */
-.history-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-}
-
-.history-table th {
-    text-align: left;
-    color: #565f89;
-    font-size: 0.8rem;
-    padding: 10px;
-}
-
-.history-table td {
-    padding: 10px;
-    border-bottom: 1px solid #2f3549;
-    color: #a9b1d6;
-}
-
-/* Back Link */
-.back-link {
-    display: inline-block;
-    margin-top: 20px;
-    color: #7aa2f7;
-    text-decoration: none;
-    font-size: 0.9rem;
-}
-
-.back-link:hover {
-    color: #a9b1d6;
-}
-
-/* Color-coded types */
-.type-WARN { color: #e0af68; font-weight: 600; }
-.type-BAN { color: #f7768e; font-weight: 600; }
-.type-MUTE { color: #7aa2f7; font-weight: 600; }
-.type-SOFTBAN { color: #bb9af7; font-weight: 600; }
-
-/* Row hover */
-.history-table tr:hover {
-    background: #1f2335;
-}
-
-
-    </style>
+    <%- include('partials/head') %>
 </head>
 <body>
-    <div class="sidebar">
-        <h2>OsQarek's Universe</h2>
-        <% const activePage = locals.activePage || 'config'; %>
-        <a href="/config" class="tab-btn <%= activePage === 'config' ? 'active' : '' %>">⚙️ Configuration</a>
-        <a href="/modules" class="tab-btn <%= activePage === 'modules' ? 'active' : '' %>">🧩 Modules</a>
-        <a href="/infractions" class="tab-btn <%= activePage === 'infractions' ? 'active' : '' %>">⚖️ Infractions</a>
-        <a href="/risk-manager" class="tab-btn <%= activePage === 'risk-manager' ? 'active' : '' %>">🛡️ Risk Manager</a>
-        <a href="/reaction-roles" class="tab-btn <%= activePage === 'reaction-roles' ? 'active' : '' %>">🎭 Reaction Roles</a>
-        <a href="/banned-words" class="tab-btn <%= activePage === 'banned-words' ? 'active' : '' %>">🚫 Banned Words</a>
-        <a href="/nickname-guard" class="tab-btn <%= activePage === 'nickname-guard' ? 'active' : '' %>">🏷️ Nickname Guard</a>
-        <a href="/confessions" class="tab-btn <%= activePage === 'confessions' ? 'active' : '' %>">🤫 Confessions</a>
-        <a href="/system-logs" class="tab-btn <%= activePage === 'system-logs' ? 'active' : '' %>">🖥️ System Logs</a>
-        <div style="color:#565f89;font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin:14px 15px 6px">Features</div>
-        <a href="/features" class="tab-btn <%= activePage === 'fx-features' ? 'active' : '' %>">🧩 Feature Settings</a>
-        <a href="/protection" class="tab-btn <%= activePage === 'fx-protection' ? 'active' : '' %>">🚨 Protection</a>
-        <a href="/lockdown" class="tab-btn <%= activePage === 'fx-lockdown' ? 'active' : '' %>">🔒 Lockdown &amp; Drills</a>
-        <a href="/cases" class="tab-btn <%= activePage === 'fx-cases' ? 'active' : '' %>">🔎 Case Search</a>
-        <a href="/audit" class="tab-btn <%= activePage === 'fx-audit' ? 'active' : '' %>">📜 Audit Log</a>
-        <a href="/analytics" class="tab-btn <%= activePage === 'fx-analytics' ? 'active' : '' %>">📈 Analytics</a>
-        <a href="/community" class="tab-btn <%= activePage === 'fx-community' ? 'active' : '' %>">🎉 Giveaways &amp; Polls</a>
-        <a href="/timed" class="tab-btn <%= activePage === 'fx-timed' ? 'active' : '' %>">⏲️ Timed Actions</a>
-        <a href="/ecodrops" class="tab-btn <%= activePage === 'fx-ecodrops' ? 'active' : '' %>">💸 Eco Drops</a>
-        <% if (user && user.id === 'admin') { %><a href="/helpcenter" class="tab-btn <%= activePage === 'fx-helpcenter' ? 'active' : '' %>">📚 Help Center</a><% } %>
-        <div style="margin-top: auto; display: flex; flex-direction: column; gap: 6px;">
-            <% if (user && user.id === 'admin') { %>
-            <a href="/settings" class="sidebar-link">🔧 Site Settings</a>
-            <% } %>
-            <form action="/logout" method="POST" style="margin:0;"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit" style="background:none; border:none; cursor:pointer; font: inherit; text-align:left; width:100%; color: #f7768e; font-weight: bold; padding: 12px 15px;">Logout</button></form>
+    <%
+    const activePage = locals.activePage || 'config';
+    const ICONS = {
+        config: '<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>',
+        modules: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+        reactions: '<circle cx="12" cy="12" r="9"/><path d="M8.5 14c1 1.5 2.2 2.2 3.5 2.2s2.5-.7 3.5-2.2M9 9.5h.01M15 9.5h.01"/>',
+        words: '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
+        nick: '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1"/>',
+        confess: '<path d="M4 5h16v11H9l-5 4z"/><path d="M8 10h8"/>',
+        infractions: '<path d="M6 21V4M6 5h11l-2 4 2 4H6"/>',
+        risk: '<path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/>',
+        protect: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/>',
+        lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>',
+        search: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>',
+        audit: '<path d="M5 6h14M5 12h14M5 18h9"/>',
+        analytics: '<path d="M5 20V10M12 20V4M19 20v-7"/>',
+        gift: '<rect x="4" y="10" width="16" height="10" rx="1.5"/><path d="M12 10v10M3 7h18v3H3zM12 7c-2.5 0-4-3-2-3.5S12 7 12 7s.5-3.2 2.5-3S14.5 7 12 7"/>',
+        clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+        coin: '<circle cx="12" cy="12" r="9"/><path d="M14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.4 0-2.5.8-2.5 2s1.1 1.7 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2c-1 0-2-.5-2.5-1.5M12 6.5V8M12 16v1.5"/>',
+        sliders: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+        terminal: '<path d="M4 5h16v14H4zM8 10l3 2-3 2M13 15h3"/>',
+        book: '<path d="M5 4h10a3 3 0 013 3v13H8a3 3 0 01-3-3z"/><path d="M5 17a3 3 0 013-3h10"/>',
+        wrench: '<path d="M14.5 6.5a4 4 0 005 5l-8.8 8.8a2 2 0 01-2.8-2.8z"/><path d="M14.5 6.5l3-3a4 4 0 01-3 3"/>',
+        out: '<path d="M10 5H5v14h5M15 8l4 4-4 4M19 12H9"/>'
+    };
+    const ico = (n) => '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[n] || '') + '</svg>';
+    const isAdmin = !!(user && user.id === 'admin');
+    const NAV = [
+        ['Server', [
+            ['/config', 'config', 'config', 'Overview'],
+            ['/modules', 'modules', 'modules', 'Modules'],
+            ['/reaction-roles', 'reaction-roles', 'reactions', 'Reaction roles'],
+            ['/banned-words', 'banned-words', 'words', 'Banned words'],
+            ['/nickname-guard', 'nickname-guard', 'nick', 'Nickname guard'],
+            ['/confessions', 'confessions', 'confess', 'Confessions'],
+        ]],
+        ['Moderation', [
+            ['/infractions', 'infractions', 'infractions', 'Infractions'],
+            ['/risk-manager', 'risk-manager', 'risk', 'Risk manager'],
+            ['/protection', 'fx-protection', 'protect', 'Protection'],
+            ['/lockdown', 'fx-lockdown', 'lock', 'Lockdown & drills'],
+            ['/cases', 'fx-cases', 'search', 'Case search'],
+            ['/audit', 'fx-audit', 'audit', 'Audit log'],
+        ]],
+        ['Community', [
+            ['/community', 'fx-community', 'gift', 'Giveaways & polls'],
+            ['/ecodrops', 'fx-ecodrops', 'coin', 'Eco drops'],
+            ['/timed', 'fx-timed', 'clock', 'Timed actions'],
+            ['/analytics', 'fx-analytics', 'analytics', 'Analytics'],
+        ]],
+        ['Admin', [
+            ['/features', 'fx-features', 'sliders', 'Feature settings'],
+            ['/system-logs', 'system-logs', 'terminal', 'System logs'],
+        ].concat(isAdmin ? [['/helpcenter', 'fx-helpcenter', 'book', 'Help center']] : [])],
+    ];
+    const PAGES = {
+        config: ['Overview', 'Welcome channels and a quick look at how the server is set up.'],
+        modules: ['Modules', 'Turn whole parts of the bot on or off. Changes apply immediately.'],
+        'reaction-roles': ['Reaction roles', 'Role panels members pick from with emoji.'],
+        'banned-words': ['Banned words', 'Messages containing these are removed and escalated by auto-mod.'],
+        'nickname-guard': ['Nickname guard', 'Keep nicknames readable and catch rule-breaking renames.'],
+        confessions: ['Confessions', 'Review anonymous posts and manage who is blocked from posting.'],
+        infractions: ['Infractions', 'Every warn, mute and ban on record.'],
+        'risk-manager': ['Risk manager', 'Members flagged as risky, waiting on a decision.'],
+        'fx-protection': ['Protection', 'Raid defence, ban-evasion checks and impersonation alerts.'],
+        'fx-lockdown': ['Lockdown & drills', 'Lock the server down fast and rehearse doing it.'],
+        'fx-cases': ['Case search', 'Look up any case by member, type or reason.'],
+        'fx-audit': ['Audit log', 'What staff and the bot changed, and when.'],
+        'fx-community': ['Giveaways & polls', 'Start, end and review giveaways and polls.'],
+        'fx-ecodrops': ['Eco drops', 'Scheduled and manual drops that members claim with a button.'],
+        'fx-timed': ['Timed actions', 'Bans, mutes and role changes that undo themselves later.'],
+        'fx-analytics': ['Analytics', 'Messages, joins and activity over time.'],
+        'fx-features': ['Feature settings', 'Every feature\'s options in one place.'],
+        'system-logs': ['System logs', 'Live bot output and recent errors.'],
+        'fx-helpcenter': ['Help center', 'Edit the popular articles and review support requests.'],
+        terminal: ['System logs', 'Live bot output and recent errors.']
+    };
+    const pg = PAGES[activePage] || ['Dashboard', ''];
+    const online = stats.botStatus === 'ONLINE';
+    %>
+    <aside class="sidebar">
+        <a class="brand" href="/config">
+            <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="7.5" fill="#7c4dff"/><ellipse cx="20" cy="20" rx="17" ry="7" fill="none" stroke="#a58bff" stroke-width="1.6" transform="rotate(-24 20 20)"/><circle cx="33.6" cy="12.6" r="2.6" fill="#ffc857"/></svg>
+            <b>OsQarek's Universe<small>Bot dashboard</small></b>
+        </a>
+        <nav>
+        <% NAV.forEach(function (g) { %>
+            <div class="nav-group"><%= g[0] %></div>
+            <% g[1].forEach(function (l) { %><a href="<%= l[0] %>" class="tab-btn<%= activePage === l[1] ? ' active' : '' %>"<%- activePage === l[1] ? ' aria-current="page"' : '' %>><%- ico(l[2]) %><%= l[3] %></a>
+            <% }) %>
+        <% }) %>
+        </nav>
+        <div class="side-foot">
+            <% if (isAdmin) { %><a href="/settings" class="sidebar-link"><%- ico('wrench') %>Site settings</a><% } %>
+            <form action="/logout" method="POST" style="margin:0;"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit" class="sidebar-link logout"><%- ico('out') %>Log out</button></form>
         </div>
-    </div>
+    </aside>
 
-    <div class="main-content">
+    <main class="main-content">
+        <header class="page-head">
+            <div>
+                <h1><%= pg[0] %></h1>
+                <% if (pg[1]) { %><p><%= pg[1] %></p><% } %>
+            </div>
+            <div class="pulse<%= online ? '' : ' off' %>" title="Bot status"><i></i><span><%= online ? 'Online' : 'Offline' %></span><span><%= stats.ping %></span><span>up <%= stats.uptime %></span></div>
+        </header>
 
         <!-- ═══════════════ CONFIGURATION ═══════════════ -->
         <div id="dashboard" class="tab-content<%= (locals.activeTab || 'dashboard') === 'dashboard' ? ' active' : '' %>">
-            <h2>Dashboard</h2>
+            <% const modKeys = ['aiEnabled','musicEnabled','modmailEnabled','automodEnabled','welcomeEnabled','remindersEnabled','moderationEnabled','utilitiesEnabled','funEnabled','quizEnabled','staffToolsEnabled','tempChannelsEnabled']; const modsOn = modKeys.filter(k => db[k] !== false).length; %>
             <div class="grid-stats">
-                <div class="card-stat"><h3>Status</h3><div class="val" style="color:#9ece6a"><%= stats.botStatus %></div></div>
-                <div class="card-stat"><h3>Ping</h3><div class="val"><%= stats.ping %></div></div>
-                <div class="card-stat"><h3>Uptime</h3><div class="val" style="font-size:1.1rem;"><%= stats.uptime %></div></div>
+                <a class="card-stat" href="/infractions"><div class="val"><%= (db.cases || []).length.toLocaleString() %></div><h3>Infractions on record</h3></a>
+                <a class="card-stat" href="/modules"><div class="val"><%= modsOn %> <span style="font-size:1rem;color:var(--muted);font-weight:500">of <%= modKeys.length %></span></div><h3>Modules switched on</h3></a>
+                <a class="card-stat" href="/banned-words"><div class="val"><%= (bannedWords || []).length.toLocaleString() %></div><h3>Banned words</h3></a>
+                <div class="card-stat"><div class="val"><%= Number(stats.totalUsers || 0).toLocaleString() %></div><h3>Members the bot can see</h3></div>
             </div>
             <div class="panel">
-                <h2>System Settings</h2>
+                <h2>Welcome and goodbye channels</h2>
                 <form action="/update-settings" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                    <label>Welcome Channel ID</label><input name="welcomeChannel" value="<%= settings.welcomeChannel || '' %>">
-                    <label style="margin-top:10px; display:block">Goodbye Channel ID</label><input name="goodbyeChannel" value="<%= settings.goodbyeChannel || '' %>">
-                    <button type="submit" class="btn-submit">Save Changes</button>
+                    <label>Welcome channel ID</label><input name="welcomeChannel" value="<%= settings.welcomeChannel || '' %>">
+                    <label style="margin-top:10px; display:block">Goodbye channel ID</label><input name="goodbyeChannel" value="<%= settings.goodbyeChannel || '' %>">
+                    <button type="submit" class="btn-submit">Save changes</button>
                 </form>
             </div>
         </div>
 
         <!-- ═══════════════ MODULES ═══════════════ -->
         <div id="modules" class="tab-content<%= (locals.activeTab || 'dashboard') === 'modules' ? ' active' : '' %>">
-            <h2>🧩 Module Control</h2>
-            <p style="color:#565f89; font-size:13px; margin-bottom:20px;">Enable or disable bot feature modules. Changes take effect immediately — no restart required.</p>
 
             <div class="panel">
 
                 <!-- AI Replies -->
                 <div class="module-row">
-                    <div class="module-icon" style="background:#1a1f3a;">🤖</div>
+                    <div class="module-icon" style="background:#211a52;">🤖</div>
                     <div class="module-body">
                         <div class="module-title">AI</div>
                         <div class="module-desc">Controls AI mention replies plus AI-powered slash commands like <code>/summarize</code> and <code>/ask-rules</code>.</div>
@@ -317,7 +161,7 @@
 
                 <!-- Music -->
                 <div class="module-row">
-                    <div class="module-icon" style="background:#1a2e1a;">🎵</div>
+                    <div class="module-icon" style="background:#0f2c22;">🎵</div>
                     <div class="module-body">
                         <div class="module-title">Music</div>
                         <div class="module-desc">Controls the full <code>/music</code> command group: join, play, skip, queue, pause, resume, volume, leave, autoplay, 24/7, and clear.</div>
@@ -338,7 +182,7 @@
 
                 <!-- Modmail -->
                 <div class="module-row">
-                    <div class="module-icon" style="background:#2e2a1a;">📨</div>
+                    <div class="module-icon" style="background:#33290f;">📨</div>
                     <div class="module-body">
                         <div class="module-title">Modmail</div>
                         <div class="module-desc">Relays DMs sent to the bot to the configured mod-log channel with a reply button.</div>
@@ -359,7 +203,7 @@
 
                 <!-- Auto-Mod -->
                 <div class="module-row">
-                    <div class="module-icon" style="background:#2e1a1a;">🚨</div>
+                    <div class="module-icon" style="background:#34152a;">🚨</div>
                     <div class="module-body">
                         <div class="module-title">Auto-Mod</div>
                         <div class="module-desc">Scans messages for banned words and applies escalation actions automatically.</div>
@@ -380,7 +224,7 @@
 
                 <!-- Welcome & Goodbye -->
                 <div class="module-row">
-                    <div class="module-icon" style="background:#1f2030;">👋</div>
+                    <div class="module-icon" style="background:#1e1a45;">👋</div>
                     <div class="module-body">
                         <div class="module-title">Welcome &amp; Goodbye</div>
                         <div class="module-desc">Posts an inverted-colour welcome image and a greyscale goodbye image when members join or leave.</div>
@@ -401,7 +245,7 @@
 
                 <!-- Reminders -->
                 <div class="module-row">
-                    <div class="module-icon" style="background:#1a1f3a;">⏰</div>
+                    <div class="module-icon" style="background:#211a52;">⏰</div>
                     <div class="module-body">
                         <div class="module-title">Reminders</div>
                         <div class="module-desc">Controls <code>/reminder</code> and the reminder delivery loop for due reminders.</div>
@@ -422,7 +266,7 @@
 
                 <!-- Moderation -->
                 <div class="module-row">
-                    <div class="module-icon" style="background:#2e1a1a;">⚖️</div>
+                    <div class="module-icon" style="background:#34152a;">⚖️</div>
                     <div class="module-body">
                         <div class="module-title">Moderation</div>
                         <div class="module-desc">Controls moderation actions: <code>/mod</code>, <code>/warn</code>, mute, unmute, slowmode, cases, reaction roles, roles, announcements, and nickname tools.</div>
@@ -440,7 +284,7 @@
 
                 <!-- Utilities -->
                 <div class="module-row">
-                    <div class="module-icon" style="background:#1a1f3a;">🔧</div>
+                    <div class="module-icon" style="background:#211a52;">🔧</div>
                     <div class="module-body">
                         <div class="module-title">Utilities</div>
                         <div class="module-desc">Controls general tools: ping, serverinfo, userinfo, pfp, poll, suggest, random, afk, socials, emoji names, and latest-update.</div>
@@ -458,7 +302,7 @@
 
                 <!-- Fun -->
                 <div class="module-row">
-                    <div class="module-icon" style="background:#2e2a1a;">🎲</div>
+                    <div class="module-icon" style="background:#33290f;">🎲</div>
                     <div class="module-body">
                         <div class="module-title">Fun</div>
                         <div class="module-desc">Controls <code>/fun</code>, ship, and prank commands like ban-prank, keyboard-fix, nuke-server, reset-levels, and nerd-mode.</div>
@@ -476,7 +320,7 @@
 
                 <!-- Quiz -->
                 <div class="module-row">
-                    <div class="module-icon" style="background:#1a2e1a;">🧠</div>
+                    <div class="module-icon" style="background:#0f2c22;">🧠</div>
                     <div class="module-body">
                         <div class="module-title">Quiz</div>
                         <div class="module-desc">Custom quiz creation and trivia games (states, countries, canada) with a leaderboard.</div>
@@ -494,7 +338,7 @@
 
                 <!-- Staff Tools -->
                 <div class="module-row">
-                    <div class="module-icon" style="background:#1a1f3a;">🛠️</div>
+                    <div class="module-icon" style="background:#211a52;">🛠️</div>
                     <div class="module-body">
                         <div class="module-title">Staff Tools</div>
                         <div class="module-desc">Controls staff-only tools: staffstats, syncstats, messagereset, staffdm, ping-all-staff, LOA, strikes, and notes.</div>
@@ -512,7 +356,7 @@
 
                 <!-- Temp Channels -->
                 <div class="module-row">
-                    <div class="module-icon" style="background:#1a2e2a;">🎛️</div>
+                    <div class="module-icon" style="background:#0f2c2c;">🎛️</div>
                     <div class="module-body">
                         <div class="module-title">Temp Channels</div>
                         <div class="module-desc">Controls the "Create Temp Channel" button/modal and the full <code>/channel</code> command group (add-voice, delete, member-add, member-delete).</div>
@@ -534,7 +378,7 @@
 <!-- ═══════════════ INFRACTIONS ═══════════════ -->
 <div id="infractions" class="tab-content<%= (locals.activeTab || 'dashboard') === 'infractions' ? ' active' : '' %>">
     <div class="panel">
-        <h2>⚖️ Infraction Database Registry</h2>
+        <h2>Infraction Database Registry</h2>
 
         <!-- Search + Filters -->
         <div class="toolbar">
@@ -561,7 +405,7 @@
         </form>
 
         <% if (cases.length === 0) { %>
-            <p style="color: #565f89;">No records found.</p>
+            <p style="color: #8f8abf;">No records found.</p>
         <% } else { %>
 
         <!-- Infraction Table -->
@@ -579,7 +423,7 @@
             <tbody>
                 <% cases.forEach((item) => { %>
                 <tr>
-                    <td style="color: #7dcfff;">#<%= item.id %></td>
+                    <td style="color: #8ecbff;">#<%= item.id %></td>
 
                     <td>
                         <%= item.user || item.userId %>
@@ -629,7 +473,7 @@
         <!-- ═══════════════ RISK MANAGER ═══════════════ -->
         <div id="risk-manager" class="tab-content<%= (locals.activeTab || 'dashboard') === 'risk-manager' ? ' active' : '' %>">
             <div class="panel">
-                <h2>🛡️ Member Risk Assessment</h2>
+                <h2>Member Risk Assessment</h2>
                 <table>
                     <thead>
                         <tr>
@@ -656,7 +500,7 @@
                                 <tr>
                                     <td><%= member.user.tag %></td>
                                     <td>
-                                        <span style="color: <%= risk >= 60 ? '#f7768e' : '#9ece6a' %>;">
+                                        <span style="color: <%= risk >= 60 ? '#ff6b8a' : '#5fe3a1' %>;">
                                             <%= risk %>/100 (<%= risk >= 60 ? 'High' : 'Low' %>)
                                         </span>
                                     </td>
@@ -679,8 +523,8 @@
         <!-- ═══════════════ BANNED WORDS ═══════════════ -->
         <div id="banned-words" class="tab-content<%= (locals.activeTab || 'dashboard') === 'banned-words' ? ' active' : '' %>">
             <div class="panel">
-                <h2>🚫 Banned Words</h2>
-                <p style="color:#565f89; font-size:0.85rem; margin-top:-10px;">
+                <h2>Banned Words</h2>
+                <p style="color:#8f8abf; font-size:0.85rem; margin-top:-10px;">
                     Messages containing any of these words are automatically deleted and escalated by Auto-Mod.
                 </p>
 
@@ -696,7 +540,7 @@
                             </span>
                         <% }) %>
                     <% } else { %>
-                        <p style="color:#565f89;">No banned words configured yet.</p>
+                        <p style="color:#8f8abf;">No banned words configured yet.</p>
                     <% } %>
                 </div>
 
@@ -712,8 +556,8 @@
         <% const ng = locals.nickGuard || { config: { enabled: false, minTypeableChars: 3, allowNonLatin: false, checkBannedWords: false, dmUser: true }, log: [], lastScan: null, running: false }; %>
         <div id="nickname-guard" class="tab-content<%= (locals.activeTab || 'dashboard') === 'nickname-guard' ? ' active' : '' %>">
             <div class="panel">
-                <h2>🏷️ Nickname Guard</h2>
-                <p style="color:#565f89; font-size:0.85rem; margin-top:-10px;">
+                <h2>Nickname Guard</h2>
+                <p style="color:#8f8abf; font-size:0.85rem; margin-top:-10px;">
                     Finds nicknames people can't realistically @-ping (fancy fonts, symbols, etc.) and renames them to
                     <code>ModeratedNickname#1234</code>. Existing members are swept every time the bot starts; new members are checked when they join.
                 </p>
@@ -744,8 +588,8 @@
             </div>
 
             <div class="panel">
-                <h2>🔍 Scan Members</h2>
-                <p style="color:#565f89; font-size:0.85rem; margin-top:-10px;">Preview shows who would be renamed without changing anything. Uses the saved settings above.</p>
+                <h2>Scan Members</h2>
+                <p style="color:#8f8abf; font-size:0.85rem; margin-top:-10px;">Preview shows who would be renamed without changing anything. Uses the saved settings above.</p>
                 <div class="ng-btn-row">
                     <form action="/nickname-guard/scan" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="apply" value="0"><button type="submit" class="btn-submit btn-secondary" <%= ng.running ? 'disabled' : '' %>>Preview</button></form>
                     <form action="/nickname-guard/scan" method="POST" onsubmit="return confirm('Rename every flagged member now?');"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="apply" value="1"><button type="submit" class="btn-submit" <%= ng.running ? 'disabled' : '' %>>Scan &amp; Rename Now</button></form>
@@ -755,7 +599,7 @@
                     <p style="margin-top:18px;">
                         <span class="ng-pill"><%= sc.status %></span>
                         <%= sc.apply ? 'Rename run' : 'Preview' %> (<%= sc.source %>) &middot; started <%= new Date(sc.startedAt).toLocaleString() %>
-                        <% if (sc.error) { %><br><span style="color:#f7768e;">Error: <%= sc.error %></span><% } %>
+                        <% if (sc.error) { %><br><span style="color:#ff6b8a;">Error: <%= sc.error %></span><% } %>
                     </p>
                     <p>Scanned <b><%= sc.scanned %></b> &middot; Flagged <b><%= sc.flagged.length %></b>
                         <% if (sc.apply) { %> &middot; Renamed <b><%= sc.renamed %></b> &middot; Couldn't manage <b><%= sc.unmanageable %></b> &middot; Failed <b><%= sc.failed %></b><% } %></p>
@@ -766,16 +610,16 @@
                                 <tr><td><%= f.tag %></td><td><%= f.name %></td><td><%= f.reason %></td><td><%= f.outcome %></td></tr>
                             <% }) %>
                         </table>
-                        <% if (sc.flagged.length > 100) { %><p style="color:#565f89;">Showing first 100 of <%= sc.flagged.length %>.</p><% } %>
+                        <% if (sc.flagged.length > 100) { %><p style="color:#8f8abf;">Showing first 100 of <%= sc.flagged.length %>.</p><% } %>
                     <% } %>
                 <% } else { %>
-                    <p style="color:#565f89; margin-top:18px;">No scan has run since the bot started.</p>
+                    <p style="color:#8f8abf; margin-top:18px;">No scan has run since the bot started.</p>
                 <% } %>
                 <% if (ng.running) { %><script>setTimeout(() => location.reload(), 4000);</script><% } %>
             </div>
 
             <div class="panel">
-                <h2>📜 Recent Renames</h2>
+                <h2>Recent Renames</h2>
                 <% if (ng.log.length) { %>
                     <table>
                         <tr><th>When</th><th>Member</th><th>Was</th><th>Reason</th><th>Source</th></tr>
@@ -784,7 +628,7 @@
                         <% }) %>
                     </table>
                 <% } else { %>
-                    <p style="color:#565f89;">Nothing renamed yet.</p>
+                    <p style="color:#8f8abf;">Nothing renamed yet.</p>
                 <% } %>
             </div>
         </div>
@@ -794,29 +638,29 @@
         <!-- ═══════════════ CONFESSIONS ═══════════════ -->
         <div id="confessions" class="tab-content<%= (locals.activeTab || 'dashboard') === 'confessions' ? ' active' : '' %>">
             <div class="panel">
-                <h2>🤫 Confessions</h2>
-                <p style="color:#565f89; font-size:0.85rem; margin-top:-10px;">
+                <h2>Confessions</h2>
+                <p style="color:#8f8abf; font-size:0.85rem; margin-top:-10px;">
                     Members post with <code>/confess</code>. The public post is anonymous; authors are shown below for staff only.
                 </p>
                 <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:14px;">
-                    <div class="panel" style="flex:1; min-width:160px; margin:0;"><div style="color:#565f89; font-size:11px; text-transform:uppercase;">Total posted</div><div style="font-size:22px; color:#c0caf5; font-weight:700;"><%= confessionTotal %></div></div>
-                    <div class="panel" style="flex:1; min-width:160px; margin:0;"><div style="color:#565f89; font-size:11px; text-transform:uppercase;">Public channel</div><div style="color:<%= confessionConfig.channel ? '#9ece6a' : '#f7768e' %>; font-weight:600;"><%= confessionConfig.channel || 'Not set (CONFESSION_CHANNEL)' %></div></div>
-                    <div class="panel" style="flex:1; min-width:160px; margin:0;"><div style="color:#565f89; font-size:11px; text-transform:uppercase;">Staff log channel</div><div style="color:<%= confessionConfig.logs ? '#9ece6a' : '#f7768e' %>; font-weight:600;"><%= confessionConfig.logs || 'Not set (CONFESSION_LOGS)' %></div></div>
+                    <div class="panel" style="flex:1; min-width:160px; margin:0;"><div style="color:#8f8abf; font-size:11px; ">Total posted</div><div style="font-size:22px; color:#f3f1ff; font-weight:700;"><%= confessionTotal %></div></div>
+                    <div class="panel" style="flex:1; min-width:160px; margin:0;"><div style="color:#8f8abf; font-size:11px; ">Public channel</div><div style="color:<%= confessionConfig.channel ? '#5fe3a1' : '#ff6b8a' %>; font-weight:600;"><%= confessionConfig.channel || 'Not set (CONFESSION_CHANNEL)' %></div></div>
+                    <div class="panel" style="flex:1; min-width:160px; margin:0;"><div style="color:#8f8abf; font-size:11px; ">Staff log channel</div><div style="color:<%= confessionConfig.logs ? '#5fe3a1' : '#ff6b8a' %>; font-weight:600;"><%= confessionConfig.logs || 'Not set (CONFESSION_LOGS)' %></div></div>
                 </div>
             </div>
 
             <div class="panel">
-                <h2>🚫 Disallowed Users</h2>
-                <p style="color:#565f89; font-size:0.85rem; margin-top:-10px;">These users can't use <code>/confess</code>. Staff can also use <code>/confession disallow</code> / <code>allow</code> in Discord.</p>
+                <h2>Disallowed Users</h2>
+                <p style="color:#8f8abf; font-size:0.85rem; margin-top:-10px;">These users can't use <code>/confess</code>. Staff can also use <code>/confession disallow</code> / <code>allow</code> in Discord.</p>
                 <% if (confessionBans.length === 0) { %>
-                    <p style="color:#565f89;">Nobody is disallowed.</p>
+                    <p style="color:#8f8abf;">Nobody is disallowed.</p>
                 <% } else { %>
                 <table>
                     <thead><tr><th>User</th><th>Reason</th><th>By</th><th>Date</th><th></th></tr></thead>
                     <tbody>
                     <% confessionBans.forEach(b => { %>
                         <tr>
-                            <td><%= b.username || b.userId %><br><span style="color:#565f89; font-size:11px;"><%= b.userId %></span></td>
+                            <td><%= b.username || b.userId %><br><span style="color:#8f8abf; font-size:11px;"><%= b.userId %></span></td>
                             <td><%= b.reason %></td>
                             <td><%= b.by %></td>
                             <td><%= new Date(b.at).toLocaleDateString('en-GB') %></td>
@@ -839,9 +683,9 @@
             </div>
 
             <div class="panel">
-                <h2>📝 Recent Confessions <span style="color:#565f89; font-size:12px; font-weight:400;">(last 50 · staff-only author view)</span></h2>
+                <h2>Recent Confessions <span style="color:#8f8abf; font-size:12px; font-weight:400;">(last 50 · staff-only author view)</span></h2>
                 <% if (recentConfessions.length === 0) { %>
-                    <p style="color:#565f89;">No confessions have been posted yet.</p>
+                    <p style="color:#8f8abf;">No confessions have been posted yet.</p>
                 <% } else { %>
                 <table>
                     <thead><tr><th>#</th><th>Confession</th><th>Author</th><th>Posted</th><th></th></tr></thead>
@@ -850,16 +694,16 @@
                         <tr>
                             <td>#<%= c.number %></td>
                             <td style="max-width:360px; white-space:pre-wrap; word-break:break-word;"><%= c.text %></td>
-                            <td><%= c.username %><br><span style="color:#565f89; font-size:11px;"><%= c.userId %></span></td>
-                            <td><%= new Date(c.at).toLocaleString('en-GB') %><br><a href="<%= c.url %>" target="_blank" rel="noopener" style="color:#7aa2f7; font-size:12px;">View</a></td>
+                            <td><%= c.username %><br><span style="color:#8f8abf; font-size:11px;"><%= c.userId %></span></td>
+                            <td><%= new Date(c.at).toLocaleString('en-GB') %><br><a href="<%= c.url %>" target="_blank" rel="noopener" style="color:#a58bff; font-size:12px;">View</a></td>
                             <td>
                                 <% if (banned) { %>
-                                    <span style="color:#f7768e; font-size:12px;">Disallowed</span>
+                                    <span style="color:#ff6b8a; font-size:12px;">Disallowed</span>
                                 <% } else { %>
                                     <form action="/confessions/disallow" method="POST" style="margin:0;" onsubmit="return confirm('Disallow this author from /confess?')"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
                                         <input type="hidden" name="userId" value="<%= c.userId %>">
                                         <input type="hidden" name="reason" value="Confession #<%= c.number %>">
-                                        <button type="submit" class="btn-submit" style="margin:0; background:#2e1a1a; color:#f7768e;">Disallow</button>
+                                        <button type="submit" class="btn-submit" style="margin:0; background:#34152a; color:#ff6b8a;">Disallow</button>
                                     </form>
                                 <% } %>
                             </td>
@@ -874,33 +718,33 @@
         <!-- ═══════════════ SYSTEM LOGS ═══════════════ -->
         <div id="terminal" class="tab-content<%= (locals.activeTab || 'dashboard') === 'terminal' ? ' active' : '' %>">
             <div class="panel">
-                <h2>🖥️ System Logs</h2>
+                <h2>System Logs</h2>
                 <div class="terminal-box">
                     <% if (logs && logs.length > 0) { %>
                         <% logs.slice().reverse().forEach(entry => { %>
                             <div class="log">[<%= entry.time %>] <%= entry.text %></div>
                         <% }) %>
                     <% } else { %>
-                        <div style="color:#565f89;">No logs recorded yet.</div>
+                        <div style="color:#8f8abf;">No logs recorded yet.</div>
                     <% } %>
                 </div>
             </div>
 
             <div class="panel">
-                <h2>⚠️ Errors</h2>
+                <h2>Errors</h2>
                 <div class="terminal-box">
                     <% if (errors && errors.length > 0) { %>
                         <% errors.slice().reverse().forEach(entry => { %>
                             <div class="err">[<%= entry.time %>] <%= entry.text %></div>
                         <% }) %>
                     <% } else { %>
-                        <div style="color:#565f89;">No errors recorded yet.</div>
+                        <div style="color:#8f8abf;">No errors recorded yet.</div>
                     <% } %>
                 </div>
             </div>
         </div>
 
-    </div>
+    </main>
 
     <!--
         Each sidebar item is now a real page (/config, /modules, /infractions,

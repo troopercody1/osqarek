@@ -5,78 +5,78 @@
     <title>Master Settings</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: #16161e; color: #a9b1d6; padding: 40px 20px; }
+        body { font-family: 'Figtree', 'Segoe UI', system-ui, sans-serif; background-color: #0f0d27; color: #d6d2f5; padding: 40px 20px; }
         .page { max-width: 640px; margin: 0 auto; }
 
-        a.back { color: #7aa2f7; text-decoration: none; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 24px; }
+        a.back { color: #a58bff; text-decoration: none; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 24px; }
         a.back:hover { color: #a9c5ff; }
 
-        h1 { color: #7aa2f7; font-size: 22px; font-weight: 600; margin-bottom: 4px; }
-        .page-sub { font-size: 13px; color: #565f89; margin-bottom: 28px; }
+        h1 { color: #a58bff; font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+        .page-sub { font-size: 13px; color: #8f8abf; margin-bottom: 28px; }
 
         /* Stat grid */
         .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 28px; }
-        .stat { background: #1a1b26; border: 1px solid #2f3549; border-radius: 10px; padding: 14px 16px; }
-        .stat-label { font-size: 11px; color: #565f89; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
-        .stat-value { font-size: 20px; font-weight: 600; color: #c0caf5; }
-        .stat-delta { font-size: 11px; color: #9ece6a; margin-top: 3px; }
+        .stat { background: #171337; border: 1px solid #2a2561; border-radius: 10px; padding: 14px 16px; }
+        .stat-label { font-size: 11px; color: #8f8abf; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-value { font-size: 20px; font-weight: 600; color: #f3f1ff; }
+        .stat-delta { font-size: 11px; color: #5fe3a1; margin-top: 3px; }
 
         /* Section */
         .section { margin-bottom: 24px; }
-        .section-label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: #565f89; margin-bottom: 10px; padding-left: 2px; }
+        .section-label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: #8f8abf; margin-bottom: 10px; padding-left: 2px; }
 
         /* Card */
-        .card { background: #1a1b26; border: 1px solid #2f3549; border-radius: 12px; overflow: hidden; }
-        .card.danger-card { border-color: #4a1c1c; }
+        .card { background: #171337; border: 1px solid #2a2561; border-radius: 12px; overflow: hidden; }
+        .card.danger-card { border-color: #6a2440; }
 
         /* Row */
-        .row { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #2f3549; }
+        .row { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #2a2561; }
         .row:last-child { border-bottom: none; }
         .row.clickable { cursor: pointer; }
-        .row.clickable:hover { background: #1f2030; }
+        .row.clickable:hover { background: #1e1a45; }
 
         .row-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; }
         .row-body { flex: 1; min-width: 0; }
-        .row-title { font-size: 14px; font-weight: 500; color: #c0caf5; }
-        .row-desc { font-size: 12px; color: #565f89; margin-top: 2px; }
+        .row-title { font-size: 14px; font-weight: 500; color: #f3f1ff; }
+        .row-desc { font-size: 12px; color: #8f8abf; margin-top: 2px; }
         .row-end { flex-shrink: 0; display: flex; align-items: center; gap: 10px; }
 
         /* Badge */
         .badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 99px; }
-        .badge-live    { background: #1a2e1a; color: #9ece6a; }
-        .badge-maint   { background: #2e2a1a; color: #e0af68; }
-        .badge-info    { background: #1a1f3a; color: #7aa2f7; }
-        .badge-danger  { background: #2e1a1a; color: #f7768e; }
+        .badge-live    { background: #0f2c22; color: #5fe3a1; }
+        .badge-maint   { background: #33290f; color: #ffc857; }
+        .badge-info    { background: #211a52; color: #a58bff; }
+        .badge-danger  { background: #34152a; color: #ff6b8a; }
 
         /* Toggle */
-        .toggle { width: 40px; height: 22px; background: #2f3549; border: none; border-radius: 99px; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; outline: none; }
-        .toggle.on { background: #9ece6a; }
-        .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #16161e; transition: left 0.2s; }
+        .toggle { width: 40px; height: 22px; background: #2a2561; border: none; border-radius: 99px; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; outline: none; }
+        .toggle.on { background: #5fe3a1; }
+        .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #0f0d27; transition: left 0.2s; }
         .toggle.on::after { left: 21px; }
 
         /* Expandable drawer */
-        .drawer { display: none; padding: 16px 18px; background: #13131a; border-top: 1px solid #2f3549; }
-        .drawer label { font-size: 12px; color: #565f89; display: block; margin-bottom: 6px; margin-top: 14px; }
+        .drawer { display: none; padding: 16px 18px; background: #13131a; border-top: 1px solid #2a2561; }
+        .drawer label { font-size: 12px; color: #8f8abf; display: block; margin-bottom: 6px; margin-top: 14px; }
         .drawer label:first-child { margin-top: 0; }
-        .drawer input, .drawer select { background: #1a1b26; border: 1px solid #2f3549; color: #c0caf5; padding: 8px 10px; border-radius: 6px; width: 100%; font-family: 'Segoe UI', sans-serif; font-size: 13px; }
-        .drawer input:focus, .drawer select:focus { outline: none; border-color: #7aa2f7; }
+        .drawer input, .drawer select { background: #171337; border: 1px solid #2a2561; color: #f3f1ff; padding: 8px 10px; border-radius: 6px; width: 100%; font-family: 'Figtree', 'Segoe UI', system-ui, sans-serif; font-size: 13px; }
+        .drawer input:focus, .drawer select:focus { outline: none; border-color: #a58bff; }
         .drawer .row-actions { display: flex; gap: 8px; margin-top: 14px; }
 
         /* Chevron */
-        .chevron { font-size: 13px; color: #565f89; transition: transform 0.2s; cursor: pointer; display: inline-block; }
+        .chevron { font-size: 13px; color: #8f8abf; transition: transform 0.2s; cursor: pointer; display: inline-block; }
         .chevron.open { transform: rotate(180deg); }
 
         /* Buttons */
-        .btn { font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 6px; border: 1px solid #2f3549; background: #1a1b26; color: #c0caf5; cursor: pointer; font-family: 'Segoe UI', sans-serif; transition: background 0.15s; white-space: nowrap; }
+        .btn { font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 6px; border: 1px solid #2a2561; background: #171337; color: #f3f1ff; cursor: pointer; font-family: 'Figtree', 'Segoe UI', system-ui, sans-serif; transition: background 0.15s; white-space: nowrap; }
         .btn:hover { background: #252636; }
         .btn-primary { background: #5865f2; color: #fff; border-color: transparent; }
         .btn-primary:hover { background: #4752c4; }
-        .btn-danger  { background: #2e1a1a; color: #f7768e; border-color: #4a1c1c; }
+        .btn-danger  { background: #34152a; color: #ff6b8a; border-color: #6a2440; }
         .btn-danger:hover { background: #3d2020; }
 
         /* Select inline */
-        select.inline { width: auto; min-width: 140px; font-size: 12px; padding: 6px 8px; background: #1a1b26; border: 1px solid #2f3549; color: #c0caf5; border-radius: 6px; cursor: pointer; font-family: 'Segoe UI', sans-serif; }
-        select.inline:focus { outline: none; border-color: #7aa2f7; }
+        select.inline { width: auto; min-width: 140px; font-size: 12px; padding: 6px 8px; background: #171337; border: 1px solid #2a2561; color: #f3f1ff; border-radius: 6px; cursor: pointer; font-family: 'Figtree', 'Segoe UI', system-ui, sans-serif; }
+        select.inline:focus { outline: none; border-color: #a58bff; }
 
         /* Forms that POST to server */
         form.server-form { display: contents; }
@@ -90,7 +90,7 @@
     <p class="page-sub">Manage your site configuration, access, and operations.</p>
 
     <% if (typeof msg !== 'undefined' && msg) { %>
-    <div style="background:rgba(158,206,106,0.1);color:#9ece6a;border:1px solid #9ece6a;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:20px;">
+    <div style="background:rgba(158,206,106,0.1);color:#5fe3a1;border:1px solid #5fe3a1;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:20px;">
         ✅ <%= decodeURIComponent(msg).replace(/\+/g,' ') %>
     </div>
     <% } %>
@@ -121,8 +121,8 @@
 
             <!-- Current presence -->
             <div class="row">
-                <div class="row-icon" style="background:<%= settings.botPresenceEnabled ? '#1a2e1a' : '#1f2030' %>;">
-                    <span style="color:<%= settings.botPresenceEnabled ? '#9ece6a' : '#a9b1d6' %>;">&#127917;</span>
+                <div class="row-icon" style="background:<%= settings.botPresenceEnabled ? '#0f2c22' : '#1e1a45' %>;">
+                    <span style="color:<%= settings.botPresenceEnabled ? '#5fe3a1' : '#d6d2f5' %>;">&#127917;</span>
                 </div>
                 <div class="row-body">
                     <div class="row-title">Custom status &amp; activity</div>
@@ -191,8 +191,8 @@
         <div class="section-label">Maintenance</div>
         <div class="card">
             <div class="row">
-                <div class="row-icon" style="background:#2e2a1a;">
-                    <span style="color:#e0af68;">&#9881;</span>
+                <div class="row-icon" style="background:#33290f;">
+                    <span style="color:#ffc857;">&#9881;</span>
                 </div>
                 <div class="row-body">
                     <div class="row-title">Maintenance mode</div>
@@ -254,8 +254,8 @@
 
             <!-- Rate limiting -->
             <div class="row">
-                <div class="row-icon" style="background:#1a1f3a;">
-                    <span style="color:#7aa2f7;">&#128737;</span>
+                <div class="row-icon" style="background:#211a52;">
+                    <span style="color:#a58bff;">&#128737;</span>
                 </div>
                 <div class="row-body">
                     <div class="row-title">Rate limiting</div>
@@ -279,8 +279,8 @@
 
             <!-- Force HTTPS -->
             <div class="row">
-                <div class="row-icon" style="background:#1f2030;">
-                    <span style="color:#a9b1d6;">&#128274;</span>
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#128274;</span>
                 </div>
                 <div class="row-body">
                     <div class="row-title">Force HTTPS</div>
@@ -298,8 +298,8 @@
 
             <!-- Block bots -->
             <div class="row">
-                <div class="row-icon" style="background:#1f2030;">
-                    <span style="color:#a9b1d6;">&#129302;</span>
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#129302;</span>
                 </div>
                 <div class="row-body">
                     <div class="row-title">Block bots</div>
@@ -317,8 +317,8 @@
 
             <!-- IP allowlist -->
             <div class="row">
-                <div class="row-icon" style="background:#1f2030;">
-                    <span style="color:#a9b1d6;">&#9989;</span>
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#9989;</span>
                 </div>
                 <div class="row-body">
                     <div class="row-title">IP allowlist</div>
@@ -357,8 +357,8 @@
 
             <!-- Cache strategy -->
             <div class="row">
-                <div class="row-icon" style="background:#1a2e1a;">
-                    <span style="color:#9ece6a;">&#9889;</span>
+                <div class="row-icon" style="background:#0f2c22;">
+                    <span style="color:#5fe3a1;">&#9889;</span>
                 </div>
                 <div class="row-body">
                     <div class="row-title">Cache strategy</div>
@@ -378,8 +378,8 @@
 
             <!-- Image optimisation -->
             <div class="row">
-                <div class="row-icon" style="background:#1f2030;">
-                    <span style="color:#a9b1d6;">&#128247;</span>
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#128247;</span>
                 </div>
                 <div class="row-body">
                     <div class="row-title">Image optimisation</div>
@@ -397,8 +397,8 @@
 
             <!-- Purge cache -->
             <div class="row">
-                <div class="row-icon" style="background:#1f2030;">
-                    <span style="color:#a9b1d6;">&#8635;</span>
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#8635;</span>
                 </div>
                 <div class="row-body">
                     <div class="row-title">Purge cache</div>
@@ -426,8 +426,8 @@
         <div class="section-label">Co-Owner Applications</div>
         <div class="card">
             <div class="row clickable" onclick="window.location.href='/co-owner-applications'">
-                <div class="row-icon" style="background:#1f2030;">
-                    <span style="color:#e0af68;">&#128081;</span>
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#ffc857;">&#128081;</span>
                 </div>
                 <div class="row-body">
                     <div class="row-title">Applicant submissions</div>
@@ -450,8 +450,8 @@
         <div class="section-label">Moderator Applications</div>
         <div class="card">
             <div class="row clickable" onclick="window.location.href='/mod-applications'">
-                <div class="row-icon" style="background:#1f2030;">
-                    <span style="color:#7aa2f7;">&#128737;</span>
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#a58bff;">&#128737;</span>
                 </div>
                 <div class="row-body">
                     <div class="row-title">Applicant submissions</div>
@@ -474,8 +474,8 @@
         <div class="section-label">Support</div>
         <div class="card">
             <a href="/settings/support" class="row clickable" style="text-decoration:none;">
-                <div class="row-icon" style="background:#1f2030;">
-                    <span style="color:#a9b1d6;">&#128172;</span>
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#128172;</span>
                 </div>
                 <div class="row-body">
                     <div class="row-title">Support requests</div>
@@ -497,8 +497,8 @@
         <div class="section-label">Mailbox</div>
         <div class="card">
             <a href="/settings/mail" class="row clickable" style="text-decoration:none;">
-                <div class="row-icon" style="background:#1f2030;">
-                    <span style="color:#a9b1d6;">&#9993;</span>
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#9993;</span>
                 </div>
                 <div class="row-body">
                     <div class="row-title">Inbox</div>
@@ -525,8 +525,8 @@
 
             <!-- Downtime alerts -->
             <div class="row">
-                <div class="row-icon" style="background:#1f2030;">
-                    <span style="color:#a9b1d6;">&#128140;</span>
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#128140;</span>
                 </div>
                 <div class="row-body">
                     <div class="row-title">Downtime alerts</div>
@@ -545,8 +545,8 @@
 
             <!-- Discord webhook -->
             <div class="row">
-                <div class="row-icon" style="background:#1f2030;">
-                    <span style="color:#a9b1d6;">&#128279;</span>
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#128279;</span>
                 </div>
                 <div class="row-body">
                     <div class="row-title">Discord webhook</div>
@@ -583,8 +583,8 @@
 
             <!-- Flush sessions -->
             <div class="row">
-                <div class="row-icon" style="background:#2e1a1a;">
-                    <span style="color:#f7768e;">&#128465;</span>
+                <div class="row-icon" style="background:#34152a;">
+                    <span style="color:#ff6b8a;">&#128465;</span>
                 </div>
                 <div class="row-body">
                     <div class="row-title">Flush all sessions</div>
@@ -600,8 +600,8 @@
 
             <!-- Reset to defaults -->
             <div class="row">
-                <div class="row-icon" style="background:#2e1a1a;">
-                    <span style="color:#f7768e;">&#9888;</span>
+                <div class="row-icon" style="background:#34152a;">
+                    <span style="color:#ff6b8a;">&#9888;</span>
                 </div>
                 <div class="row-body">
                     <div class="row-title">Reset to defaults</div>
