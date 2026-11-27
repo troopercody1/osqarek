@@ -358,6 +358,225 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
 <% } %>
 </div>
 
+<!-- ═══════════════ ECO DROPS ═══════════════ -->
+<div id="fx-ecodrops" class="tab-content<%= tab === 'fx-ecodrops' ? ' active' : '' %>">
+<% if (tab === 'fx-ecodrops') { banner(); const eco = fx_.eco; const cfgE = fx_.cfg; %>
+    <div class="panel">
+        <h2>💸 Eco Drops <span class="fx-pill <%= cfgE.enabled ? 'on' : 'off' %>">scheduled drops <%= cfgE.enabled ? 'on' : 'off' %></span></h2>
+        <p class="fx-sub">Every drop has a <b>Claim</b> button. The first person to press it wins and the button switches off. Drops never expire on their own. The bot only records the winner, so pay them out yourself. The random daily drops are set up on the <a href="/features" style="color:#7aa2f7">Feature Settings</a> page.</p>
+        <div class="fx-stat">
+            <div><b><%= eco.stats.open %></b><span>Waiting to be claimed</span></div>
+            <div><b><%= eco.stats.claimed %></b><span>Claimed</span></div>
+            <div><b><%= eco.stats.total %></b><span>Tracked drops</span></div>
+            <div><b><%= eco.stats.activeRepeats %></b><span>Repeating drops running</span></div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>➕ Post a drop</h2>
+        <form class="fx-form" action="/ecodrops/manual" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <h3>Manual eco drop</h3>
+            <div><label>Amount (millions)</label><input name="amount" type="number" step="0.01" min="0.01" max="1000000" required placeholder="e.g. 250 = 250M"></div>
+            <div><label>Channel</label><%- chanSel('channelId') %></div>
+            <div><label>Expire date (optional, bot time)</label><input name="expiresAt" type="datetime-local"></div>
+            <div class="chk"><input type="checkbox" name="ping" id="eco-ping"><label for="eco-ping" style="margin:0;text-transform:none;color:#c0caf5">Ping the eco-drop role<%= cfgE.pingRole ? '' : ' (none set)' %></label></div>
+            <div class="chk"><input type="checkbox" name="repeat" id="eco-rep"><label for="eco-rep" style="margin:0;text-transform:none;color:#c0caf5">Repeat</label></div>
+            <div><label>Repeat every</label><input name="repeatEvery" type="number" min="1" step="any" value="1"></div>
+            <div><label>Unit</label><select name="repeatUnit"><option value="m">minutes</option><option value="h" selected>hours</option><option value="d">days</option></select></div>
+            <div class="wide fx-small">Leave the expire date empty and the drop stays claimable forever. With a date, it can't be claimed after it (the button switches off). For a <b>repeating</b> drop, the date is also when the repeating stops. Each repeat posts a fresh drop of the same amount (5 minutes to 30 days apart); older unclaimed ones stay claimable until the date. The first drop is posted right away.</div>
+            <div><button class="btn-submit">Post eco drop</button></div>
+        </form>
+    </div>
+
+    <div class="panel">
+        <h2>📝 Logging <span class="fx-pill <%= cfgE.logEnabled ? 'on' : 'off' %>"><%= cfgE.logEnabled ? 'enabled' : 'disabled' %></span></h2>
+        <p class="fx-sub">Logs drops, claims, expiries and cancellations to a channel so staff can see who needs paying. Off by default.</p>
+        <form class="fx-form" action="/ecodrops/logging" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="chk"><input type="checkbox" name="logEnabled" id="eco-l1" <%= cfgE.logEnabled ? 'checked' : '' %>><label for="eco-l1" style="margin:0;text-transform:none;color:#c0caf5">Log eco drops</label></div>
+            <div class="chk"><input type="checkbox" name="logDrops" id="eco-l2" <%= cfgE.logDrops ? 'checked' : '' %>><label for="eco-l2" style="margin:0;text-transform:none;color:#c0caf5">Log drops posted</label></div>
+            <div class="chk"><input type="checkbox" name="logClaims" id="eco-l3" <%= cfgE.logClaims ? 'checked' : '' %>><label for="eco-l3" style="margin:0;text-transform:none;color:#c0caf5">Log claims</label></div>
+            <div><label>Log channel (empty = mod log)</label><select name="logChannel"><option value="">— mod log channel —</option><% (fx_.channels || []).forEach(c => { %><option value="<%= c.id %>" <%= cfgE.logChannel === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %></select></div>
+            <div><button class="btn-submit">Save logging</button></div>
+        </form>
+    </div>
+
+    <% if (eco.series.length) { %>
+    <div class="panel">
+        <h2>🔁 Repeating drops</h2>
+        <table><tr><th>#</th><th>Amount</th><th>Channel</th><th>Every</th><th>Next</th><th>Until</th><th>Posted</th><th>By</th><th></th></tr>
+        <% eco.series.forEach(s => { const mins = Math.round(s.everyMs / 60000); %><tr>
+            <td><%= s.id %></td><td><%= eco.fmtAmount(s.amount) %></td><td>#<%= (fx_.channels.find(c => c.id === s.channelId) || {}).name || s.channelId %></td>
+            <td><%= mins % 1440 === 0 ? (mins / 1440) + 'd' : (mins % 60 === 0 ? (mins / 60) + 'h' : mins + 'm') %></td><td><%= when(s.nextAt) %></td><td><%= s.expiresAt ? when(s.expiresAt) : 'until stopped' %></td><td><%= s.posted %></td><td class="fx-small"><%= s.by %></td>
+            <td><form action="/ecodrops/repeat/<%= s.id %>/stop" method="POST" onsubmit="return confirm('Stop this repeating drop? Drops already posted stay claimable.');"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="fx-btn danger">Stop</button></form></td></tr><% }) %>
+        </table>
+    </div>
+    <% } %>
+
+    <div class="panel">
+        <h2>🧾 Recent drops</h2>
+        <% if (eco.drops.length) { %>
+        <table><tr><th>#</th><th>Amount</th><th>Channel</th><th>Source</th><th>Posted</th><th>Status</th><th>Claimed by</th><th></th></tr>
+        <% eco.drops.forEach(d => { %><tr>
+            <td><%= d.id %></td><td><%= eco.fmtAmount(d.amount) %></td><td>#<%= (fx_.channels.find(c => c.id === d.channelId) || {}).name || d.channelId %></td>
+            <td class="fx-small"><%= d.source === 'auto' ? 'scheduled' : (d.source === 'repeat' ? 'repeat #' + d.seriesId : 'manual') %></td><td><%= when(d.createdAt) %></td>
+            <td><span class="fx-pill <%= d.status === 'open' ? 'warn' : (d.status === 'claimed' ? 'on' : '') %>"><%= d.status %></span><% if (d.expiresAt && d.status === 'open') { %><div class="fx-small">expires <%= when(d.expiresAt) %></div><% } %></td>
+            <td class="fx-small"><% if (d.claimedBy) { %><%= d.claimedBy %><br><%= when(d.claimedAt) %><% } else { %>—<% } %></td>
+            <td><% if (d.status === 'open') { %><form action="/ecodrops/<%= d.id %>/cancel" method="POST" onsubmit="return confirm('Cancel this drop? Nobody will be able to claim it.');"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="fx-btn danger">Cancel</button></form><% } %></td></tr><% }) %>
+        </table>
+        <% } else { %><p class="fx-sub">No drops tracked yet. They appear here as soon as one is posted.</p><% } %>
+    </div>
+<% } %>
+</div>
+
+<!-- ═══════════════ REACTION ROLES ═══════════════ -->
+<div id="fx-reactionroles" class="tab-content<%= tab === 'fx-reactionroles' ? ' active' : '' %>">
+<% if (tab === 'fx-reactionroles') { banner(); const blank = Object.assign({ id: '', enabled: true, channelId: '', messageId: null, items: [] }, fx_.defaults); %>
+<style>
+    .rr-panel summary { cursor:pointer; font-size:1.05rem; color:#c0caf5; list-style:none; } .rr-panel summary::-webkit-details-marker { display:none; }
+    .rr-row { display:flex; gap:8px; align-items:center; margin:6px 0; flex-wrap:wrap; }
+    .rr-row select, .rr-row input { background:#16161e; border:1px solid #2f3549; color:#fff; padding:9px; border-radius:4px; font-family:inherit; }
+    .rr-row .rr-role { min-width:220px; } .rr-row .rr-text { flex:1; min-width:180px; }
+    .rr-emoji { width:52px; height:42px; font-size:1.5rem; background:#16161e; border:1px dashed #565f89; color:#c0caf5; border-radius:6px; cursor:pointer; line-height:1; padding:0; }
+    .rr-emoji img { width:26px; height:26px; vertical-align:middle; }
+    .rr-del { background:none; border:none; color:#f7768e; cursor:pointer; font-size:1.1rem; }
+    #rr-pick { position:fixed; inset:0; background:rgba(0,0,0,.65); display:none; align-items:center; justify-content:center; z-index:9999; }
+    #rr-pick.open { display:flex; } #rr-pick .box { background:#1a1b26; border:1px solid #2f3549; border-radius:10px; width:min(640px,94vw); max-height:86vh; display:flex; flex-direction:column; padding:14px; }
+    #rr-pick .bar { display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; } #rr-pick input, #rr-pick select { background:#16161e; border:1px solid #2f3549; color:#fff; padding:8px; border-radius:4px; }
+    #rr-pick .bar input { flex:1; min-width:140px; } #rr-pick .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+    #rr-pick .tabs button { background:#2f3549; color:#c0caf5; border:none; padding:4px 9px; border-radius:99px; cursor:pointer; font-size:12px; } #rr-pick .tabs button.on { background:#7aa2f7; color:#16161e; }
+    #rr-pick .grid { overflow:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(42px,1fr)); gap:4px; }
+    #rr-pick .grid button { background:none; border:none; font-size:1.55rem; padding:4px; border-radius:6px; cursor:pointer; } #rr-pick .grid button:hover { background:#2f3549; } #rr-pick .grid img { width:28px; height:28px; }
+    #rr-pick .hint { color:#565f89; font-size:12px; margin-top:6px; min-height:16px; }
+</style>
+    <div class="panel">
+        <h2>🎭 Reaction Roles</h2>
+        <p class="fx-sub">Each panel is an embed in a channel. Members react with an emoji to get a role and remove the reaction to lose it. Everything is set up here (there is no slash command). Pick any standard emoji or one of this server's emojis, and any role in the server. Roles the bot can't hand out are greyed out with the reason.</p>
+        <% if (!fx_.canManageRoles) { %><div class="fx-err">I don't have the <b>Manage Roles</b> permission, so no role can be given until that is fixed.</div><% } %>
+        <p class="fx-small">In texts you can use <code>{role}</code> and <code>{server}</code>. Discord allows <b>20</b> reactions per message, so a panel has at most <%= fx_.max %> rows. Use more panels for more roles. My own role has to sit above the roles I give out.</p>
+    </div>
+
+    <% [...fx_.panels, blank].forEach((p) => { const isNew = !p.id; %>
+    <details class="panel rr-panel" <%= (isNew && fx_.newPanel) || (isNew && !fx_.panels.length) ? 'open' : '' %>>
+        <summary><%= isNew ? '➕ New panel' : '🎭 Panel #' + p.id + ' — ' + (p.title || '(no title)') %> <% if (!isNew) { %><span class="fx-pill <%= !p.enabled ? 'off' : (p.messageId ? 'on' : 'warn') %>"><%= !p.enabled ? 'disabled' : (p.messageId ? 'published' : 'not published') %></span> <span class="fx-small">#<%= (fx_.channels.find(c => c.id === p.channelId) || {}).name || p.channelId %> • <%= p.items.length %> role<%= p.items.length === 1 ? '' : 's' %></span><% } %></summary>
+        <form action="/reaction-roles/save" method="POST" class="rr-form" onsubmit="return rrSubmit(this)" style="margin-top:12px"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="id" value="<%= p.id %>">
+            <input type="hidden" name="items" class="rr-items" value="<%= JSON.stringify(p.items || []) %>">
+            <div class="fx-form">
+                <h3>Embed</h3>
+                <div class="wide"><label>Title</label><input name="title" maxlength="<%= fx_.limits.title %>" value="<%= p.title %>"></div>
+                <div class="wide"><label>Description</label><textarea name="description" rows="3" maxlength="<%= fx_.limits.description %>"><%= p.description %></textarea></div>
+                <div><label>Heading above the role list</label><input name="listHeading" maxlength="<%= fx_.limits.listHeading %>" value="<%= p.listHeading %>"></div>
+                <div><label>Footer</label><input name="footer" maxlength="<%= fx_.limits.footer %>" value="<%= p.footer %>"></div>
+                <div><label>Colour</label><input name="color" type="color" value="<%= p.color %>" style="height:40px;padding:2px"></div>
+                <div><label>Channel</label><select name="channelId" required><% fx_.channels.forEach(c => { %><option value="<%= c.id %>" <%= p.channelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %></select></div>
+            </div>
+            <div class="fx-form" style="display:block">
+                <h3 style="margin-bottom:6px">Emoji → role rows <span class="fx-small">(max <%= fx_.max %>)</span></h3>
+                <div class="rr-rows"></div>
+                <button type="button" class="fx-btn rr-add" style="margin-top:6px">+ Add a row</button>
+            </div>
+            <div class="fx-form">
+                <h3>Behaviour &amp; messages</h3>
+                <div><label>Mode</label><select name="mode"><option value="multi" <%= p.mode === 'multi' ? 'selected' : '' %>>Members can pick several roles</option><option value="unique" <%= p.mode === 'unique' ? 'selected' : '' %>>One role only (picking another swaps it)</option></select></div>
+                <div><label>Tell the member by DM</label><select name="notify"><option value="none" <%= p.notify === 'none' ? 'selected' : '' %>>No DM</option><option value="dm" <%= p.notify === 'dm' ? 'selected' : '' %>>Send a DM when a role is added or removed</option></select></div>
+                <div class="chk"><input type="checkbox" name="removeOnUnreact" id="rr-rm-<%= p.id || 'new' %>" <%= p.removeOnUnreact ? 'checked' : '' %>><label for="rr-rm-<%= p.id || 'new' %>" style="margin:0;text-transform:none;color:#c0caf5">Remove the role when the reaction is removed</label></div>
+                <div class="chk"><input type="checkbox" name="enabled" id="rr-en-<%= p.id || 'new' %>" <%= p.enabled ? 'checked' : '' %>><label for="rr-en-<%= p.id || 'new' %>" style="margin:0;text-transform:none;color:#c0caf5">Panel enabled</label></div>
+                <div class="wide"><label>DM text when a role is added</label><input name="addedText" maxlength="<%= fx_.limits.dm %>" value="<%= p.addedText %>"></div>
+                <div class="wide"><label>DM text when a role is removed</label><input name="removedText" maxlength="<%= fx_.limits.dm %>" value="<%= p.removedText %>"></div>
+            </div>
+            <div class="fx-inline" style="margin-top:12px">
+                <button type="submit" name="act" value="publish" class="btn-submit" style="margin:0"><%= p.messageId ? 'Save &amp; update message' : 'Save &amp; publish' %></button>
+                <button type="submit" name="act" value="save" class="fx-btn">Save only</button>
+            </div>
+        </form>
+        <% if (!isNew) { %><div class="fx-inline" style="margin-top:8px">
+            <% if (p.messageId) { %><form action="/reaction-roles/<%= p.id %>/unpublish" method="POST" onsubmit="return confirm('Delete the message from Discord? The panel settings are kept.');"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="fx-btn">Take message down</button></form><% } %>
+            <form action="/reaction-roles/<%= p.id %>/delete" method="POST" onsubmit="return confirm('Delete this panel and its message?');"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="fx-btn danger">Delete panel</button></form>
+        </div><% } %>
+    </details>
+    <% }) %>
+
+    <div id="rr-pick"><div class="box">
+        <div class="bar"><input id="rr-q" placeholder="Search emoji (e.g. heart, fire, flag)…" autocomplete="off"><select id="rr-tone" title="Skin tone for people emoji"><option value="">Default tone</option><option value="🏻">🏻 Light</option><option value="🏼">🏼 Medium-light</option><option value="🏽">🏽 Medium</option><option value="🏾">🏾 Medium-dark</option><option value="🏿">🏿 Dark</option></select><button type="button" class="fx-btn" id="rr-x">Close</button></div>
+        <div class="tabs" id="rr-tabs"></div><div class="grid" id="rr-grid"></div><div class="hint" id="rr-hint"></div>
+    </div></div>
+
+    <script>
+    (function () {
+        const ROLES = <%- JSON.stringify(fx_.roles).replace(/</g, '\\u003c') %>;
+        const MAX = <%= fx_.max %>;
+        let EMOJI = null, group = 0, onPick = null;
+        const $ = (s, r) => (r || document).querySelector(s);
+        const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const CUSTOM = /^<(a?):([A-Za-z0-9_]{2,32}):(\d{15,25})>$/;
+        const show = (e) => { const m = CUSTOM.exec(e); return m ? '<img alt="" src="https://cdn.discordapp.com/emojis/' + m[3] + (m[1] ? '.gif' : '.png') + '?size=48">' : esc(e); };
+        function tone(e, t) {
+            if (!t) return e; let out = '', skip = false;
+            for (const ch of e) { if (ch === '\uFE0F' && skip) { skip = false; continue; } skip = false; out += ch; if (/\p{Emoji_Modifier_Base}/u.test(ch)) { out += t; skip = true; } }
+            return out;
+        }
+        async function load() {
+            if (EMOJI) return;
+            try { EMOJI = (await (await fetch('/reaction-roles/emojis.json', { credentials: 'same-origin' })).json()).groups; } catch (e) { EMOJI = []; }
+        }
+        function draw() {
+            const q = $('#rr-q').value.trim().toLowerCase(), t = $('#rr-tone').value, grid = $('#rr-grid');
+            const list = q ? EMOJI.flatMap((g) => g.emojis).filter((e) => e[1].toLowerCase().includes(q)) : (EMOJI[group] ? EMOJI[group].emojis : []);
+            grid.innerHTML = list.slice(0, 600).map((e, i) => '<button type="button" data-i="' + i + '" title="' + esc(e[1]) + '">' + show(e[2] ? tone(e[0], t) : e[0]) + '</button>').join('') || '<div class="hint">No emoji found.</div>';
+            grid._list = list;
+            document.querySelectorAll('#rr-tabs button').forEach((b, i) => b.classList.toggle('on', !q && i === group));
+        }
+        async function openPicker(cb) {
+            onPick = cb; $('#rr-pick').classList.add('open'); $('#rr-q').value = ''; group = 0;
+            $('#rr-grid').innerHTML = '<div class="hint">Loading…</div>'; await load();
+            $('#rr-tabs').innerHTML = EMOJI.map((g, i) => '<button type="button" data-g="' + i + '">' + esc(g.name) + '</button>').join('');
+            draw(); $('#rr-q').focus();
+        }
+        const close = () => $('#rr-pick').classList.remove('open');
+        $('#rr-x').onclick = close;
+        $('#rr-pick').addEventListener('click', (ev) => { if (ev.target.id === 'rr-pick') close(); });
+        $('#rr-q').addEventListener('input', draw); $('#rr-tone').addEventListener('change', draw);
+        $('#rr-tabs').addEventListener('click', (ev) => { const b = ev.target.closest('button'); if (b) { $('#rr-q').value = ''; group = +b.dataset.g; draw(); } });
+        $('#rr-grid').addEventListener('click', (ev) => { const b = ev.target.closest('button'); if (!b) return; const e = $('#rr-grid')._list[+b.dataset.i]; const t = $('#rr-tone').value; if (onPick) onPick(e[2] ? tone(e[0], t) : e[0]); close(); });
+        $('#rr-grid').addEventListener('mouseover', (ev) => { const b = ev.target.closest('button'); $('#rr-hint').textContent = b ? b.title : ''; });
+
+        function addRow(form, it) {
+            const rows = $('.rr-rows', form);
+            if (rows.children.length >= MAX) { alert('A panel can have at most ' + MAX + ' rows.'); return; }
+            const row = document.createElement('div'); row.className = 'rr-row';
+            row.innerHTML = '<button type="button" class="rr-emoji" title="Pick an emoji">＋</button><select class="rr-role"><option value="">— pick a role —</option>' +
+                ROLES.map((r) => '<option value="' + r.id + '"' + (r.problem ? ' disabled' : '') + '>' + esc(r.name) + (r.problem ? '  (' + r.problem + ')' : '') + '</option>').join('') +
+                '</select><input class="rr-text" maxlength="100" placeholder="Text next to it (optional)"><button type="button" class="rr-del" title="Remove row">✕</button>';
+            const btn = $('.rr-emoji', row);
+            const setEmoji = (e) => { btn.dataset.emoji = e; btn.innerHTML = show(e); };
+            if (it) { if (it.emoji) setEmoji(it.emoji); $('.rr-role', row).value = it.roleId || ''; $('.rr-text', row).value = it.text || ''; }
+            btn.onclick = () => openPicker(setEmoji);
+            $('.rr-del', row).onclick = () => row.remove();
+            rows.appendChild(row);
+        }
+        window.rrSubmit = function (form) {
+            const items = [];
+            for (const row of form.querySelectorAll('.rr-row')) {
+                const emoji = $('.rr-emoji', row).dataset.emoji || '', roleId = $('.rr-role', row).value;
+                if (!emoji && !roleId) continue;
+                if (!emoji || !roleId) { alert('Every row needs both an emoji and a role.'); return false; }
+                items.push({ emoji, roleId, text: $('.rr-text', row).value.trim() });
+            }
+            if (!items.length) { alert('Add at least one emoji + role row.'); return false; }
+            $('.rr-items', form).value = JSON.stringify(items);
+            return true;
+        };
+        document.querySelectorAll('.rr-form').forEach((form) => {
+            let items = []; try { items = JSON.parse($('.rr-items', form).value || '[]'); } catch (e) { /* empty */ }
+            if (!items.length) items = [{}];
+            items.forEach((it) => addRow(form, it));
+            $('.rr-add', form).onclick = () => addRow(form, null);
+        });
+    })();
+    </script>
+<% } %>
+</div>
+
 <!-- ═══════════════ COMMUNITY (giveaways + polls) ═══════════════ -->
 <div id="fx-community" class="tab-content<%= tab === 'fx-community' ? ' active' : '' %>">
 <% if (tab === 'fx-community') { banner(); %>
@@ -371,6 +590,12 @@ const roleSel = (name, optional) => '<select name="' + name + '"' + (optional ? 
             <div><label>Winners</label><input name="winners" type="number" min="1" max="<%= fx_.cfgG.maxWinners %>" value="1"></div>
             <div><label>Channel</label><%- chanSel('channelId') %></div>
             <div><label>Required role</label><%- roleSel('roleId', true) %></div>
+            <div class="wide"><label>Level roles (optional): a member needs ANY ONE of the selected roles. Ctrl/Cmd-click to pick several</label>
+                <select name="levelRoleIds" multiple size="6"><% (fx_.roles || []).forEach(r => { %><option value="<%= r.id %>"><%= r.name %></option><% }) %></select></div>
+            <div><label>Messages today (min)</label><input name="minMsgToday" type="number" min="0" max="1000000" value="0"></div>
+            <div><label>Messages this week (min)</label><input name="minMsgWeek" type="number" min="0" max="1000000" value="0"></div>
+            <div><label>Messages this month (min)</label><input name="minMsgMonth" type="number" min="0" max="1000000" value="0"></div>
+            <div class="wide fx-small">0 = no requirement. Every requirement you fill in must be met. Message counts are checked when someone presses Enter (week starts Monday).</div>
             <div><button class="btn-submit">Start giveaway</button></div>
         </form>
         <% if (fx_.giveaways.length) { %>

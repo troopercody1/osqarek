@@ -1,4 +1,4 @@
-// Marriage & family: /marry, /divorce, /adopt, /family tree | disown | leave.
+// Marriage & family: /marry, /divorce, /adopt, /family tree | disown | leave, plus /force marry | adopt (Admin+).
 //
 // Data (db.features.family.people[userId]):
 //   { spouse: id|null, marriedAt: ms|null, parents: [id, ...max 2], children: [id, ...] }
@@ -13,11 +13,14 @@
 //   - Nobody marries a bot, themselves, someone already married, or a relative (parent, child, sibling,
 //     grandparent, grandchild ...).
 //   - A child has at most 2 parents. A married adopter's spouse becomes the co-parent automatically.
-//   - You can't adopt your spouse, a relative, someone who is married, or someone who already has too many parents.
+//   - You can't adopt your spouse, a relative, or someone who already has too many parents. Married people CAN be adopted.
+//   - /force marry and /force adopt (Admin+) skip the other person's consent (and the "adoption is off" / max-children
+//     settings) but keep every rule that protects the family tree (no bots, no self, no relatives, no double marriages,
+//     max 2 parents).
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
 const context = require('./context');
 const { getConfig } = require('./config');
-const { store, brandEmbed, truncate } = require('./util');
+const { store, brandEmbed, truncate, recordEvent } = require('./util');
 
 const EPHEMERAL = MessageFlags.Ephemeral;
 const MAX_PARENTS = 2;
@@ -157,6 +160,55 @@ const commands = {
         });
     },
 
+    // ---------- /force marry | adopt (Admin+) ----------
+    async force({ interaction, options, isAtLeastAdmin }) {
+        const { db, safeSave } = context.get();
+        const cfg = getConfig(db, 'family');
+        if (!isAtLeastAdmin) return fail(interaction, 'You need **Admin+** to use `/force`.');
+        if (!cfg.enabled) return fail(interaction, 'Family commands are turned off.');
+        const sub = options.getSubcommand();
+        const admin = interaction.user;
+
+        if (sub === 'marry') {
+            const a = options.getUser('user1'), b = options.getUser('user2');
+            if (a.bot || b.bot) return fail(interaction, 'Bots can\'t marry.');
+            if (a.id === b.id) return fail(interaction, 'Pick two different people.');
+            for (const u of [a, b]) {
+                const sp = P(u.id, false).spouse;
+                if (sp) return fail(interaction, `${u.username} is already married to ${mention(sp)}. They need to \`/divorce\` first.`);
+            }
+            if (isRelative(a.id, b.id)) return fail(interaction, 'Those two are related, so they can\'t be married.');
+            if (!await resolveMember(interaction, a) || !await resolveMember(interaction, b)) return fail(interaction, 'Both people have to be in this server.');
+            const now = Date.now();
+            Object.assign(P(a.id), { spouse: b.id, marriedAt: now });
+            Object.assign(P(b.id), { spouse: a.id, marriedAt: now });
+            recordEvent(db, 'family', `${admin.tag} forced a marriage: ${a.tag} + ${b.tag}`);
+            await safeSave();
+            return interaction.editReply({
+                content: `${mention(a.id)} ${mention(b.id)}`, allowedMentions: { users: [a.id, b.id] },
+                embeds: [brandEmbed({ title: '💒 Married by decree', description: `${mention(a.id)} and ${mention(b.id)} were married by an admin. Congratulations (or condolences)! 🎉`, color: 0xEB459E })],
+            });
+        }
+
+        if (sub === 'adopt') {
+            const parent = options.getUser('parent'), child = options.getUser('child');
+            if (parent.bot) return fail(interaction, 'Bots can\'t be parents.');
+            const err = adoptionError(parent.id, child.id, cfg, child.bot, { force: true });
+            if (err) return fail(interaction, err);
+            if (!await resolveMember(interaction, parent) || !await resolveMember(interaction, child)) return fail(interaction, 'Both people have to be in this server.');
+            const spouse = P(parent.id, false).spouse;
+            link(parent.id, child.id);
+            if (spouse) link(spouse, child.id);
+            recordEvent(db, 'family', `${admin.tag} forced an adoption: ${parent.tag}${spouse ? ' (+ spouse)' : ''} adopted ${child.tag}`);
+            await safeSave();
+            return interaction.editReply({
+                content: `${mention(child.id)}`, allowedMentions: { users: [child.id] },
+                embeds: [brandEmbed({ title: '🏡 Adopted by decree', description: `${mention(child.id)} was adopted by ${mention(parent.id)}${spouse ? ` and ${mention(spouse)}` : ''} by an admin. 💖`, color: 0x57F287 })],
+            });
+        }
+        return fail(interaction, 'Unknown subcommand.');
+    },
+
     async family({ interaction, options }) {
         const sub = options.getSubcommand();
         const me = interaction.user;
@@ -182,13 +234,12 @@ const commands = {
 };
 
 // Why `parentId` can't adopt `childId` right now (or null). Used when asking and again when the child accepts.
-function adoptionError(parentId, childId, cfg, childIsBot = false) {
+function adoptionError(parentId, childId, cfg, childIsBot = false, { force = false } = {}) {
     const parentP = P(parentId, false), childP = P(childId, false);
     const spouse = parentP.spouse;
     if (childIsBot) return 'You can\'t adopt a bot.';
     if (childId === parentId) return 'You can\'t adopt yourself.';
     if (childId === spouse) return 'You can\'t adopt your spouse.';
-    if (childP.spouse) return 'Married members can\'t be adopted.';
     if (childP.parents.includes(parentId)) return 'They\'re already your child.';
     if (isRelative(parentId, childId)) return 'You can\'t adopt a relative.';
     const adding = spouse ? 2 : 1;
@@ -196,7 +247,7 @@ function adoptionError(parentId, childId, cfg, childIsBot = false) {
         return childP.parents.length ? 'They already have parents, so there\'s no room for a new family.' : 'A child can have at most 2 parents, and you and your spouse would be 2. Try again once that\'s sorted.';
     }
     const kids = (id) => P(id, false).children.length;
-    if (kids(parentId) >= cfg.maxChildren || (spouse && kids(spouse) >= cfg.maxChildren)) return `A parent can have at most ${cfg.maxChildren} children.`;
+    if (!force && (kids(parentId) >= cfg.maxChildren || (spouse && kids(spouse) >= cfg.maxChildren))) return `A parent can have at most ${cfg.maxChildren} children.`;
     return null;
 }
 
@@ -318,7 +369,21 @@ const userOpt = (description) => ({ name: 'user', description, type: 6, required
 const definitions = [
     { name: 'marry', description: 'Propose to someone 💍', options: [userOpt('Who to propose to')] },
     { name: 'divorce', description: 'End your marriage' },
-    { name: 'adopt', description: 'Ask someone to become your child', options: [userOpt('Who to adopt')] },
+    { name: 'adopt', description: 'Ask someone to become your child (married people can be adopted too)', options: [userOpt('Who to adopt')] },
+    {
+        name: 'force',
+        description: 'Force a marriage or adoption without asking (Admin+)',
+        options: [
+            { name: 'marry', description: 'Marry two members without asking them', type: 1, options: [
+                { name: 'user1', description: 'First person', type: 6, required: true },
+                { name: 'user2', description: 'Second person', type: 6, required: true },
+            ] },
+            { name: 'adopt', description: 'Make someone a member\'s child without asking them', type: 1, options: [
+                { name: 'parent', description: 'The new parent (their spouse becomes a parent too)', type: 6, required: true },
+                { name: 'child', description: 'The child', type: 6, required: true },
+            ] },
+        ],
+    },
     {
         name: 'family',
         description: 'Your family',

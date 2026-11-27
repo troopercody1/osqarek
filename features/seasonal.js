@@ -1,9 +1,9 @@
 // Seasonal / event messages.
-//   ecodrops  - 3-6 random "eco drop" announcements per day (ET). Message only, no currency is given.
-//               Each one picks a random amount between 50M and 500M and pings a role.
 //   christmas - one Christmas fact per day at 11:00 AM ET until Christmas Day.
-// Both are driven by the shared 10s scheduler in features/index.js (tick), survive restarts
-// (plan/last-sent live in db.features.seasonal) and are configurable via /feature or the dashboard.
+// (Eco drops used to live here; they are in ecodrops.js now. The daily eco-drop plan is still stored in
+// db.features.seasonal.drop so nothing is re-planned.)
+// Driven by the shared 10s scheduler in features/index.js (tick), survives restarts
+// (last-sent lives in db.features.seasonal) and is configurable via /feature or the dashboard.
 const context = require('./context');
 const { getConfig } = require('./config');
 const { store } = require('./util');
@@ -76,73 +76,6 @@ async function getChannel(id) {
     return client.channels.cache.get(id) || (await client.channels.fetch(id).catch(() => null));
 }
 
-const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-
-// Random times (minutes since midnight ET), at least `gap` minutes apart.
-function planTimes(count, from, to, gap = 20, existing = []) {
-    const times = [];
-    for (let tries = 0; times.length < count && tries < 500; tries++) {
-        const m = randInt(from, to - 1);
-        if (times.every((x) => Math.abs(x - m) >= gap) && existing.every((x) => Math.abs(x - m) >= gap)) times.push(m);
-    }
-    return times.sort((a, b) => a - b);
-}
-
-async function tickDrops(t) {
-    const cfg = getConfig(context.get().db, 'ecodrops');
-    if (!cfg.enabled || !cfg.channels.length) return;
-    const d = data();
-
-    const from = Math.min(cfg.startHour, cfg.endHour - 1) * 60;
-    const to = Math.max(cfg.endHour, cfg.startHour + 1) * 60;
-    const hi = Math.max(1, cfg.maxPerDay);
-    const lo = Math.min(cfg.minPerDay, hi);
-
-    if (d.drop.day !== t.key) {
-        const times = planTimes(randInt(lo, hi), from, to);
-        d.drop = { day: t.key, times, done: times.map(() => false) };
-        touch();
-    }
-
-    // Top-off: if today's plan has fewer drops than the minimum (e.g. the minimum was raised
-    // mid-day), schedule the missing ones at random times in the rest of today.
-    const missing = lo - d.drop.times.length;
-    if (missing > 0 && t.minutes + 1 < to) {
-        const extra = planTimes(missing, Math.max(from, t.minutes + 1), to, 20, d.drop.times);
-        if (extra.length) {
-            const pairs = d.drop.times.map((m, i) => [m, d.drop.done[i]]).concat(extra.map((m) => [m, false]));
-            pairs.sort((x, y) => x[0] - y[0]);
-            d.drop.times = pairs.map((x) => x[0]);
-            d.drop.done = pairs.map((x) => x[1]);
-            touch();
-        }
-    }
-
-    for (let i = 0; i < d.drop.times.length; i++) {
-        if (d.drop.done[i] || t.minutes < d.drop.times[i]) continue;
-        d.drop.done[i] = true; // mark first so a failure can never spam
-        touch();
-        // Missed by more than 15 minutes (bot was down) -> skip rather than send late.
-        if (t.minutes - d.drop.times[i] > 15) continue;
-        await sendDrop(cfg);
-        break; // at most one per tick
-    }
-}
-
-async function sendDrop(cfg) {
-    const pool = cfg.channels.filter((x) => /^\d{15,25}$/.test(x));
-    const ch = await getChannel(pool[randInt(0, pool.length - 1)]);
-    if (!ch?.send) return;
-    const min = Math.min(cfg.minAmount, cfg.maxAmount);
-    const max = Math.max(cfg.minAmount, cfg.maxAmount);
-    const amount = randInt(min, max);
-    const ping = cfg.pingRole ? `<@&${cfg.pingRole}> ` : '';
-    await ch.send({
-        content: `${ping}💸 **ECO DROP!** **${amount}M** has dropped!`,
-        allowedMentions: cfg.pingRole ? { roles: [cfg.pingRole] } : { parse: [] },
-    }).catch((err) => console.error('❌ [seasonal] eco drop failed:', err.message));
-}
-
 async function tickChristmas(t) {
     const cfg = getConfig(context.get().db, 'christmas');
     if (!cfg.enabled || !cfg.channel) return;
@@ -171,7 +104,6 @@ async function tickChristmas(t) {
 async function tick() {
     if (!context.ready()) return;
     const t = et();
-    await tickDrops(t).catch((err) => console.error('❌ [seasonal] drops:', err.message));
     await tickChristmas(t).catch((err) => console.error('❌ [seasonal] christmas:', err.message));
 }
 

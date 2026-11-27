@@ -1,7 +1,7 @@
 process.env.TZ = 'Europe/London';
 const defaultBannedWords = require('./default-banned-words.js');
 const { commandNames: DEPLOYED_COMMAND_NAMES } = require('./commands');
-const commandHandlers = require('./commands/handlers');
+const commandHandlers = require('./commands').handlers;
 const confessionChannel = require('./commands/confessions/channel');
 const { deployCommands } = require('./deploy-commands.js');
 const { extractUserIds, isTempChannelBlocked, buildTempChannelOverwrites } = require('./commands/tempChannelUtils');
@@ -1224,7 +1224,6 @@ const DASHBOARD_TABS = {
     modules: 'modules',
     infractions: 'infractions',
     'risk-manager': 'risk-manager',
-    'reaction-roles': 'roles',
     'banned-words': 'banned-words',
     'nickname-guard': 'nickname-guard',
     'system-logs': 'terminal',
@@ -1292,10 +1291,6 @@ app.get('/infractions', checkAuth, async (req, res) => {
 
 app.get('/risk-manager', checkAuth, async (req, res) => {
     await renderDashboard(req, res, DASHBOARD_TABS['risk-manager'], { activePage: 'risk-manager' });
-});
-
-app.get('/reaction-roles', checkAuth, async (req, res) => {
-    await renderDashboard(req, res, DASHBOARD_TABS['reaction-roles'], { activePage: 'reaction-roles' });
 });
 
 app.get('/banned-words', checkAuth, async (req, res) => {
@@ -1563,7 +1558,6 @@ app.get('/co-owner-application-status/:userId', (req, res) => {
 
 app.post('/update-settings', checkAuth, async (req, res) => { db.settings = { prefix: req.body.prefix, welcomeChannel: req.body.welcomeChannel, goodbyeChannel: req.body.goodbyeChannel }; await safeSave(); res.redirect('/config'); });
 app.post('/review-risk/:userId', checkAuth, async (req, res) => { if (!db.reviewedUsers) db.reviewedUsers = []; if (!db.reviewedUsers.includes(req.params.userId)) { db.reviewedUsers.push(req.params.userId); await safeSave(); } res.redirect('/risk-manager'); });
-app.post('/add-reaction-role', checkAuth, async (req, res) => { if (!db.reactionRoles) db.reactionRoles = []; db.reactionRoles.push({ emoji: req.body.emoji, roleId: req.body.roleId, messageId: req.body.messageId }); await safeSave(); res.redirect('/reaction-roles'); });
 app.post('/banned-words/add', checkAuth, async (req, res) => { if (!db.bannedWords) db.bannedWords = []; if (!db.bannedWords.includes(req.body.word)) { db.bannedWords.push(req.body.word); await safeSave(); } res.redirect('/banned-words'); });
 app.post('/banned-words/remove', checkAuth, async (req, res) => { if (!db.bannedWords) db.bannedWords = []; db.bannedWords = db.bannedWords.filter(w => w !== req.body.word); await safeSave(); res.redirect('/banned-words'); });
 app.post("/create-case", checkAuth, async (req, res) => {
@@ -1586,14 +1580,6 @@ app.post("/create-case", checkAuth, async (req, res) => {
 
     await safeSave();
     res.redirect("/infractions");
-});
-app.post('/remove-reaction-role/:index', checkAuth, async (req, res) => {
-    const i = parseInt(req.params.index, 10);
-    if (!isNaN(i) && db.reactionRoles && db.reactionRoles[i]) {
-        db.reactionRoles.splice(i, 1);
-    
-    }
-    res.redirect('/reaction-roles');
 });
 
 app.post('/edit-case/:index', checkAuth, async (req, res) => {
@@ -3104,7 +3090,13 @@ client.on('interactionCreate', async (interaction) => {
         return;
     }
 
-    // FEATURES: giveaway entry, poll votes, ban-evasion review buttons
+    // /help category menu
+    if (interaction.isStringSelectMenu() && interaction.customId === 'help:menu') {
+        await commandHandlers.help.handleMenu(interaction).catch((err) => console.error('❌ [help] menu failed:', err.message));
+        return;
+    }
+
+    // FEATURES: giveaway entry, poll votes, ban-evasion review buttons, eco drop claims
     if (await features.handleInteraction(interaction)) return;
 
     // 3. BUTTON LOGIC
@@ -3471,50 +3463,6 @@ client.on('interactionCreate', async (interaction) => {
             }
 
             // --- 3. SYSTEM & ADMIN COMMANDS ---
-            if (commandName === 'help') {
-                const helpEmbed = createEmbed({
-                    title: '🛡️ OsQarek\'s Universe | Command List',
-                    description: 'Navigate the Universe with the commands below. Permission levels apply.',
-                    thumbnail: client.user.displayAvatarURL(),
-                    footer: 'OsQarek\'s Universe',
-                    fields: [
-                        {
-                            name: '👤 Public & Fun',
-                            value: '`ping`, `pfp`, `diceroll`, `randomletter`, `ship`, `osqareksocials`, `serverinfo`, `userinfo`, `afk`, `confess`, `offences`, `random`, `reminder`, `joke`, `dadjoke`, `randomfact`, `cat`, `dog`, `coinflip`, `poll`, `latest-updates`,'
-                        },
-                        {
-                            name: '🎮 Game & AI',
-                            value: '`ask-rules`, `summarize`, `suggest`, `quizlist`, `quizcreate`, `startquiz`, `delquiz`, `apply`, `join`, `leave`'
-                        },
-                        {
-                            name: '🎵 Music Engine',
-                            value: '`play`, `skip`, `queue`, `clearqueue`, `pause`, `resume`, `volume`, `nowplaying`, `autoplay`, `247`'
-                        },
-                        {
-                            name: '👮 Staff (Trial+)',
-                            value: '`warn`, `mute`, `unmute`, `kick`, `softban`, `purge`, `notes`, `warnings`, `loa`, `case`, `dm`, `addnote`'
-                        },
-                        {
-                            name: '🧩 Feature Suite',
-                            value: '`raid`, `evasion`, `impersonation`, `timed`, `giveaway`, `poll`, `case-search`, `audit`, `analytics`, `feature`'
-                        },
-                        {
-                            name: '⚔️ Moderation & Stats',
-                            value: '`lockdown`, `slowmode`, `reason`, `staffstats`, `allstaffstats`, `staff-leaderboard`'
-                        },
-                        {
-                            name: '⚙️ Admin',
-                            value: '`ban`, `unban`, `banlist`, `modlog`, `setloachannel`, `setchatlog`, `togglecommand`, `delwarn`, `clearwarns`, `ignorechannel`, `addmod`, `deletemod`, `announce`, `globalannounce`, `role`, `messagereset`, `restart`, `reactionrole`, `userignore`, `staffdm`, `latest-action`,'
-                        },
-                        {
-                            name: '👑 Owners',
-                            value: '`strike remove`, `strike add`, `strikes`, `aitoggle`, `staff-reset`'
-                        }
-                    ],
-                });
-
-                await interaction.editReply({ embeds: [helpEmbed] });
-            }
             if (commandName === 'ping-all-staff') {
                 const reason = interaction.options.getString('reason');
                 const staffRoleId = '1266661585380708473';

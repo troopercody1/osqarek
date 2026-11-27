@@ -257,6 +257,7 @@
         <a href="/analytics" class="tab-btn <%= activePage === 'fx-analytics' ? 'active' : '' %>">📈 Analytics</a>
         <a href="/community" class="tab-btn <%= activePage === 'fx-community' ? 'active' : '' %>">🎉 Giveaways &amp; Polls</a>
         <a href="/timed" class="tab-btn <%= activePage === 'fx-timed' ? 'active' : '' %>">⏲️ Timed Actions</a>
+        <a href="/ecodrops" class="tab-btn <%= activePage === 'fx-ecodrops' ? 'active' : '' %>">💸 Eco Drops</a>
         <% if (user && user.id === 'admin') { %><a href="/helpcenter" class="tab-btn <%= activePage === 'fx-helpcenter' ? 'active' : '' %>">📚 Help Center</a><% } %>
         <div style="margin-top: auto; display: flex; flex-direction: column; gap: 6px;">
             <% if (user && user.id === 'admin') { %>
@@ -675,33 +676,6 @@
             </div>
         </div>
 
-        <!-- ═══════════════ REACTION ROLES ═══════════════ -->
-        <div id="roles" class="tab-content<%= (locals.activeTab || 'dashboard') === 'roles' ? ' active' : '' %>">
-            <div class="panel">
-                <h2>🎭 Reaction Role Configuration</h2>
-                <form action="/add-reaction-role" method="POST" style="display: flex; gap: 10px; flex-wrap: wrap;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                    <select name="emoji" style="width: 150px; background: #16161e; color: #fff; padding: 10px; border-radius: 4px; border: 1px solid #2f3549;">
-                        <option value="">Select Emoji</option>
-                        <% if (typeof emojis !== 'undefined' && emojis && emojis.length > 0) { %>
-                            <% emojis.forEach(emoji => { %>
-                                <option value="<%= emoji.toString %>"><%= emoji.toString %> :<%= emoji.name %>:</option>
-                            <% }) %>
-                        <% } else { %>
-                            <option value="" disabled>No custom emojis available</option>
-                        <% } %>
-                    </select>
-                    <input name="roleId" placeholder="Role ID" style="flex: 2;">
-                    <input name="messageId" placeholder="Message ID" style="flex: 2;">
-                    <button type="submit" class="btn-submit" style="margin-top:0;">Add Rule</button>
-                </form>
-                <% if (reactionRoles && reactionRoles.length > 0) { %>
-                <table style="margin-top:20px;">
-                    <thead><tr><th>Emoji</th><th>Role ID</th></tr></thead>
-                </table>
-                <% } %>
-            </div>
-        </div>
-
         <!-- ═══════════════ BANNED WORDS ═══════════════ -->
         <div id="banned-words" class="tab-content<%= (locals.activeTab || 'dashboard') === 'banned-words' ? ' active' : '' %>">
             <div class="panel">
@@ -943,7 +917,6 @@
                 modules: 'modules',
                 infractions: 'infractions',
                 'risk-manager': 'risk-manager',
-                roles: 'reaction-roles',
                 'banned-words': 'banned-words',
                 'nickname-guard': 'nickname-guard',
                 terminal: 'system-logs',

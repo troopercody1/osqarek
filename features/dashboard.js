@@ -1,7 +1,7 @@
 // Dashboard pages for the feature bundle. All routes sit behind checkAuth.
 const context = require('./context');
 const actions = require('./actions');
-const { FEATURES, FEATURE_NAMES, getConfig, applyForm, resetFeature } = require('./config');
+const { FEATURES, FEATURE_NAMES, getConfig, applyForm, resetFeature, setValue } = require('./config');
 const { searchCases, caseTime, userLabel } = require('./cases');
 const { dayKey, isSnowflake } = require('./util');
 
@@ -273,7 +273,7 @@ function register(ctx, modules) {
     // ---------- create / schedule from the dashboard ----------
     app.post('/community/giveaway/start', checkAuth, async (req, res) => {
         const b = req.body || {};
-        const r = await modules.giveaways.startGiveaway(guild(), { prize: b.prize, when: b.duration, winners: parseInt(b.winners, 10) || 1, roleId: b.roleId || null, channelId: b.channelId, host: actorOf(req) });
+        const r = await modules.giveaways.startGiveaway(guild(), { prize: b.prize, when: b.duration, winners: parseInt(b.winners, 10) || 1, roleId: b.roleId || null, levelRoleIds: [].concat(b.levelRoleIds || []), minMsgToday: parseInt(b.minMsgToday, 10) || 0, minMsgWeek: parseInt(b.minMsgWeek, 10) || 0, minMsgMonth: parseInt(b.minMsgMonth, 10) || 0, channelId: b.channelId, host: actorOf(req) });
         flash(res, '/community', r, r.ok ? `Giveaway #${r.g.id} started` : '');
     });
     app.post('/community/poll/create', checkAuth, async (req, res) => {
@@ -322,6 +322,72 @@ function register(ctx, modules) {
         if (!g) return back(res, '/protection', '❌ Guild unavailable');
         const r = await modules.evasion.syncAll(g);
         back(res, '/protection', `Tracking ${r.total} bans (${r.added} new). Invite tracking ${r.inviteTracking ? 'working' : 'unavailable'}.`);
+    });
+
+    // ---------- Eco drops: manual / repeating drops, claim log, logging settings ----------
+    app.get('/ecodrops', checkAuth, async (req, res) => {
+        await page(req, res, 'fx-ecodrops', 'fx-ecodrops', { ...lists(), cfg: getConfig(db(), 'ecodrops'), eco: modules.ecodrops.view() });
+    });
+    app.post('/ecodrops/manual', checkAuth, async (req, res) => {
+        const b = req.body || {};
+        let expiresAt = null;
+        if (String(b.expiresAt || '').trim()) {
+            expiresAt = new Date(b.expiresAt).getTime(); // datetime-local, read in the bot's timezone (Europe/London)
+            if (!Number.isFinite(expiresAt)) return back(res, '/ecodrops', '❌ That expire date is not valid.');
+        }
+        let repeatMs = null;
+        if (b.repeat === 'on') {
+            const n = Number(b.repeatEvery), unit = { m: 60000, h: 3600000, d: 86400000 }[b.repeatUnit];
+            if (!(n > 0) || !unit) return back(res, '/ecodrops', '❌ Enter how often the drop repeats.');
+            repeatMs = Math.round(n * unit);
+        }
+        const r = await modules.ecodrops.createManual({ channelId: b.channelId, amount: b.amount, expiresAt, repeatMs, ping: b.ping === 'on', by: actorOf(req).tag });
+        flash(res, '/ecodrops', r, r.ok ? `Drop #${r.drop.id} posted${r.seriesId ? ` (repeating, series #${r.seriesId})` : ''}` : '');
+    });
+    app.post('/ecodrops/logging', checkAuth, async (req, res) => {
+        const b = req.body || {};
+        const on = (v) => (v === 'on' ? 'true' : 'false');
+        for (const [key, val] of [['logEnabled', on(b.logEnabled)], ['logDrops', on(b.logDrops)], ['logClaims', on(b.logClaims)], ['logChannel', b.logChannel || 'none']]) {
+            const r = setValue(db(), 'ecodrops', key, val);
+            if (!r.ok) return back(res, '/ecodrops', `❌ ${r.error}`);
+        }
+        await safeSave();
+        back(res, '/ecodrops', 'Logging settings saved');
+    });
+    app.post('/ecodrops/:id/cancel', checkAuth, async (req, res) => flash(res, '/ecodrops', await modules.ecodrops.cancelDrop(parseInt(req.params.id, 10), actorOf(req).tag), `Drop #${req.params.id} cancelled`));
+    app.post('/ecodrops/repeat/:id/stop', checkAuth, async (req, res) => flash(res, '/ecodrops', await modules.ecodrops.endSeries(parseInt(req.params.id, 10), actorOf(req).tag), `Repeat #${req.params.id} stopped`));
+
+    // ---------- Reaction roles (dashboard-only configuration) ----------
+    const RR = modules.reactionroles;
+    app.get('/reaction-roles', checkAuth, async (req, res) => {
+        const g = guild();
+        await page(req, res, 'fx-reactionroles', 'reaction-roles', { ...RR.guildInfo(g), panels: RR.data().panels, defaults: RR.DEFAULTS, max: RR.MAX_ITEMS, limits: RR.LIMITS, newPanel: req.query.new === '1' });
+    });
+    app.get('/reaction-roles/emojis.json', checkAuth, (req, res) => {
+        res.set('Cache-Control', 'private, max-age=600');
+        res.json(RR.emojiPayload(guild()));
+    });
+    app.post('/reaction-roles/save', checkAuth, async (req, res) => {
+        const g = guild();
+        if (!g) return back(res, '/reaction-roles', '❌ Guild unavailable');
+        const b = req.body || {};
+        const saved = await RR.savePanel(g, b, `dashboard (${who(req)})`);
+        if (!saved.ok) return back(res, '/reaction-roles', `❌ ${saved.error}`);
+        if (b.act === 'publish') {
+            const r = await RR.publishPanel(g, saved.panel, `dashboard (${who(req)})`);
+            return back(res, '/reaction-roles', r.ok ? `Panel #${saved.panel.id} published. Reactions are being added, give it a few seconds.` : `Panel saved, but ❌ ${r.error}`);
+        }
+        back(res, '/reaction-roles', `Panel #${saved.panel.id} saved${saved.panel.messageId ? ' (press "Save & publish" to update the message in Discord)' : ''}`);
+    });
+    app.post('/reaction-roles/:id/unpublish', checkAuth, async (req, res) => {
+        const p = RR.find(parseInt(req.params.id, 10));
+        if (!p) return back(res, '/reaction-roles', 'Panel not found');
+        await RR.unpublishPanel(p, `dashboard (${who(req)})`);
+        back(res, '/reaction-roles', `Panel #${p.id} taken down (the settings are kept)`);
+    });
+    app.post('/reaction-roles/:id/delete', checkAuth, async (req, res) => {
+        const ok = await RR.deletePanel(parseInt(req.params.id, 10), `dashboard (${who(req)})`);
+        back(res, '/reaction-roles', ok ? 'Panel deleted' : 'Panel not found');
     });
 
     // ---------- Timed actions ----------

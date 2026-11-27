@@ -6,6 +6,38 @@ const { store, brandEmbed, dayKey, truncate } = require('./util');
 const { searchCases, caseTime } = require('./cases');
 
 const todaySets = { key: null, users: new Set() };
+
+// ---------- per-member message counts (used by giveaway requirements) ----------
+// Three small rolling maps, so the saved database stays tiny: today, this week (Monday start, same as the staff
+// stats cycle) and this calendar month. Each map rolls over by itself when its period changes.
+// Stored at db.features.msgcounts = { day: {key, users}, week: {key, users}, month: {key, users} }. Humans only.
+const PERIODS = { day: 'today', week: 'this week', month: 'this month' };
+function periodKeys(ms = Date.now()) {
+    const d = new Date(ms);
+    const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+    return { day: dayKey(ms), week: dayKey(monday.getTime()), month: dayKey(ms).slice(0, 7) };
+}
+function counts() {
+    const { db } = context.get();
+    const s = store(db, 'msgcounts', {});
+    const keys = periodKeys();
+    for (const p of Object.keys(PERIODS)) {
+        if (!s[p] || s[p].key !== keys[p] || typeof s[p].users !== 'object') s[p] = { key: keys[p], users: {} };
+    }
+    return s;
+}
+// { day, week, month } message counts for one member.
+function userCounts(userId) {
+    const s = counts();
+    return { day: s.day.users[userId] || 0, week: s.week.users[userId] || 0, month: s.month.users[userId] || 0 };
+}
+function countMessage(message) {
+    if (!message.guild || message.author?.bot || message.guild.id !== actions.getGuild()?.id) return;
+    const s = counts();
+    for (const p of Object.keys(PERIODS)) s[p].users[message.author.id] = (s[p].users[message.author.id] || 0) + 1;
+    touch();
+}
 const CHANNELS_KEPT_PER_DAY = 30;
 
 function data() {
@@ -33,6 +65,7 @@ function enabled() {
 function touch() { context.get().saveLater?.(); }
 
 function onMessage(message) {
+    countMessage(message); // always on: giveaway requirements need it even when Analytics is off
     if (!enabled() || !message.guild) return;
     if (message.guild.id !== actions.getGuild()?.id) return;
     const cfg = getConfig(context.get().db, 'analytics');
@@ -68,6 +101,7 @@ function onLockdown() { if (!enabled()) return; day().lk = (day().lk || 0) + 1; 
 // per-channel, active users) for every retained day. Joins/leaves/bans/raids/drills/lockdowns are untouched.
 // The scan then rebuilds them (see apply below).
 function resetMessageCounts() {
+    try { const s = counts(); for (const p of Object.keys(PERIODS)) s[p].users = {}; touch(); } catch { /* never block the sync */ }
     if (!enabled()) return false;
     for (const rec of Object.values(data().days)) {
         rec.m = 0; rec.hm = 0; rec.a = 0;
@@ -91,10 +125,17 @@ function createHistoryCollector() {
     const cutoffMs = cutoff.getTime();
     const days = {};
     let counted = 0;
+    // Per-member tallies for the three giveaway-requirement periods (independent of the Analytics on/off switch).
+    const keys = periodKeys();
+    const mine = { day: {}, week: {}, month: {} };
 
     return {
         add(msg) {
             try {
+                if (!msg.author?.bot && msg.author?.id) {
+                    const k = periodKeys(msg.createdTimestamp);
+                    for (const p of Object.keys(PERIODS)) if (k[p] === keys[p]) mine[p][msg.author.id] = (mine[p][msg.author.id] || 0) + 1;
+                }
                 if (!cfg.enabled || msg.createdTimestamp < cutoffMs) return;
                 const key = dayKey(msg.createdTimestamp);
                 const rec = days[key] || (days[key] = { m: 0, hm: 0, h: Array(24).fill(0), ch: {}, users: new Set() });
@@ -108,6 +149,7 @@ function createHistoryCollector() {
         },
         // Merge into the store. Returns { enabled, days, messages } for the sync summary.
         async apply(guild) {
+            try { const s = counts(); for (const p of Object.keys(PERIODS)) s[p].users = mine[p]; touch(); } catch { /* ignore */ }
             if (!cfg.enabled) return { enabled: false, days: 0, messages: 0 };
             const live = data();
             for (const [key, scanned] of Object.entries(days)) {
@@ -273,4 +315,4 @@ const definitions = [
     },
 ];
 
-module.exports = { onMessage, onJoin, onLeave, onBan, onRaid, onDrill, onLockdown, createHistoryCollector, resetMessageCounts, snapshot, tick, report, spark, hourLabel, commands, definitions };
+module.exports = { userCounts, PERIODS, onMessage, onJoin, onLeave, onBan, onRaid, onDrill, onLockdown, createHistoryCollector, resetMessageCounts, snapshot, tick, report, spark, hourLabel, commands, definitions };

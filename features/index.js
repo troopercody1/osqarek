@@ -17,6 +17,8 @@ const modules = {
     analytics: require('./analytics'),
     voice: require('./voice'),
     seasonal: require('./seasonal'),
+    ecodrops: require('./ecodrops'),
+    reactionroles: require('./reactionroles'),
     serverstats: require('./serverstats'),
     tickets: require('./tickets'),
     family: require('./family'),
@@ -55,6 +57,10 @@ function init(ctx) {
     client.on('guildMemberUpdate', safe('update', (o, n) => impersonation.onMemberUpdate(o, n)));
     client.on('messageCreate', safe('message', async (m) => { analytics.onMessage(m); modules.tickets.onMessage(m); }));
     modules.tickets.init(); // Help Center → ticket channel direction
+    // Reaction roles (configured on the dashboard only)
+    client.on('messageReactionAdd', safe('rr+', (reaction, user) => modules.reactionroles.onReaction(reaction, user, true)));
+    client.on('messageReactionRemove', safe('rr-', (reaction, user) => modules.reactionroles.onReaction(reaction, user, false)));
+    client.on('messageDelete', safe('rr-del', (message) => modules.reactionroles.onMessageDelete(message)));
     client.on('voiceStateUpdate', safe('voice', async (o, n) => { if (guildOk(n.guild || o.guild)) modules.voice.onVoiceState(o, n); }));
     client.on('guildBanAdd', safe('ban', async (ban) => {
         if (!guildOk(ban.guild)) return;
@@ -76,7 +82,8 @@ function init(ctx) {
         await evasion.backfillBans(guild);
         analytics.snapshot(guild);
         modules.voice.reconcile(guild, { resume: true });
-        console.log('🧩 Features online: raid, lockdown, drills, evasion, impersonation, timed, giveaways, polls, audit, analytics, voice, eco drops, christmas facts, server stats, tickets, family.');
+        await modules.reactionroles.reconcile();
+        console.log('🧩 Features online: raid, lockdown, drills, evasion, impersonation, timed, giveaways, polls, audit, analytics, voice, eco drops (claimable), christmas facts, server stats, tickets, family, reaction roles.');
     });
     if (client.isReady()) onReady(); else client.once('clientReady', onReady);
 
@@ -86,7 +93,7 @@ function init(ctx) {
         if (busy || !client.isReady()) return;
         busy = true;
         try {
-            for (const [label, fn] of [['raid', raid.tick], ['lockdown', modules.lockdown.tick], ['timed', modules.timed.tick], ['giveaways', modules.giveaways.tick], ['polls', modules.polls.tick], ['evasion', evasion.tick], ['analytics', analytics.tick], ['voice', modules.voice.tick], ['seasonal', modules.seasonal.tick], ['serverstats', modules.serverstats.tick], ['tickets', modules.tickets.tick]]) {
+            for (const [label, fn] of [['raid', raid.tick], ['lockdown', modules.lockdown.tick], ['timed', modules.timed.tick], ['giveaways', modules.giveaways.tick], ['polls', modules.polls.tick], ['evasion', evasion.tick], ['analytics', analytics.tick], ['voice', modules.voice.tick], ['seasonal', modules.seasonal.tick], ['ecodrops', modules.ecodrops.tick], ['serverstats', modules.serverstats.tick], ['tickets', modules.tickets.tick]]) {
                 try { await fn(); } catch (err) { console.error(`❌ [features:${label}] tick failed:`, err.message); }
             }
         } finally { busy = false; }
@@ -109,6 +116,7 @@ async function handleInteraction(interaction) {
             if (id.startsWith('ev:')) { await modules.evasion.handleButton(interaction); return true; }
             if (id.startsWith('tk:')) { await modules.tickets.handleButton(interaction); return true; }
             if (id.startsWith('fam:')) { await modules.family.handleButton(interaction); return true; }
+            if (id.startsWith('eco:')) { await modules.ecodrops.handleButton(interaction); return true; }
         } else if (id.startsWith('tk:')) { await modules.tickets.handleModal(interaction); return true; }
     } catch (err) {
         console.error('❌ [features] button failed:', err);

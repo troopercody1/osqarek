@@ -129,7 +129,7 @@ const FEATURES = {
     ecodrops: {
         label: 'Eco Drops',
         icon: '💸',
-        description: 'Announces 3-6 random eco drops per day (ET) with a random amount (default 50M-500M) with no ping by default. Message only: nothing is given out by the bot.',
+        description: 'Announces 3-6 random eco drops per day (ET) with a random amount (default 50M-500M), no ping by default. Every drop has a Claim button: the first person to press it wins and the button switches off. Drops never expire. The bot only records who claimed (nothing is paid out), and can log drops and claims. Post a one-off or repeating drop yourself from the Eco Drops page.',
         defaultEnabled: true,
         settings: [
             { key: 'channels', type: 'list', default: ['771423231584108568', '772598596443832330', '1512845893349408839', '1467588751822819520', '883622147052933121', '1489842627028324502', '1422676481619791922', '814468713297608744', '1112103039449436260', '1254559209027145779', '953958239488335893', '1558604938043588608', '1489840975336706250', '955577038721409095', '1467588005614194688', '1340439976562786435', '1467586365574217728', '950053168706887740', '1436036170931896361', '1242980695081619458'], label: 'Drop channels', desc: 'Comma separated channel IDs. Each drop is sent to one of them, picked at random.' },
@@ -140,6 +140,10 @@ const FEATURES = {
             { key: 'maxAmount', type: 'int', min: 1, max: 100000, default: 500, label: 'Max amount (millions)', desc: '500 = 500M.' },
             { key: 'startHour', type: 'int', min: 0, max: 23, default: 8, label: 'Earliest hour (ET)', desc: 'Drops are never scheduled before this hour (0-23, New York time).' },
             { key: 'endHour', type: 'int', min: 1, max: 24, default: 23, label: 'Latest hour (ET)', desc: 'Drops are never scheduled after this hour (1-24, New York time).' },
+            { key: 'logEnabled', type: 'bool', default: false, label: 'Log eco drops', desc: 'Master switch for eco drop logging. Off = nothing is logged.' },
+            { key: 'logChannel', type: 'channel', default: '', label: 'Log channel', desc: 'Where drops, claims, expiries and cancellations are logged. Falls back to the mod log channel.' },
+            { key: 'logDrops', type: 'bool', default: true, label: 'Log drops posted', desc: 'Only used while logging is on.' },
+            { key: 'logClaims', type: 'bool', default: true, label: 'Log claims', desc: 'Who claimed which drop and how fast. Only used while logging is on.' },
         ],
     },
     christmas: {

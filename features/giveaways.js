@@ -1,8 +1,15 @@
-// Giveaways: button entry, timed ending, role requirements, rerolls.
+// Giveaways: button entry, timed ending, rerolls and entry requirements.
+//   Requirements (all optional, all must be met to enter):
+//     - requiredRoleId   one specific role (the original option)
+//     - levelRoleIds     "level roles": the member needs ANY ONE of the chosen roles (e.g. Level 10, Level 20, Level 30...)
+//     - minMsgToday / minMsgWeek / minMsgMonth   human messages sent today / this week (Monday start) / this calendar month
+//   Roles are checked when entering and again when winners are drawn. Message counts are checked when entering
+//   (they reset every day / week / month, so they can't be re-checked fairly at the draw).
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, PermissionFlagsBits } = require('discord.js');
 const context = require('./context');
 const actions = require('./actions');
 const { getConfig } = require('./config');
+const analytics = require('./analytics');
 const { store, brandEmbed, recordEvent, parseDuration, formatDuration, shuffle, ts, truncate } = require('./util');
 
 const MIN_MS = 30 * 1000;
@@ -17,6 +24,36 @@ function data() {
 
 const find = (id) => data().items.find((g) => g.id === id) || null;
 
+// ---------- requirements ----------
+const hasMsgReq = (g) => !!(g.minMsgToday || g.minMsgWeek || g.minMsgMonth);
+function requirementLines(g) {
+    const out = [];
+    if (g.requiredRoleId) out.push(`Must have <@&${g.requiredRoleId}>`);
+    if (g.levelRoleIds?.length) out.push(`Level role: any of ${g.levelRoleIds.map((id) => `<@&${id}>`).join(', ')}`);
+    if (g.minMsgToday) out.push(`**${g.minMsgToday.toLocaleString()}**+ messages today`);
+    if (g.minMsgWeek) out.push(`**${g.minMsgWeek.toLocaleString()}**+ messages this week`);
+    if (g.minMsgMonth) out.push(`**${g.minMsgMonth.toLocaleString()}**+ messages this month`);
+    return out;
+}
+// Role requirements only (re-checked when drawing winners).
+function roleError(member, g) {
+    if (g.requiredRoleId && !member.roles.cache.has(g.requiredRoleId)) return `You need the <@&${g.requiredRoleId}> role to enter.`;
+    if (g.levelRoleIds?.length && !g.levelRoleIds.some((id) => member.roles.cache.has(id))) return `You need one of these level roles to enter: ${g.levelRoleIds.map((id) => `<@&${id}>`).join(', ')}.`;
+    return null;
+}
+// Everything, including message counts (checked when entering).
+function entryError(member, g) {
+    const r = roleError(member, g);
+    if (r) return r;
+    if (hasMsgReq(g)) {
+        const c = analytics.userCounts(member.id);
+        for (const [key, label, have] of [['minMsgToday', 'today', c.day], ['minMsgWeek', 'this week', c.week], ['minMsgMonth', 'this month', c.month]]) {
+            if (g[key] && have < g[key]) return `You need at least **${g[key].toLocaleString()}** messages ${label} (you have **${have.toLocaleString()}**, so **${(g[key] - have).toLocaleString()}** to go).`;
+        }
+    }
+    return null;
+}
+
 // ---------- rendering ----------
 function buildEmbed(g) {
     const active = g.status === 'active';
@@ -26,7 +63,8 @@ function buildEmbed(g) {
         { name: 'Winners', value: String(g.winnersCount), inline: true },
         { name: 'Entries', value: String(g.entries.length), inline: true },
     ];
-    if (g.requiredRoleId) fields.push({ name: 'Requirement', value: `Must have <@&${g.requiredRoleId}>`, inline: true });
+    const reqs = requirementLines(g);
+    if (reqs.length) fields.push({ name: reqs.length > 1 ? 'Requirements' : 'Requirement', value: reqs.join('\n') });
     if (g.status === 'ended') {
         fields.push({ name: g.winners.length === 1 ? 'Winner' : 'Winners', value: g.winners.length ? g.winners.map((id) => `<@${id}>`).join(', ') : 'No valid entries' });
     }
@@ -68,7 +106,7 @@ async function pickWinners(guild, g, count, exclude = []) {
         if (skip.has(id)) continue;
         const m = guild.members.cache.get(id) || await guild.members.fetch(id).catch(() => null);
         if (!m || m.user.bot) continue;
-        if (g.requiredRoleId && !m.roles.cache.has(g.requiredRoleId)) continue;
+        if (roleError(m, g)) continue;
         winners.push(id);
     }
     return winners;
@@ -171,9 +209,8 @@ async function handleButton(interaction) {
         const row = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`gw:l:${g.id}`).setLabel('Leave giveaway').setStyle(ButtonStyle.Secondary));
         return interaction.reply({ content: '✅ You\'re already entered.', components: [row], ...eph });
     }
-    if (g.requiredRoleId && !interaction.member.roles.cache.has(g.requiredRoleId)) {
-        return interaction.reply({ content: `❌ You need the <@&${g.requiredRoleId}> role to enter.`, allowedMentions: { parse: [] }, ...eph });
-    }
+    const blocked = entryError(interaction.member, g);
+    if (blocked) return interaction.reply({ content: `❌ ${blocked}`, allowedMentions: { parse: [] }, ...eph });
     if (cfg.minAccountDays > 0 && (Date.now() - interaction.user.createdTimestamp) / 86400000 < cfg.minAccountDays) {
         return interaction.reply({ content: `❌ Your account must be at least ${cfg.minAccountDays} days old to enter.`, ...eph });
     }
@@ -183,7 +220,7 @@ async function handleButton(interaction) {
 }
 
 // ---------- start (used by the slash command AND the dashboard) ----------
-async function startGiveaway(guild, { prize, when, winners = 1, roleId = null, channelId = null, host }) {
+async function startGiveaway(guild, { prize, when, winners = 1, roleId = null, levelRoleIds = [], minMsgToday = 0, minMsgWeek = 0, minMsgMonth = 0, channelId = null, host }) {
     const { db } = context.get();
     const cfg = getConfig(db, 'giveaways');
     const d = data();
@@ -196,6 +233,15 @@ async function startGiveaway(guild, { prize, when, winners = 1, roleId = null, c
     if (ms > cfg.maxDays * 86400000) return err(`Maximum is ${cfg.maxDays} days.`);
     if (!(winners >= 1) || winners > cfg.maxWinners) return err(`Winners must be between 1 and ${cfg.maxWinners}.`);
     if (roleId && !guild.roles.cache.get(roleId)) return err('Required role not found.');
+    const levelIds = [...new Set((levelRoleIds || []).map(String).filter(Boolean))];
+    if (levelIds.length > 20) return err('Pick at most 20 level roles.');
+    if (levelIds.some((id) => !guild.roles.cache.get(id))) return err('One of the level roles was not found.');
+    const msgReq = {};
+    for (const [key, v] of [['minMsgToday', minMsgToday], ['minMsgWeek', minMsgWeek], ['minMsgMonth', minMsgMonth]]) {
+        const n = Number(v) || 0;
+        if (!Number.isInteger(n) || n < 0 || n > 1000000) return err('Message requirements must be whole numbers (0 = no requirement).');
+        msgReq[key] = n;
+    }
     const target = guild.channels.cache.get(channelId || cfg.defaultChannel || '');
     if (!target?.isTextBased()) return err('Pick a text channel for the giveaway.');
     const perms = target.permissionsFor(guild.members.me);
@@ -204,7 +250,7 @@ async function startGiveaway(guild, { prize, when, winners = 1, roleId = null, c
     }
     const g = {
         id: d.nextId++, channelId: target.id, messageId: null, prize: truncate(String(prize).trim(), 200), hostId: host.id, hostTag: host.tag,
-        endsAt: Date.now() + ms, winnersCount: winners, requiredRoleId: roleId || null, entries: [], status: 'active', winners: [], createdAt: Date.now(), shownCount: 0,
+        endsAt: Date.now() + ms, winnersCount: winners, requiredRoleId: roleId || null, levelRoleIds: levelIds, ...msgReq, entries: [], status: 'active', winners: [], createdAt: Date.now(), shownCount: 0,
     };
     const msg = await target.send({ embeds: [buildEmbed(g)], components: buildComponents(g), allowedMentions: { parse: [] } }).catch((e) => { console.error('❌ Giveaway post failed:', e.message); return null; });
     if (!msg) { d.nextId--; return err('I couldn\'t post in that channel.'); }
@@ -227,7 +273,10 @@ const commands = {
         if (sub === 'start') {
             const r = await startGiveaway(guild, {
                 prize: options.getString('prize'), when: options.getString('duration'), winners: options.getInteger('winners') || 1,
-                roleId: options.getRole('required_role')?.id || null, channelId: options.getChannel('channel')?.id || channel.id, host: { id: user.id, tag: user.tag },
+                roleId: options.getRole('required_role')?.id || null,
+                levelRoleIds: (options.getString('level_roles') || '').match(/\d{15,25}/g) || [],
+                minMsgToday: options.getInteger('messages_today') || 0, minMsgWeek: options.getInteger('messages_week') || 0, minMsgMonth: options.getInteger('messages_month') || 0,
+                channelId: options.getChannel('channel')?.id || channel.id, host: { id: user.id, tag: user.tag },
             });
             return interaction.editReply(r.ok ? `✅ Giveaway **#${r.g.id}** started in <#${r.g.channelId}> — ends ${ts(r.g.endsAt)}. [Jump](${r.msg.url})` : `❌ ${r.error}`);
         }
@@ -274,6 +323,10 @@ const definitions = [
                 { name: 'winners', description: 'Number of winners (default 1)', type: 4, required: false, min_value: 1, max_value: 25 },
                 { name: 'required_role', description: 'Only members with this role can enter', type: 8, required: false },
                 { name: 'channel', description: 'Where to post it (default: current / configured channel)', type: 7, required: false, channel_types: [0, 5] },
+                { name: 'level_roles', description: 'Level roles: mention or paste role IDs, having ANY ONE of them lets you enter', type: 3, required: false, max_length: 400 },
+                { name: 'messages_today', description: 'Messages a member must have sent today to enter', type: 4, required: false, min_value: 1, max_value: 1000000 },
+                { name: 'messages_week', description: 'Messages a member must have sent this week (Mon start) to enter', type: 4, required: false, min_value: 1, max_value: 1000000 },
+                { name: 'messages_month', description: 'Messages a member must have sent this month to enter', type: 4, required: false, min_value: 1, max_value: 1000000 },
             ] },
             { name: 'end', description: 'End a giveaway now and pick winners', type: 1, options: [{ name: 'id', description: 'Giveaway number', type: 4, required: true, min_value: 1 }] },
             { name: 'reroll', description: 'Pick new winner(s) for an ended giveaway', type: 1, options: [{ name: 'id', description: 'Giveaway number', type: 4, required: true, min_value: 1 }, { name: 'count', description: 'How many (default 1)', type: 4, required: false, min_value: 1, max_value: 25 }] },

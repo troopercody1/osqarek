@@ -1,5 +1,5 @@
 module.exports = [
-    { name: 'help', description: 'List all available moderator commands' },
+    { name: 'help', description: 'Browse every command, or get details on one', options: [{ name: 'command', description: 'A command to explain in detail, e.g. giveaway', type: 3, required: false, max_length: 40 }] },
     { name: 'ping', description: "Check the bot's latency" },
     { name: 'restart', description: 'Refreshes the bot session (Admin Only)' },
     {
