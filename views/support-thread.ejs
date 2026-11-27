@@ -4,19 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= r.subject %> – <%= botName %> Help Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg:#313338; --bg2:#2b2d31; --bg3:#1e1f22; --hero:#5865F2; --text:#f2f3f5; --dim:#b5bac1; --line:#3f4147; --link:#00a8fc; }
+        :root { --bg:#0c0a1f; --bg2:#171337; --bg3:#0f0d27; --hero:#7c4dff; --text:#f3f1ff; --dim:#8f8abf; --line:#2a2561; --link:#8ecbff; }
         * { box-sizing: border-box; }
-        body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 'gg sans','Segoe UI',system-ui,sans-serif; }
+        body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 'Figtree','Segoe UI',system-ui,sans-serif; }
         a { color:var(--link); text-decoration:none; } a:hover { text-decoration:underline; }
         header.bar { background:var(--bg3); border-bottom:1px solid var(--line); }
         .bar-in { max-width:1100px; margin:0 auto; padding:14px 24px; display:flex; align-items:center; gap:18px; }
         .brand { font-weight:700; color:#fff; font-size:17px; text-decoration:none !important; } .brand span { color:var(--dim); font-weight:500; }
         .sp { flex:1; }
         .btn { display:inline-block; background:var(--hero); color:#fff !important; font-weight:600; font-size:14px; padding:9px 18px; border-radius:6px; border:none; cursor:pointer; font-family:inherit; text-decoration:none !important; }
-        .btn:hover { background:#4752c4; }
-        .btn.alt { background:transparent; border:1px solid #4e5058; }
-        .btn.alt:hover { background:#3b3d44; }
+        .btn:hover { background:#6a3df0; }
+        .btn.alt { background:transparent; border:1px solid #3a3478; }
+        .btn.alt:hover { background:#2a2561; }
         .btn[disabled] { opacity:.55; cursor:not-allowed; }
         .linkbtn { background:none; border:none; color:var(--dim); cursor:pointer; font:inherit; font-size:14px; padding:0; } .linkbtn:hover { color:#fff; }
         .wrap { max-width:1100px; margin:0 auto; padding:34px 24px 70px; }
@@ -24,16 +26,16 @@
         h1 { font-size:32px; line-height:1.25; margin:0 0 22px; padding-bottom:22px; border-bottom:1px solid var(--line); word-break:break-word; }
         .layout { display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:36px; align-items:start; }
         .flash { padding:11px 14px; border-radius:8px; font-size:14px; margin-bottom:18px; border:1px solid; }
-        .flash.ok { background:rgba(87,242,135,.10); border-color:#3ba55d; color:#8be5a8; }
-        .flash.bad { background:rgba(240,71,71,.12); border-color:#f04747; color:#ff9a9a; }
+        .flash.ok { background:rgba(87,242,135,.10); border-color:#3ba55d; color:#5fe3a1; }
+        .flash.bad { background:rgba(240,71,71,.12); border-color:#ff6b8a; color:#ffb3c2; }
 
         .post { display:flex; gap:14px; padding:22px 0; border-bottom:1px solid var(--line); }
-        .av { width:42px; height:42px; border-radius:50%; flex-shrink:0; background:#4e5058; color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; overflow:hidden; font-size:17px; }
+        .av { width:42px; height:42px; border-radius:50%; flex-shrink:0; background:#3a3478; color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; overflow:hidden; font-size:17px; }
         .av img { width:100%; height:100%; object-fit:cover; display:block; }
         .av.staff { background:var(--hero); font-size:20px; }
         .post-main { flex:1; min-width:0; }
         .who { font-weight:600; color:#fff; } .when { color:var(--dim); font-size:14px; margin-top:-2px; }
-        .tag { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; background:var(--hero); color:#fff; padding:1px 7px; border-radius:4px; margin-left:6px; vertical-align:2px; }
+        .tag { display:inline-block; font-size:11px; font-weight:700; background:var(--hero); color:#fff; padding:1px 7px; border-radius:4px; margin-left:6px; vertical-align:2px; }
         .body { white-space:pre-wrap; word-wrap:break-word; overflow-wrap:anywhere; margin-top:12px; font-size:15.5px; }
         .post.staff { background:linear-gradient(90deg, rgba(88,101,242,.08), transparent 70%); margin:0 -14px; padding-left:14px; padding-right:14px; border-radius:6px; }
         .event { text-align:center; color:var(--dim); font-size:13px; padding:14px 0; border-bottom:1px solid var(--line); }
@@ -41,7 +43,7 @@
 
         .reply { margin-top:26px; }
         .reply h2 { font-size:18px; margin:0 0 12px; }
-        textarea { width:100%; min-height:150px; resize:vertical; background:var(--bg3); color:var(--text); border:1px solid #1a1b1e; border-radius:8px; padding:12px 14px; font:inherit; font-size:15px; outline:none; }
+        textarea { width:100%; min-height:150px; resize:vertical; background:var(--bg3); color:var(--text); border:1px solid #2a2561; border-radius:8px; padding:12px 14px; font:inherit; font-size:15px; outline:none; }
         textarea:focus { border-color:var(--hero); }
         .actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px; }
         .count { margin-left:auto; color:var(--dim); font-size:13px; }
@@ -54,16 +56,21 @@
         .row dt { color:var(--dim); } .row dd { margin:0; word-break:break-word; }
         .row.gap { margin-top:6px; border-top:1px solid var(--line); }
         .badge { display:inline-block; font-size:12px; font-weight:700; padding:3px 10px; border-radius:99px; }
-        .st-open { background:#1a2e3a; color:#4cc3ff; } .st-awaiting { background:#3a2e12; color:#f0b44c; } .st-solved { background:#3b3d44; color:#d4d7dc; }
+        .st-open { background:#1a2e3a; color:#8ecbff; } .st-awaiting { background:#33290f; color:#ffc857; } .st-solved { background:#2a2561; color:#d6d2f5; }
         .hint { color:var(--dim); font-size:12px; margin-top:4px; }
         footer { background:var(--bg3); border-top:1px solid var(--line); padding:26px 24px; color:var(--dim); font-size:13px; text-align:center; } footer a { color:var(--dim); }
         @media (max-width: 860px) { .layout { grid-template-columns:1fr; } aside.card { position:static; order:-1; } h1 { font-size:26px; } }
-    </style>
+        h1, h2, h3 { font-family: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif; letter-spacing: -.01em; }
+    :focus-visible { outline: 2px solid #ffc857; outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+.homebtn { display:inline-flex; align-items:center; gap:7px; color:var(--dim); font-size:14px; font-weight:600; text-decoration:none !important; padding:6px 14px; border:1px solid var(--line); border-radius:999px; } .homebtn:hover { color:#fff; border-color:var(--hero); }
+</style>
 </head>
 <body>
 <header class="bar"><div class="bar-in">
     <a class="brand" href="/support"><%= botName %> <span>Help Center</span></a>
     <span class="sp"></span>
+    <a class="homebtn" href="/login"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/></svg>Home</a>
     <form method="POST" action="/support/logout" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="linkbtn" type="submit">Log out (<%= member.username %>)</button></form>
     <a class="btn" href="/support/request">Submit a request</a>
 </div></header>

@@ -4,26 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Help Center – <%= botName %></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
     <meta name="description" content="Help Center for <%= botName %>: verification, moderation appeals, staff applications, data requests and bug reports.">
     <style>
-        :root { --bg:#313338; --bg2:#2b2d31; --bg3:#1e1f22; --hero:#5865F2; --text:#f2f3f5; --dim:#b5bac1; --line:#3f4147; --link:#00a8fc; }
+        :root { --bg:#0c0a1f; --bg2:#171337; --bg3:#0f0d27; --hero:#7c4dff; --text:#f3f1ff; --dim:#8f8abf; --line:#2a2561; --link:#8ecbff; }
         * { box-sizing: border-box; }
-        body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 'gg sans','Segoe UI',system-ui,-apple-system,sans-serif; }
+        body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 'Figtree','Segoe UI',system-ui,-apple-system,sans-serif; }
         a { color: var(--link); text-decoration: none; } a:hover { text-decoration: underline; }
         header.bar { background: var(--bg3); border-bottom: 1px solid var(--line); }
         .bar-in { max-width: 1100px; margin: 0 auto; padding: 14px 24px; display:flex; align-items:center; gap:18px; }
         .brand { font-weight:700; color:#fff; font-size:17px; } .brand span { color: var(--dim); font-weight:500; }
         .bar-in .sp { flex:1; }
-        .bar-in a.link { color: var(--dim); font-size:14px; } .bar-in a.link:hover { color:#fff; text-decoration:none; }
+        .bar-in a.link, .bar-in button.link { color: var(--dim); font-size:14px; } .bar-in button.link:hover { color:#fff; } .bar-in a.link:hover { color:#fff; text-decoration:none; }
         .btn { display:inline-block; background:var(--hero); color:#fff !important; font-weight:600; font-size:14px; padding:9px 18px; border-radius:6px; border:none; cursor:pointer; font-family:inherit; text-decoration:none !important; }
-        .btn:hover { background:#4752c4; }
-        .btn.alt { background:transparent; border:1px solid #4e5058; }
-        .btn.alt:hover { background:#3f4147; }
-        .as-btn { background:none; border:none; cursor:pointer; font-family:inherit; padding:0; }
-        .hero { background: linear-gradient(135deg,#5865F2 0%,#3b45b8 100%); padding: 64px 24px 72px; text-align:center; }
+        .btn:hover { background:#6a3df0; }
+        .btn.alt { background:transparent; border:1px solid #3a3478; }
+        .btn.alt:hover { background:#2a2561; }
+        .as-btn { background:none; border:none; cursor:pointer; font-family:inherit; font-size:inherit; color:inherit; padding:0; }
+        .hero { background: linear-gradient(135deg,#7c4dff 0%,#5a30d8 100%); padding: 64px 24px 72px; text-align:center; }
         .hero h1 { margin:0 0 22px; font-size:40px; letter-spacing:-.5px; color:#fff; }
         .search { max-width: 620px; margin: 0 auto; position:relative; }
-        .search input { width:100%; padding:16px 20px 16px 48px; border-radius:8px; border:none; font-size:17px; font-family:inherit; background:#fff; color:#23272a; outline:none; box-shadow:0 4px 20px rgba(0,0,0,.25); }
+        .search input { width:100%; padding:16px 20px 16px 48px; border-radius:8px; border:none; font-size:17px; font-family:inherit; background:#fff; color:#171337; outline:none; box-shadow:0 4px 20px rgba(0,0,0,.25); }
         .search::before { content:'\1F50D'; position:absolute; left:17px; top:50%; transform:translateY(-50%); font-size:17px; opacity:.6; }
         .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 60px; }
         h2 { font-size:22px; margin:44px 0 18px; }
@@ -40,7 +42,7 @@
         details.art summary::-webkit-details-marker { display:none; }
         details.art summary::after { content:'\203A'; color:var(--dim); font-size:22px; line-height:1; transition:transform .15s; }
         details.art[open] summary::after { transform: rotate(90deg); }
-        details.art .body { padding: 2px 20px 18px; color:#dbdee1; border-top:1px solid var(--line); padding-top:14px; }
+        details.art .body { padding: 2px 20px 18px; color:#d6d2f5; border-top:1px solid var(--line); padding-top:14px; }
         details.art .body ul, details.art .body ol { padding-left:22px; margin:0 0 10px; } details.art .body li { margin:4px 0; }
         .tagline { font-size:12px; color:var(--dim); font-weight:500; margin-left:8px; }
         .empty { display:none; background:var(--bg2); border:1px dashed var(--line); border-radius:10px; padding:28px; text-align:center; color:var(--dim); }
@@ -50,7 +52,11 @@
         footer { background:var(--bg3); border-top:1px solid var(--line); padding:26px 24px; color:var(--dim); font-size:13px; text-align:center; }
         footer a { color:var(--dim); } footer a:hover { color:#fff; }
         @media (max-width:700px) { .hero h1 { font-size:30px; } .bar-in .link { display:none; } .bar-in { gap:10px; flex-wrap:wrap; } }
-    </style>
+        h1, h2, h3 { font-family: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif; letter-spacing: -.01em; }
+    :focus-visible { outline: 2px solid #ffc857; outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+.homebtn { display:inline-flex; align-items:center; gap:7px; color:var(--dim); font-size:14px; font-weight:600; text-decoration:none !important; padding:6px 14px; border:1px solid var(--line); border-radius:999px; } .homebtn:hover { color:#fff; border-color:var(--hero); }
+</style>
 </head>
 <body>
 <%
@@ -69,6 +75,7 @@ const articles = (typeof locals.articles !== 'undefined' && Array.isArray(locals
 <header class="bar"><div class="bar-in">
     <a class="brand" href="/support" style="text-decoration:none;"><%= botName %> <span>Help Center</span></a>
     <span class="sp"></span>
+    <a class="homebtn" href="/login"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/></svg>Home</a>
     <% if (supportUrl) { %><a class="link" href="<%= supportUrl %>" rel="noopener" target="_blank">Join the server</a><% } %>
     <a class="link" href="/terms">Terms</a><a class="link" href="/privacy">Privacy</a>
     <a class="btn alt" href="/support/my-requests">My Help Requests</a>
@@ -79,7 +86,7 @@ const articles = (typeof locals.articles !== 'undefined' && Array.isArray(locals
     <% } %>
     <a class="btn" href="/support/request">Submit a request</a>
 </div></header>
-<% if (typeof error !== 'undefined' && error) { %><div style="background:#6a2440;color:#ffb4b4;text-align:center;padding:10px 16px;font-size:14px;"><%= error %></div><% } %>
+<% if (typeof error !== 'undefined' && error) { %><div style="background:#6a2440;color:#ffb3c2;text-align:center;padding:10px 16px;font-size:14px;"><%= error %></div><% } %>
 
 <section class="hero">
     <h1>How can we help?</h1>

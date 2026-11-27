@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Submit a request – <%= botName %> Help Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg:#313338; --bg2:#2b2d31; --bg3:#1e1f22; --hero:#5865F2; --text:#f2f3f5; --dim:#b5bac1; --line:#3f4147; --link:#00a8fc; }
+        :root { --bg:#0c0a1f; --bg2:#171337; --bg3:#0f0d27; --hero:#7c4dff; --text:#f3f1ff; --dim:#8f8abf; --line:#2a2561; --link:#8ecbff; }
         * { box-sizing: border-box; }
-        body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 'gg sans','Segoe UI',system-ui,sans-serif; }
+        body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 'Figtree','Segoe UI',system-ui,sans-serif; }
         a { color:var(--link); text-decoration:none; } a:hover { text-decoration:underline; }
         header.bar { background:var(--bg3); border-bottom:1px solid var(--line); }
         .bar-in { max-width:1100px; margin:0 auto; padding:14px 24px; display:flex; align-items:center; gap:18px; }
@@ -15,25 +17,29 @@
         .wrap { max-width:680px; margin:0 auto; padding:34px 24px 70px; }
         .crumb { color:var(--dim); font-size:14px; margin-bottom:18px; }
         h1 { font-size:30px; margin:0 0 6px; } .lead { color:var(--dim); margin:0 0 26px; }
-        label { display:block; font-weight:600; font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--dim); margin:20px 0 8px; }
+        label { display:block; font-weight:600; font-size:13px; color:var(--dim); margin:20px 0 8px; }
         label small { text-transform:none; letter-spacing:0; font-weight:400; }
-        input, select, textarea { width:100%; background:var(--bg3); color:var(--text); border:1px solid #1a1b1e; border-radius:6px; padding:11px 12px; font:inherit; font-size:15px; outline:none; }
+        input, select, textarea { width:100%; background:var(--bg3); color:var(--text); border:1px solid #2a2561; border-radius:6px; padding:11px 12px; font:inherit; font-size:15px; outline:none; }
         input:focus, select:focus, textarea:focus { border-color:var(--hero); }
         textarea { min-height:170px; resize:vertical; }
         .btn { background:var(--hero); color:#fff; border:none; border-radius:6px; padding:12px 26px; font:inherit; font-weight:600; cursor:pointer; margin-top:26px; }
-        .btn:hover { background:#4752c4; }
-        .err { background:rgba(240,71,71,.12); border:1px solid #f04747; color:#ff9a9a; padding:11px 14px; border-radius:8px; margin-bottom:16px; font-size:14px; }
+        .btn:hover { background:#6a3df0; }
+        .err { background:rgba(240,71,71,.12); border:1px solid #ff6b8a; color:#ffb3c2; padding:11px 14px; border-radius:8px; margin-bottom:16px; font-size:14px; }
         .ok { background:var(--bg2); border:1px solid var(--line); border-radius:12px; padding:34px; text-align:center; }
         .ok .tick { font-size:42px; } .ok h1 { margin:8px 0; } .ok code { background:var(--bg3); padding:3px 9px; border-radius:6px; color:#fff; }
-        .signed { background:var(--bg3); border:1px solid #1a1b1e; border-radius:6px; padding:11px 12px; font-size:15px; }
+        .signed { background:var(--bg3); border:1px solid #2a2561; border-radius:6px; padding:11px 12px; font-size:15px; }
         .hp { position:absolute; left:-9999px; height:0; overflow:hidden; }
         .fine { color:var(--dim); font-size:13px; margin-top:16px; }
         footer { background:var(--bg3); border-top:1px solid var(--line); padding:26px 24px; color:var(--dim); font-size:13px; text-align:center; }
         footer a { color:var(--dim); }
-    </style>
+        h1, h2, h3 { font-family: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif; letter-spacing: -.01em; }
+    :focus-visible { outline: 2px solid #ffc857; outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+.homebtn { display:inline-flex; align-items:center; gap:7px; color:var(--dim); font-size:14px; font-weight:600; text-decoration:none !important; padding:6px 14px; border:1px solid var(--line); border-radius:999px; } .homebtn:hover { color:#fff; border-color:var(--hero); }
+</style>
 </head>
 <body>
-<header class="bar"><div class="bar-in"><a class="brand" href="/support"><%= botName %> <span>Help Center</span></a></div></header>
+<header class="bar"><div class="bar-in"><a class="brand" href="/support"><%= botName %> <span>Help Center</span></a><span style="flex:1"></span><a class="homebtn" href="/login"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/></svg>Home</a></div></header>
 <div class="wrap">
     <div class="crumb"><a href="/support">Help Center</a> › Submit a request</div>
     <% if (sent) { %>
@@ -43,7 +49,7 @@
             <p style="color:var(--dim);"><%= member ? 'Staff will review it and reply on your request page. You’ll also get a Discord DM when they do.' : 'Staff will review it and reply using the contact details you gave.' %> Your reference is <code><%= sent %></code>.</p>
             <% if (emailedTo) { %><p style="color:var(--dim);">We’ve emailed a confirmation with a summary to <strong style="color:#fff;"><%= emailedTo %></strong>. Check your spam folder if it doesn’t show up.</p><% } %>
             <p style="margin-top:20px;"><a class="btn" style="display:inline-block;text-decoration:none;" href="/support">Back to the Help Center</a>
-            <% if (member) { %> <a class="btn" style="display:inline-block;text-decoration:none;" href="/support/requests/<%= sent %>">View request</a> <a class="btn" style="display:inline-block;text-decoration:none;background:transparent;border:1px solid #4e5058;" href="/support/my-requests">My Help Requests</a><% } %></p>
+            <% if (member) { %> <a class="btn" style="display:inline-block;text-decoration:none;" href="/support/requests/<%= sent %>">View request</a> <a class="btn" style="display:inline-block;text-decoration:none;background:transparent;border:1px solid #3a3478;" href="/support/my-requests">My Help Requests</a><% } %></p>
         </div>
     <% } else { %>
         <h1>Submit a request</h1>
