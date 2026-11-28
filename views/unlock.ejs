@@ -64,6 +64,9 @@
 
         .back-link { color: #8f8abf; font-size: 0.85rem; text-decoration: none; display: inline-block; margin-top: 20px; transition: color 0.2s; }
         .back-link:hover { color: #d6d2f5; }
+            .support-btn { display:block; margin-top:22px; padding:11px; border:1px solid #2a2561; border-radius:6px; color:#d6d2f5; text-decoration:none; font-weight:600; font-size:0.95rem; background:#0f0d27; transition: border-color 0.2s; }
+        .support-btn:hover { border-color:#a58bff; color:#fff; }
+        .support-hint { font-size:0.78rem; color:#8f8abf; margin-top:8px; line-height:1.4; }
     </style>
 </head>
 <body>
@@ -89,6 +92,9 @@
         <% } else { %>
         <p style="font-size:0.9rem; color:#8f8abf;">Unlocking with a Discord code is turned off. Please contact the bot support team.</p>
         <% } %>
+
+        <a href="/support/security" class="support-btn">&#128172; Contact support</a>
+        <div class="support-hint">Can't get in or didn't get a code? Open a support request. Your account stays suspended until an owner unlocks it.</div>
 
         <a href="/auth/admin" class="back-link">← Back to login</a>
     </div>
