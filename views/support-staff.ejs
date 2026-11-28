@@ -159,6 +159,14 @@
         </select>
         <button class="btn" type="submit">Update</button>
     </form>
+
+    <% if (isOwner) { %>
+    <form class="card pad" method="POST" action="/settings/support/<%= r.id %>/delete" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;" onsubmit="return confirm('Permanently delete <%= r.id %> and its whole conversation? This cannot be undone.');">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <span class="small" style="flex:1;min-width:220px;">Owners can permanently delete this ticket<%= r.ticket && r.ticket.channelId ? ' (its Discord channel is removed too if it still exists)' : '' %>.</span>
+        <button class="btn" type="submit" style="background:rgba(255,107,138,.1);color:#ff6b8a;border-color:#5a2a38;">Delete ticket</button>
+    </form>
+    <% } %>
 <% } %>
 </div>
 </body>

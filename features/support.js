@@ -24,6 +24,7 @@
 //   GET  /settings/support/:id            thread + reply box
 //   POST /settings/support/:id/reply      reply (optionally "and mark solved")
 //   POST /settings/support/:id/status     set Open / Awaiting reply / Solved
+//   POST /settings/support/:id/delete     OWNERS ONLY: permanently delete the request (and its ticket channel, if it still exists)
 const crypto = require('crypto');
 const mailbox = require('./mail');
 const { bus } = require('./context');
@@ -181,8 +182,9 @@ function registerRoutes(app, { getDb, getClient, isAdminRank, safeSave, sendDisc
         if (!isAdminRank(req.session?.user)) return res.status(403).send('<h1>403 Forbidden</h1><p>Access denied.</p>');
         next();
     };
+    const isOwner = (req) => req.session?.user?.id === 'admin' && req.session.user.rank === 'owner';
     const staffRender = (req, res, extra) => res.render('support-staff', {
-        user: req.session.user, STATUS, ago, full, avatarUrl, view: 'list', list: [], counts: {}, filter: 'all', r: null,
+        user: req.session.user, isOwner: isOwner(req), STATUS, ago, full, avatarUrl, view: 'list', list: [], counts: {}, filter: 'all', r: null,
         ...flash(req), ...extra,
     });
 
@@ -221,6 +223,26 @@ function registerRoutes(app, { getDb, getClient, isAdminRank, safeSave, sendDisc
         console.log(`💬 [support] ${req.session.user.username} replied to ${r.id}${solve ? ' (solved)' : ''}`);
         notifyMember(r, { title: solve ? 'Your request was solved' : 'New reply to your request', text: body, solved: solve });
         back(res, path, solve ? 'Reply sent and request marked as solved.' : 'Reply sent. Status is now "Awaiting member".');
+    });
+
+    app.post('/settings/support/:id/delete', guard, async (req, res) => {
+        if (!isOwner(req)) return back(res, '/settings/support', 'Only dashboard owners can delete tickets.', true);
+        const r = find(req.params.id);
+        if (!r) return back(res, '/settings/support', 'That request was not found.', true);
+        // A ticket whose Discord channel still exists (open, or waiting out its close delay): remove the channel too.
+        const channelId = r.ticket && r.ticket.channelId;
+        if (channelId) {
+            try {
+                const ch = await getClient()?.channels.fetch(channelId).catch(() => null);
+                if (ch) await ch.delete(`Ticket ${r.id} deleted by ${req.session.user.username}`);
+            } catch (err) { console.error(`⚠️ [support] could not delete channel for ${r.id}:`, err.message); }
+        }
+        const list = requests();
+        const i = list.indexOf(r);
+        if (i !== -1) list.splice(i, 1);
+        await safeSave();
+        console.log(`🗑️ [support] ${req.session.user.username} deleted ${r.id}`);
+        back(res, '/settings/support', `Deleted ${r.id}.`);
     });
 
     app.post('/settings/support/:id/status', guard, async (req, res) => {

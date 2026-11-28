@@ -84,9 +84,10 @@
         </form>
         <a href="/auth/unlock" class="back-link" style="display:block;">Send a new code</a>
         <% } else if (otpEnabled) { %>
-        <p style="font-size:0.9rem; color:#8f8abf; margin-top:0;">Enter your staff username. If the account is locked and linked to Discord, the bot will DM you a one-time code.</p>
+        <p style="font-size:0.9rem; color:#8f8abf; margin-top:0;">Enter your staff username and your private Staff ID (it was DM'd to you). If they match a locked account linked to Discord, the bot will DM you a one-time code.</p>
         <form action="/auth/unlock/request" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <input type="text" name="username" placeholder="Username" required autocomplete="off" autocapitalize="off" maxlength="64" style="text-align:left; letter-spacing:normal;">
+            <input type="text" name="staffId" placeholder="Staff ID (12345-ABCDEF-1234)" required autocomplete="off" autocapitalize="characters" maxlength="32" style="text-align:left; letter-spacing:normal; text-transform:uppercase; margin-top:10px;">
             <button type="submit" class="btn-success">Send code to my Discord</button>
         </form>
         <% } else { %>

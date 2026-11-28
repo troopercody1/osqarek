@@ -26,6 +26,24 @@ const coOwnerAnswerKey = require('./views/handlers/co-owner-answers.json');
 const DEFAULT_ADMIN_USERS = [
     { username: 'me', password: '123456', rank: 'owner', passwordChanged: false }
 ];
+// --- Staff ID ---
+// Every staff login gets a permanent Staff ID the moment it is ranked in the dashboard (existing logins are
+// backfilled by getAdminUsers()). Format: 5 numbers - 6 letters - 4 numbers, e.g. 48213-QKXMTB-7305.
+// It is DM'd to the staff member, shown to dashboard owners, and lets a locked staff member find their
+// security (SEC-) support requests on /support/security.
+const STAFF_ID_RE = /^\d{5}-[A-Z]{6}-\d{4}$/;
+const STAFF_ID_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+function generateStaffId(accounts) {
+    const taken = new Set((accounts || []).map(u => u.staffId).filter(Boolean));
+    for (;;) {
+        const nums1 = String(crypto.randomInt(0, 100000)).padStart(5, '0');
+        let letters = '';
+        for (let i = 0; i < 6; i++) letters += STAFF_ID_LETTERS[crypto.randomInt(0, 26)];
+        const nums2 = String(crypto.randomInt(0, 10000)).padStart(4, '0');
+        const id = `${nums1}-${letters}-${nums2}`;
+        if (!taken.has(id)) return id;
+    }
+}
 const STAFF_RANKS = ['owner', 'admin', 'mod'];
 const RANK_LABEL = { owner: 'Owner', admin: 'Admin', mod: 'Mod' };
 const normalizeRank = (r) => (STAFF_RANKS.includes(r) ? r : 'mod');
@@ -75,6 +93,11 @@ function getAdminUsers() {
     db.adminUsers.forEach(u => {
         if (!u.id) u.id = crypto.randomBytes(8).toString('hex');
         u.rank = normalizeRank(u.rank);
+        if (!STAFF_ID_RE.test(String(u.staffId || ''))) { // new login, or one that predates Staff IDs
+            u.staffId = generateStaffId(db.adminUsers);
+            u.staffIdDmAt = null; // DM'd by dmPendingStaffIds()
+            hashedLegacy = true;  // reuse the "persist right away" path below
+        }
         if (!isHashedPassword(u.password)) { // plain text from an older version (or the seeded default)
             u.password = hashPasswordSync(u.password == null ? crypto.randomBytes(8).toString('hex') : u.password);
             hashedLegacy = true;
@@ -127,6 +150,36 @@ async function dmStaffMember(discordId, payload) {
         console.error(`⚠️ [staff] Could not DM ${discordId}:`, err.message);
         return false;
     }
+}
+
+// DMs each staff member their Staff ID once (existing logins that just got one, or logins whose Discord ID was
+// just linked). Marks staffIdDmAt only when the DM was delivered, so closed DMs are retried on the next run.
+let _staffIdDmRunning = false;
+async function dmPendingStaffIds() {
+    if (_staffIdDmRunning) return;
+    _staffIdDmRunning = true;
+    try {
+        let changed = false;
+        for (const u of getAdminUsers()) {
+            if (!u.discordId || u.staffIdDmAt) continue;
+            const ok = await dmStaffMember(u.discordId, {
+                embeds: [new EmbedBuilder()
+                    .setColor(0x5865F2)
+                    .setTitle('🪪 Your Staff ID')
+                    .setDescription(`Your staff login **${u.username}** (${RANK_LABEL[u.rank] || u.rank}) for the **${client?.user?.username || 'bot'}** dashboard now has a Staff ID.`)
+                    .addFields(
+                        { name: 'Staff ID', value: `\`${u.staffId}\``, inline: true },
+                        { name: 'What it does', value: 'This is your **private recovery code**. Your username is only for logging in; you need this Staff ID (with your username) to unlock your account or open a security support request. **Never share it with anyone, including staff.**' }
+                    )
+                    .setTimestamp()],
+                allowedMentions: { parse: [] }
+            });
+            if (ok) { u.staffIdDmAt = Date.now(); changed = true; }
+        }
+        if (changed) await safeSave();
+    } catch (err) {
+        console.error('❌ [staff id] DM run failed:', err.message);
+    } finally { _staffIdDmRunning = false; }
 }
 
 // Dashboard mailbox (IMAP read + SMTP reply) and the status-alert email helper.
@@ -1278,6 +1331,7 @@ app.get('/settings', (req, res) => {
         const actor = accounts.find(u => u.id === req.session.staffId) || { id: null, rank: req.session.user.rank };
         const staffAccounts = accounts.map(u => ({
             id: u.id, username: u.username, rank: u.rank, discordId: u.discordId || null, discordTag: u.discordTag || null,
+            staffId: actor.rank === 'owner' ? (u.staffId || null) : null, // only dashboard owners see Staff IDs
             pending: u.passwordChanged !== true, isSelf: u.id === actor.id,
             canEdit: canEditStaff(actor, u), canRevoke: canRevokeStaff(actor, u)
         }));
@@ -2068,6 +2122,7 @@ app.post('/settings/staff/add', async (req, res) => {
     const tempPassword = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
     const account = {
         id: crypto.randomBytes(8).toString('hex'),
+        staffId: generateStaffId(accounts), staffIdDmAt: null, // assigned automatically when they are ranked
         username, password: await hashPassword(tempPassword), rank, passwordChanged: false,
         discordId, discordTag: discordUser.tag || discordUser.username,
         createdBy: req.session.user.username, createdAt: Date.now()
@@ -2089,14 +2144,16 @@ app.post('/settings/staff/add', async (req, res) => {
                 { name: 'Login page', value: `${PUBLIC_BASE_URL}/auth/admin` },
                 { name: 'Username', value: `\`${username}\``, inline: true },
                 { name: 'Temporary password', value: `||${tempPassword}||`, inline: true },
+                { name: 'Staff ID', value: `\`${account.staffId}\``, inline: true },
                 { name: 'First login', value: 'You\'ll be asked to choose your own 6-digit password. Don\'t share these details.' }
             )
             .setFooter({ text: `Added by ${req.session.user.username}` })
             .setTimestamp()],
         allowedMentions: { parse: [] }
     });
+    if (dmOk) { account.staffIdDmAt = Date.now(); await safeSave(); } // the welcome DM already carried the Staff ID
     // The temp password is shown to the admin ONCE (kept out of the URL) in case the DM couldn't be delivered.
-    req.session.staffFlash = { title: `New ${RANK_LABEL[rank]} login for ${account.discordTag}`, username, password: tempPassword, dmOk };
+    req.session.staffFlash = { title: `New ${RANK_LABEL[rank]} login for ${account.discordTag}`, username, password: tempPassword, dmOk, staffId: account.staffId };
     console.log(`🛡️ [staff] ${req.session.user.username} added ${rank} login "${username}" (${discordId}); DM ${dmOk ? 'sent' : 'FAILED'}.`);
     return staffBack(res, { msg: `${RANK_LABEL[rank]} login "${username}" created${dmOk ? ' and DM sent' : ' (could not DM them - share the details below)'}` });
 });
@@ -2189,6 +2246,7 @@ app.post('/settings/staff/edit', async (req, res) => {
             allowedMentions: { parse: [] }
         });
     }
+    if (discordChanged && discordId) { target.staffIdDmAt = null; dmPendingStaffIds().catch(() => {}); } // newly linked: send the Staff ID
     if (passwordChanged && target.id !== actor.id) {
         // Shown once, kept out of the URL, in case the DM couldn't be delivered.
         req.session.staffFlash = { title: `Password changed for ${target.discordTag || target.username}`, username: target.username, password: newPassword, dmOk: dmOk === true, noDm: dmOk === null };
@@ -2332,6 +2390,8 @@ client.on('invalidated', () => console.error('❌ [session invalidated] Discord 
 
 client.once('clientReady', async () => {
     console.log(`✅ Logged in as ${client.user.tag}`);
+    // Give every existing staff login its Staff ID by DM (waits for the saved database to finish loading first).
+    setTimeout(() => dmPendingStaffIds().catch(() => {}), 30000);
 
     try {
         await client.lavalink.init({ id: client.user.id, username: client.user.username });

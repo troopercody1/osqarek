@@ -28,6 +28,13 @@
 //     DM'd to their Discord) to read replies and answer. Owners read, answer, solve, lock and unlock
 //     from /settings/security, and can also start a conversation with any staff login.
 //
+// 5. STAFF IDs
+//     The username is public (it is only used to log in). The Staff ID (format 12345-ABCDEF-1234, assigned in
+//     index.js when the login is ranked in the dashboard) is PRIVATE and is the recovery secret: it is required
+//     to request an unlock code (/auth/unlock) and to open a SEC- request, and on its own it lists a login's
+//     SEC- requests ("Find my requests"). Only dashboard owners can see Staff IDs (Settings -> Staff Access).
+//     Owners can also delete SEC- requests.
+//
 // Who is the "bot support team"? The Bot Owner (botowner.js) plus every Discord ID in
 //   SECURITY_SUPPORT_IDS=id1,id2,id3       (optional, comma separated)
 // Optional env:
@@ -105,6 +112,14 @@ const findAccount = (username) => {
     const u = String(username || '').trim();
     if (!u) return null;
     return c.getAdminUsers().find((a) => a.username === u) || null;
+};
+const STAFF_ID_RE = /^\d{5}-[A-Z]{6}-\d{4}$/;
+const normStaffId = (v) => String(v || '').trim().toUpperCase().replace(/\s+/g, '');
+const findByStaffId = (value) => {
+    const c = ctxOrNull();
+    const id = normStaffId(value);
+    if (!c?.getAdminUsers || !STAFF_ID_RE.test(id)) return null;
+    return c.getAdminUsers().find((a) => a.staffId === id) || null;
 };
 const persist = async () => { const c = ctxOrNull(); if (c) await c.safeSave(); };
 
@@ -506,7 +521,10 @@ function register(ctx) {
     app.post('/auth/unlock/request', async (req, res) => {
         if (!OTP_ENABLED) return page(res, { error: 'Unlocking with a Discord code is turned off. Please contact the bot support team.' });
         const username = String(req.body.username || '').trim().slice(0, 64);
-        const account = findAccount(username);
+        const staffId = normStaffId(req.body.staffId).slice(0, 32);
+        let account = findAccount(username);
+        // The Staff ID is the private secret: without the matching one nothing happens (same answer as an unknown account).
+        if (account && (!STAFF_ID_RE.test(staffId) || account.staffId !== staffId)) { addStrikeSoft(normIp(req.ip)); account = null; }
         req.session.unlockFor = null;
         req.session.unlockUsername = username; // pre-fills the "Contact support" form
         if (account && sec(account).locked && sec(account).supportHold) {
@@ -549,7 +567,7 @@ function register(ctx) {
 function registerSupportPages(ctx) {
     const { app } = ctx;
     const render = (res, view) => { res.set({ 'Referrer-Policy': 'no-referrer', 'Cache-Control': 'no-store' }); return res.render('security-support', view); };
-    const base = (req) => ({ botName: ctx.client?.user?.username || "OsQarek's Universe", error: null, msg: null, isNew: false, ticket: null, account: null, username: req.session?.unlockUsername || '', body: '', limits: { max: TICKET_MSG_MAX }, STATUS_LABEL });
+    const base = (req) => ({ botName: ctx.client?.user?.username || "OsQarek's Universe", error: null, msg: null, isNew: false, ticket: null, account: null, tickets: [], staffId: '', username: req.session?.unlockUsername || '', body: '', limits: { max: TICKET_MSG_MAX }, STATUS_LABEL });
     const allowed = (req, ticket, key) => {
         if (!ticket) return false;
         if (keyMatches(ticket, key)) { (req.session.secKeys = req.session.secKeys || {})[ticket.id] = ticket.key; return true; }
@@ -567,8 +585,10 @@ function registerSupportPages(ctx) {
         if (req.body.website) return form('Something went wrong. Please try again.'); // honeypot
         if (!username) return form('Enter your staff username.');
         if (body.length < 10) return form('Please describe the problem in a bit more detail.');
+        const staffId = normStaffId(req.body.staffId).slice(0, 32);
         const account = findAccount(username);
-        if (!account || !sec(account).locked) return form('No locked account was found with that username. This form is only for locked staff logins.');
+        if (!account || !STAFF_ID_RE.test(staffId) || account.staffId !== staffId) { addStrikeSoft(normIp(req.ip)); return form('The username and Staff ID do not match a staff login.'); }
+        if (!sec(account).locked) return form('That login is not locked. This form is only for locked staff logins.');
 
         const existing = openTicketFor(account.id);
         if (existing) {
@@ -586,9 +606,24 @@ function registerSupportPages(ctx) {
         await persist();
 
         dmUser(account.discordId, ticketEmbed(`🆘 Support request ${ticket.id} opened`,
-            `A support request was opened for the locked dashboard login **${account.username}**.\nThe account stays suspended until a dashboard owner unlocks it, and unlocking with a code is switched off meanwhile.\n\n**Read and answer replies (private link, don't share it):**\n${memberLink(ticket)}\n\nIf this wasn't you, tell the support team.`)).catch(() => { });
+            `A support request was opened for the locked dashboard login **${account.username}**.\nYou can find your security requests any time on ${baseUrl()}/support/security with your private Staff ID.\nThe account stays suspended until a dashboard owner unlocks it, and unlocking with a code is switched off meanwhile.\n\n**Read and answer replies (private link, don't share it):**\n${memberLink(ticket)}\n\nIf this wasn't you, tell the support team.`)).catch(() => { });
         notifyOwners(ticketEmbed(`🆘 ${ticket.id}: locked staff login`, `**${account.username}** (${account.rank}) asked for help with a locked account.\n\n> ${truncate(body, 600)}\n\nRead, reply or unlock: ${staffLink(ticket)}`, 0xFEE75C)).catch(() => { });
         res.redirect(`/support/security/${ticket.id}?key=${ticket.key}&new=1`);
+    });
+
+    // "Find my requests": a staff member enters their Staff ID to list and open their SEC- requests.
+    app.post('/support/security/lookup', (req, res) => {
+        const staffId = normStaffId(req.body.staffId).slice(0, 32);
+        const fail = (error) => { addStrikeSoft(normIp(req.ip)); return render(res, { ...base(req), mode: 'form', error, staffId }); };
+        if (req.body.website) return fail('Something went wrong. Please try again.'); // honeypot
+        const account = findByStaffId(staffId);
+        if (!account) return fail('No security requests were found for that Staff ID. Check it and try again (format: 12345-ABCDEF-1234).');
+        const mine = ticketsFor(account.id);
+        if (!mine.length) return render(res, { ...base(req), mode: 'form', error: 'That Staff ID has no security requests yet. Use the form below to open one if your login is locked.', staffId });
+        // The Staff ID unlocks every request of this login for this browser session (no private link needed).
+        req.session.secKeys = req.session.secKeys || {};
+        for (const t of mine) req.session.secKeys[t.id] = t.key;
+        render(res, { ...base(req), mode: 'list', account, tickets: mine, staffId });
     });
 
     app.get('/support/security/:id', (req, res) => {
@@ -681,6 +716,22 @@ function registerOwnerPage(ctx) {
     app.get('/settings/security/ticket/:id', guard, (req, res) => {
         const ticket = ticketOr404(req, res);
         if (ticket) ticketPage(req, res, ticket, ctx.getAdminUsers().find((a) => a.id === ticket.accountId) || null);
+    });
+
+    // Owners only (guard): permanently deletes a SEC- request and its whole conversation.
+    app.post('/settings/security/ticket/:id/delete', guard, async (req, res) => {
+        const ticket = ticketOr404(req, res);
+        if (!ticket) return;
+        const account = ctx.getAdminUsers().find((a) => a.id === ticket.accountId) || null;
+        // If this request is what holds the account suspended, release the hold (the account itself stays locked
+        // until it is unlocked, but Discord-code unlock works again).
+        if (account && sec(account).supportHold === ticket.id) sec(account).supportHold = null;
+        delete tickets()[ticket.id];
+        ticketReplyHits.delete(ticket.id);
+        event(`Support request ${ticket.id} (${ticket.username}) deleted by ${staffName(req)}.`);
+        logToModLog('🗑️ Security Request Deleted', `**${ticket.id}** (login **${ticket.username}**) was deleted by **${staffName(req)}**.`, 0xED4245);
+        await persist();
+        back(res, 'msg', `Deleted ${ticket.id}.`);
     });
 
     app.post('/settings/security/ticket/:id/reply', guard, async (req, res) => {

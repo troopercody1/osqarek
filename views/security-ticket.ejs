@@ -99,6 +99,11 @@
         </div>
     </form>
 
+    <form class="card" action="/settings/security/ticket/<%= ticket.id %>/delete" method="POST" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;" onsubmit="return confirm('Permanently delete <%= ticket.id %> and its whole conversation? This cannot be undone.');"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div style="flex:1;min-width:220px;font-size:13px;color:var(--dim);">Owners can permanently delete this request and its conversation.<%= (accountState && accountState.supportHold === ticket.id) ? ' It is what holds the account suspended; deleting it releases that hold (the account stays locked until unlocked).' : '' %></div>
+        <button class="btn bad" type="submit">Delete request</button>
+    </form>
+
     <div class="card">
         <label style="margin-top:0;">Member's private link (give it to them if they have no Discord DMs)</label>
         <input type="text" class="copy" readonly value="<%= memberUrl %>" onclick="this.select()">

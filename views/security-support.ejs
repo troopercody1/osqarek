@@ -49,17 +49,45 @@
 </div></header>
 
 <div class="wrap">
-<% if (mode === 'form') { %>
+<% if (mode === 'list') { %>
+    <div class="crumb"><a href="/support">Help Center</a> &rsaquo; Locked login &rsaquo; Your requests</div>
+    <h1>Your security requests</h1>
+    <p class="sub">Staff ID <b style="color:#f3f1ff"><%= staffId %></b> &middot; login <b style="color:#f3f1ff"><%= account.username %></b></p>
+    <div class="card" style="padding:0;">
+        <% tickets.forEach(function (t) { %>
+        <a href="/support/security/<%= t.id %>" style="display:flex;gap:12px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);color:inherit;text-decoration:none;">
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;color:#f3f1ff;"><%= t.id %></div>
+                <div class="hint" style="margin:2px 0 0;"><%= t.messages.filter(function (m) { return m.from !== 'event'; }).length %> message(s) &middot; last activity <%= new Date(t.updatedAt).toLocaleString('en-GB') %></div>
+            </div>
+            <span class="pill st-<%= t.status %>"><%= STATUS_LABEL[t.status] %></span>
+        </a>
+        <% }) %>
+    </div>
+    <p class="hint"><a href="/support/security">&larr; Back</a></p>
+<% } else if (mode === 'form') { %>
     <div class="crumb"><a href="/support">Help Center</a> &rsaquo; Staff account &rsaquo; Locked login</div>
     <h1>Locked dashboard account</h1>
     <p class="sub">Use this form if your staff login is locked and you can't unlock it with a code. Opening a request <b>suspends the account until a dashboard owner unlocks it</b>, and unlocking with a code is switched off meanwhile. Your request gets a reference like <b>SEC-XXXXXX</b>.</p>
 
     <% if (error) { %><div class="flash bad"><%= error %></div><% } %>
 
+    <form class="card" action="/support/security/lookup" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="hp" aria-hidden="true"><label>Website</label><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
+        <h3 style="font-size:16px;margin-bottom:6px;">Find my requests</h3>
+        <label for="sid">Staff ID</label>
+        <input type="text" id="sid" name="staffId" value="<%= staffId %>" required maxlength="32" autocomplete="off" autocapitalize="characters" placeholder="12345-ABCDEF-1234" style="text-transform:uppercase;">
+        <p class="hint">Your Staff ID is private and was sent to your Discord DMs. Never share it. Enter it to see every security request for your login.</p>
+        <div class="actions"><button class="btn alt" type="submit">Show my requests</button></div>
+    </form>
+
     <form class="card" action="/support/security" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="hp" aria-hidden="true"><label>Website</label><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
+        <h3 style="font-size:16px;margin-bottom:6px;">Open a new request</h3>
         <label for="u">Staff username</label>
         <input type="text" id="u" name="username" value="<%= username %>" required maxlength="64" autocomplete="off" autocapitalize="off">
+        <label for="s2">Staff ID</label>
+        <input type="text" id="s2" name="staffId" required maxlength="32" autocomplete="off" autocapitalize="characters" placeholder="12345-ABCDEF-1234" style="text-transform:uppercase;">
         <label for="m">What happened?</label>
         <textarea id="m" name="message" required minlength="10" maxlength="<%= limits.max %>" placeholder="e.g. I forgot my password / I never got my code / this wasn't me."><%= body %></textarea>
         <p class="hint">Never include your password or login codes. Staff will never ask for them.</p>

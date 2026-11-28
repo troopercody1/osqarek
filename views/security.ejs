@@ -115,13 +115,14 @@
         <% if (!tickets.length) { %>
         <div class="empty">No support requests yet. Locked staff open these from the unlock page's "Contact support" button.</div>
         <% } else { tickets.forEach(function (t) { %>
-        <a class="acct" href="/settings/security/ticket/<%= t.id %>" style="color:inherit; text-decoration:none;">
-            <div class="row-main">
+        <div class="acct">
+            <a class="row-main" href="/settings/security/ticket/<%= t.id %>" style="color:inherit; text-decoration:none;">
                 <div class="row-subj"><b><%= t.id %></b> &middot; <%= t.username %></div>
                 <div class="row-sub"><%= t.messages.filter(function (m) { return m.from !== 'event'; }).length %> message(s) &middot; last activity <%= new Date(t.updatedAt).toLocaleString('en-GB') %></div>
-            </div>
+            </a>
             <span class="pill <%= t.status === 'solved' ? 'pill-ok' : (t.status === 'awaiting' ? 'pill-warn' : 'pill-lock') %>"><%= STATUS_LABEL[t.status] %></span>
-        </a>
+            <form action="/settings/security/ticket/<%= t.id %>/delete" method="POST" onsubmit="return confirm('Permanently delete <%= t.id %> and its whole conversation? This cannot be undone.');"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger" type="submit">Delete</button></form>
+        </div>
         <% }) } %>
     </div>
 

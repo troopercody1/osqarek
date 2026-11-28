@@ -557,6 +557,7 @@
             <div style="color:#f3f1ff;font-weight:600;margin-bottom:6px;"><%= staffFlash.title %></div>
             Username: <code style="color:#a58bff;"><%= staffFlash.username %></code><br>
             Password: <code style="color:#a58bff;"><%= staffFlash.password %></code>
+            <% if (staffFlash.staffId) { %><br>Staff ID: <code style="color:#a58bff;"><%= staffFlash.staffId %></code><% } %>
             <div style="color:#8f8abf;font-size:12px;margin-top:8px;">
                 <%= staffFlash.dmOk ? '📬 The bot DMed them these details.' : (staffFlash.noDm ? '⚠️ This login has no Discord ID linked, so nothing was DMed — share these details privately.' : '⚠️ The bot could not DM them (DMs closed) — share these details privately.') %>
                 This is only shown once.
@@ -573,6 +574,7 @@
                     <div class="row-desc">
                         <%= a.discordId ? ((a.discordTag ? a.discordTag + ' · ' : '') + a.discordId) : 'No Discord account linked' %><%= a.pending ? ' · must set a new password at next login' : '' %>
                     </div>
+                    <% if (a.staffId) { %><div class="row-desc">Staff ID: <code style="color:#a58bff;user-select:all;"><%= a.staffId %></code></div><% } %>
                 </div>
                 <div class="row-end">
                     <% if (a.rank === 'owner') { %>
