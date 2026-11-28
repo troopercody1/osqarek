@@ -528,16 +528,15 @@ app.use((req, res, next) => {
         maintenanceWhitelist.push('/settings/staff/add');
         maintenanceWhitelist.push('/settings/staff/revoke');
         maintenanceWhitelist.push('/settings/staff/edit');
-        maintenanceWhitelist.push('/settings/security');
-        maintenanceWhitelist.push('/settings/security/unlock');
-        maintenanceWhitelist.push('/settings/security/lock');
-        maintenanceWhitelist.push('/settings/security/unblock');
     }
     const isMailPath = isAdminRank(req.session?.user) && (req.path === '/settings/mail' || req.path.startsWith('/settings/mail/'));
+    // Locked-account support pages stay reachable in maintenance mode (security.js).
+    const isSecurityPath = req.path === '/support/security' || req.path.startsWith('/support/security/') || (isAdminRank(req.session?.user) && (req.path === '/settings/security' || req.path.startsWith('/settings/security/')));
 
     if (
         db.settings?.maintenanceMode &&
         !isMailPath &&
+        !isSecurityPath &&
         !req.path.startsWith('/support/requests/') &&
         !maintenanceWhitelist.includes(req.path)
     ) {
