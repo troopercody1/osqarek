@@ -35,6 +35,11 @@
 //     SEC- requests ("Find my requests"). It is stored encrypted (+ a hash for checking). Dashboard owners see the full
 //     ID in Settings -> Staff Access and on SEC- tickets; the ticket's own user only sees it masked (•••••-••••••-1234)
 //     because their private ticket link must never reveal the recovery secret. Owners can reissue an ID.
+//     Support sees only metadata (Staff ID Version / Created / Last Rotated). Only dashboard OWNERS can reveal a full
+//     ID, by pressing "Reveal Staff ID" (never shown inline), and every reveal is logged.
+//     RECOVERY CHAIN (every unlock, from any path): SEC ticket opened -> support hold -> investigation -> unlock
+//     approved -> session invalidation -> password reset required -> old Staff ID invalidated -> new Staff ID
+//     generated -> new Staff ID DM'd -> ticket closed.
 //     Owners can also delete SEC- requests.
 //
 // Who is the "bot support team"? The Bot Owner (botowner.js) plus every Discord ID in
@@ -313,30 +318,71 @@ async function lockAccount(account, { reason, by = 'System', ip } = {}) {
     return delivered;
 }
 
+const RECOVERY_ACTOR = 'Security Recovery';
+
+// Recovery chain once an unlock is approved (support hold + investigation happen before this is called):
+//   unlock approved -> session invalidation -> password reset required -> old Staff ID invalidated
+//   -> new Staff ID generated -> new Staff ID DM'd -> ticket closed
 async function unlockAccount(account, { by, method }) {
     const s = sec(account);
+    const c = ctxOrNull();
+    const t = idTools();
+
+    // 1. Unlock approved
     s.locked = false;
     s.failed = 0;
     s.otp = null;
     s.otpBlocked = false; // support/OTP unlock re-enables code-unlock
     s.supportHold = null;
     s.otpSends = [];
-    // Force a new password: the existing login flow sends any account with passwordChanged !== true to
-    // /auth/change-password before it can do anything else (and the new one must differ from the old).
-    account.passwordChanged = false;
-    // End any session still open on this login (they were issued before the lock).
-    account.sessionEpoch = (account.sessionEpoch || 0) + 1;
     s.unlockedAt = now();
     s.unlockedBy = by;
-    closeTicketsFor(account, `Account unlocked by ${by}. The login must set a new password next time it signs in.`);
-    event(`Staff login "${account.username}" unlocked by ${by} (${method}).`);
-    logToModLog('🔓 Staff Account Unlocked', `Dashboard login **${account.username}** was unlocked by ${by} (${method}).`, 0x57F287);
-    await persist();
+
+    // 2. Session invalidation: end any session still open on this login (they were issued before the lock).
+    account.sessionEpoch = (account.sessionEpoch || 0) + 1;
+
+    // 3. Password reset required: the existing login flow sends any account with passwordChanged !== true to
+    //    /auth/change-password before it can do anything else (and the new one must differ from the old).
+    account.passwordChanged = false;
+
+    // 4 + 5. Old Staff ID invalidated, new Staff ID generated (issue() replaces the hash, so the old ID stops working).
+    let newId = null;
+    if (t && c?.getAdminUsers) {
+        newId = t.issue(account, c.getAdminUsers(), RECOVERY_ACTOR);
+    }
+    event(`Staff login "${account.username}" unlocked by ${by} (${method}). Sessions ended, password reset required${newId ? `, Staff ID rotated to version ${account.staffIdVersion}` : ''}.`);
+    logToModLog('🔓 Staff Account Unlocked', `Dashboard login **${account.username}** was unlocked by ${by} (${method}).\nSessions ended, password reset required${newId ? `, Staff ID rotated (version ${account.staffIdVersion})` : ''}.`, 0x57F287);
+    await persist(); // save the new state BEFORE anything is sent, so the DM'd ID is always the valid one
+
+    // 6. New Staff ID DM'd (the plain ID exists only in this function and in the DM).
+    let idDelivered = false;
+    if (newId && typeof c?.sendStaffIdDm === 'function' && account.discordId) {
+        try { idDelivered = !!(await c.sendStaffIdDm(account, newId, true, 'Your account was unlocked after a security recovery, so your Staff ID was rotated. The old Staff ID no longer works.')); } catch { idDelivered = false; }
+        if (idDelivered) { account.staffIdDmAt = now(); await persist(); }
+    }
+    newId = null;
+    if (!idDelivered && t) {
+        // staffIdDmAt stays null: the bot's pending-ID run retries the DM, and an owner can reveal/reissue it meanwhile.
+        await notifySupport({ embeds: [brandEmbed({
+            title: '⚠️ New Staff ID could not be DM\'d',
+            description: `Staff login **${account.username}** was unlocked and its Staff ID was rotated, but the new ID could not be DM'd (${account.discordId ? 'DMs closed' : 'no Discord ID saved'}). The DM is retried automatically; a dashboard owner can also reveal or reissue it in Settings → Staff Access.`,
+            color: 0xFEE75C,
+        })] });
+    }
+
+    // 7. Unlock DM (password reset notice)
     await dmUser(account.discordId, { embeds: [brandEmbed({
         title: '🔓 Your dashboard account was unlocked',
-        description: `The staff login **${account.username}** was unlocked (${method}). You can log in again, but you'll have to **set a new password** first.\nIf you didn't ask for this, contact the bot support team.`,
+        description: `The staff login **${account.username}** was unlocked (${method}). You can log in again, but you'll have to **set a new password** first.\n` +
+            (idDelivered ? 'Your old Staff ID no longer works: a **new Staff ID** was sent to you in a separate DM.\n' : 'Your Staff ID was rotated, but the new one could not be sent yet. Contact the bot support team if it does not arrive.\n') +
+            `If you didn't ask for this, contact the bot support team.`,
         color: 0x57F287,
     })] });
+
+    // 8. Ticket closed
+    closeTicketsFor(account, `Account unlocked by ${by}. Sessions ended, the login must set a new password next time it signs in, and its Staff ID was rotated${idDelivered ? ' (new one sent by DM)' : ' (new one not delivered yet)'}.`);
+    await persist();
+    return { staffIdRotated: !!t, staffIdDelivered: idDelivered };
 }
 
 // Called after every failed password check. Returns the message to show on the login page.
@@ -557,7 +603,7 @@ function register(ctx) {
         try { result = await verifyUnlockOtp(account, code); } catch (err) { console.error('❌ [security] OTP verify failed:', err.message); return fail('Something went wrong. Please try again.'); }
         if (result.ok) {
             delete req.session.unlockFor;
-            return res.redirect('/auth/admin?msg=' + encodeURIComponent('Account unlocked. Log in with your current password, then you will be asked to set a new one.'));
+            return res.redirect('/auth/admin?msg=' + encodeURIComponent('Account unlocked. Your old Staff ID no longer works: a new one was sent to your Discord DMs. Log in with your current password, then you will be asked to set a new one.'));
         }
         addStrikeSoft(normIp(req.ip));
         if (result.reason === 'support_hold') { delete req.session.unlockFor; return page(res, { error: HOLD_MESSAGE }); }
@@ -692,8 +738,21 @@ function registerOwnerPage(ctx) {
         const a = target(req);
         if (!a) return back(res, 'err', 'Account not found.');
         if (!sec(a).locked) return back(res, 'msg', `${a.username} isn't locked.`, returnTo(req));
-        await unlockAccount(a, { by: `${req.session.user.username} (owner, dashboard)`, method: 'dashboard' });
-        back(res, 'msg', `Unlocked ${a.username}. They must set a new password at next login.`, returnTo(req));
+        const r = await unlockAccount(a, { by: `${req.session.user.username} (owner, dashboard)`, method: 'dashboard' });
+        back(res, 'msg', `Unlocked ${a.username}. Sessions ended, new password required, Staff ID rotated${r?.staffIdDelivered ? ' and DM\'d' : ' (DM not delivered yet)'}.`, returnTo(req));
+    });
+    // Owners only (guard): reveals one full Staff ID, on demand, and logs it. It is never rendered inline.
+    app.post('/settings/security/ticket/:id/reveal-id', guard, async (req, res) => {
+        const ticket = ticketOr404(req, res);
+        if (!ticket) return;
+        const account = ctx.getAdminUsers().find((a) => a.id === ticket.accountId) || null;
+        if (!account || !idTools()) return back(res, 'err', 'Account not found.', `/settings/security/ticket/${ticket.id}`);
+        const plain = idTools().reveal(account);
+        event(`${staffName(req)} revealed Staff ID for ${account.username} (${ticket.id}).`);
+        logToModLog('👁️ Staff ID Revealed', `**${staffName(req)}** revealed the Staff ID of **${account.username}** from **${ticket.id}**.`, 0xFEE75C);
+        await persist();
+        res.set('Cache-Control', 'no-store');
+        ticketPage(req, res, ticket, account, { staffIdFull: plain, msg: plain ? 'Staff ID revealed (logged). It is only shown on this page load.' : null, err: plain ? null : 'This Staff ID can\'t be decrypted. Reissue it in Settings → Staff Access.' });
     });
     app.post('/settings/security/lock', guard, async (req, res) => {
         const a = target(req);
@@ -707,7 +766,7 @@ function registerOwnerPage(ctx) {
     // ----- messages with locked / other staff logins -----
     const staffName = (req) => req.session.user.username;
     const ticketPage = (req, res, ticket, account, extra = {}) => res.render('security-ticket', {
-        user: req.session.user, selfId: req.session.staffId, ticket, account, staffIdMasked: maskedStaffId(account), staffIdFull: (idTools() && account) ? idTools().reveal(account) : null, accountState: account ? sec(account) : {}, STATUS_LABEL, memberUrl: ticket ? memberLink(ticket) : null,
+        user: req.session.user, selfId: req.session.staffId, ticket, account, staffIdMasked: maskedStaffId(account), staffIdFull: null, staffIdMeta: (idTools() && account) ? idTools().meta(account) : null, accountState: account ? sec(account) : {}, STATUS_LABEL, memberUrl: ticket ? memberLink(ticket) : null,
         limits: { max: TICKET_MSG_MAX }, msg: String(req.query.msg || '').slice(0, 200) || null, err: String(req.query.err || '').slice(0, 200) || null, ...extra,
     });
     const ticketOr404 = (req, res) => {
@@ -844,8 +903,8 @@ const commands = {
                 await persist();
                 return interaction.editReply(`ℹ️ **${a.username}** isn't locked. (Failed-attempt counter reset to 0.)`);
             }
-            await unlockAccount(a, { by: `${user.tag} (support)`, method: '/security unlock' });
-            return interaction.editReply(`🔓 Unlocked **${a.username}**. ${a.discordId ? 'The owner was DM\'d.' : 'They have no Discord ID saved, so nobody was DM\'d.'}`);
+            const r = await unlockAccount(a, { by: `${user.tag} (support)`, method: '/security unlock' });
+            return interaction.editReply(`🔓 Unlocked **${a.username}**. Sessions ended, password reset required, Staff ID rotated (v${a.staffIdVersion || '?'}). ${r?.staffIdDelivered ? 'The new Staff ID was DM\'d to the owner.' : (a.discordId ? 'The new Staff ID could not be DM\'d yet (retrying automatically).' : 'They have no Discord ID saved, so nobody was DM\'d.')}`);
         }
         if (sub === 'lock') {
             const a = byName(options.getString('username'));

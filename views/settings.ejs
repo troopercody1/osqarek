@@ -559,7 +559,7 @@
             <% if (staffFlash.password) { %>Password: <code style="color:#a58bff;"><%= staffFlash.password %></code><% } %>
             <% if (staffFlash.staffId) { %><% if (staffFlash.password) { %><br><% } %>Staff ID: <code style="color:#a58bff;"><%= staffFlash.staffId %></code><% } %>
             <div style="color:#8f8abf;font-size:12px;margin-top:8px;">
-                <%= staffFlash.dmOk ? '📬 The bot DMed them these details.' : (staffFlash.noDm ? '⚠️ This login has no Discord ID linked, so nothing was DMed — share these details privately.' : '⚠️ The bot could not DM them (DMs closed) — share these details privately.') %>
+                <%= staffFlash.revealOnly ? '👁️ This reveal was logged.' : staffFlash.dmOk ? '📬 The bot DMed them these details.' : (staffFlash.noDm ? '⚠️ This login has no Discord ID linked, so nothing was DMed — share these details privately.' : '⚠️ The bot could not DM them (DMs closed) — share these details privately.') %>
                 This is only shown once.
             </div>
         </div>
@@ -574,7 +574,9 @@
                     <div class="row-desc">
                         <%= a.discordId ? ((a.discordTag ? a.discordTag + ' · ' : '') + a.discordId) : 'No Discord account linked' %><%= a.pending ? ' · must set a new password at next login' : '' %>
                     </div>
-                    <% if (a.staffIdMasked) { %><div class="row-desc">Staff ID: <% if (a.staffId) { %><code style="color:#a58bff;filter:blur(6px);cursor:pointer;user-select:all;" title="Click to reveal" onclick="this.style.filter=this.style.filter?'':'blur(6px)'"><%= a.staffId %></code> <span style="color:#6f6a9c;">(click to reveal · private)</span><% } else { %><code style="color:#a58bff;"><%= a.staffIdMasked %></code> <span style="color:#6f6a9c;">(can't be shown, press New Staff ID)</span><% } %></div><% } %>
+                    <% if (a.staffIdMasked) { %><div class="row-desc">Staff ID: <code style="color:#a58bff;"><%= a.staffIdMasked %></code>
+                        <% if (a.staffIdMeta && a.staffIdMeta.issued) { %><span style="color:#6f6a9c;">· Version <%= a.staffIdMeta.version %> · Created <%= a.staffIdMeta.createdAt ? new Date(a.staffIdMeta.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'unknown' %> · Last rotated: <%= a.staffIdMeta.lastRotatedBy || 'unknown' %></span><% } %>
+                        <% if (a.staffIdMeta && a.staffIdMeta.issued) { %><form action="/settings/staff/reveal-id" method="POST" style="display:inline;" onsubmit="return confirm('Reveal the full Staff ID for <%= a.username %>? This is logged.')"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="id" value="<%= a.id %>"><button type="submit" class="btn" style="padding:2px 8px;font-size:11px;">Reveal (logged)</button></form><% } %></div><% } %>
                 </div>
                 <div class="row-end">
                     <% if (a.rank === 'owner') { %>

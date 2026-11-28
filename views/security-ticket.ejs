@@ -58,17 +58,20 @@
     <h1><%= ticket.id %> &middot; <%= ticket.username %></h1>
     <div class="meta">
         <span class="pill st-<%= ticket.status %>"><%= STATUS_LABEL[ticket.status] %></span>
-        <% if (account) { %><span>Staff ID <code style="color:#f3f1ff;"><%= staffIdFull || staffIdMasked %></code></span><span class="pill <%= accountState.locked ? 'st-lock' : 'st-solved' %>"><%= accountState.locked ? (accountState.supportHold ? 'Suspended' : 'Locked') : 'Active' %></span><span><%= account.rank %></span><% } else { %><span>(login no longer exists)</span><% } %>
+        <% if (account) { %><span>Staff ID <code style="color:#f3f1ff;"><%= staffIdFull || staffIdMasked %></code><% if (staffIdMeta && staffIdMeta.issued) { %> &middot; Version <%= staffIdMeta.version %> &middot; Created <%= staffIdMeta.createdAt ? new Date(staffIdMeta.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'unknown' %> &middot; Last rotated: <%= staffIdMeta.lastRotatedBy || 'unknown' %><% } %></span><span class="pill <%= accountState.locked ? 'st-lock' : 'st-solved' %>"><%= accountState.locked ? (accountState.supportHold ? 'Suspended' : 'Locked') : 'Active' %></span><span><%= account.rank %></span><% } else { %><span>(login no longer exists)</span><% } %>
         <span>Opened <%= new Date(ticket.createdAt).toLocaleString('en-GB') %> by <%= ticket.createdBy === 'member' ? 'the member' : 'staff' %></span>
         <span>IP <%= ticket.ip %></span>
     </div>
     <% if (msg) { %><div class="flash ok"><%= msg %></div><% } %>
     <% if (err) { %><div class="flash bad"><%= err %></div><% } %>
 
+    <% if (account && !staffIdFull && staffIdMeta && staffIdMeta.issued) { %>
+    <form action="/settings/security/ticket/<%= ticket.id %>/reveal-id" method="POST" onsubmit="return confirm('Reveal the full Staff ID? This is logged.')" style="margin-bottom:10px;"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn alt" type="submit">Reveal Staff ID (owner only, logged)</button></form>
+    <% } %>
     <% if (account) { %>
     <div class="card" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
         <div style="flex:1; min-width:220px; font-size:13px;">
-            <% if (accountState.locked) { %>Account is <b>locked</b><%= accountState.supportHold ? ' and suspended for this request' : '' %>. Unlocking solves open requests for it, ends any open session and forces a new password at next login.<% } else { %>Account is <b>active</b>.<% } %>
+            <% if (accountState.locked) { %>Account is <b>locked</b><%= accountState.supportHold ? ' and suspended for this request' : '' %>. Unlocking ends any open session, forces a new password at next login, rotates the Staff ID (new one DM'd) and then closes open requests for it.<% } else { %>Account is <b>active</b>.<% } %>
         </div>
         <% if (accountState.locked) { %>
         <form action="/settings/security/unlock" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="id" value="<%= account.id %>"><input type="hidden" name="back" value="/settings/security/ticket/<%= ticket.id %>"><button class="btn good" type="submit">Unlock account</button></form>

@@ -8,6 +8,12 @@
 //                 (so a lookup never has to decrypt every account)
 //   staffIdLast4  last 4 digits, for the masked form shown to the ticket's own user (•••••-••••••-1234)
 //   staffIdDmAt   when the ID was DM'd to its owner (null = still to be sent)
+//   staffIdVersion / staffIdCreatedAt / staffIdLastRotatedBy
+//                 rotation metadata (never the ID itself): which generation the ID is, when it was created and who/what
+//                 rotated it last ("Security Recovery", an owner's name, ...). Support can see this without seeing the ID.
+//
+// Only dashboard OWNERS may reveal a full Staff ID (and every reveal is logged by the caller), because the ID is part
+// of the recovery chain. Every unlock (SEC- recovery) rotates it: old ID dead, new ID generated and DM'd.
 //
 // Encryption key (first one that is set wins):
 //   STAFF_ID_KEY     recommended: set it in Render's Environment tab (any long random string)
@@ -97,24 +103,46 @@ module.exports = function makeStaffIdTools(getDb) {
         }
     }
     // Gives `account` a brand-new ID (replacing any old one, which stops working) and returns the plain text.
-    function issue(account, accounts) {
+    // `by` is recorded as the last rotator and the version goes up by one.
+    function issue(account, accounts, by = 'System') {
         const id = generate(accounts);
         store(account, id);
+        account.staffIdVersion = (Number(account.staffIdVersion) || 0) + 1;
+        account.staffIdCreatedAt = Date.now();
+        account.staffIdLastRotatedBy = String(by || 'System').slice(0, 80);
         account.staffIdDmAt = null;
         return id;
+    }
+    // Safe-to-show metadata about an account's ID (no part of the ID itself).
+    function meta(account) {
+        if (!account || !account.staffIdHash) return { version: 0, createdAt: null, lastRotatedBy: null, issued: false };
+        return {
+            version: Number(account.staffIdVersion) || 1,
+            createdAt: Number(account.staffIdCreatedAt) || null,
+            lastRotatedBy: account.staffIdLastRotatedBy || null,
+            issued: true,
+        };
     }
     // Brings an account up to date. Returns true when it changed (the caller should save):
     //  - no ID yet                           -> issue one (every current staff member gets one)
     //  - plain-text ID from an old build      -> encrypt it (same ID keeps working)
+    //  - ID without rotation metadata        -> stamped as version 1
     //  - hash only (the hash-only build)      -> stays valid; owners can't read it until it is reissued
     //  - ID that was encrypted with another key -> same as above
     function migrate(account, accounts) {
         const legacy = normalize(account.staffId);
-        if (RE.test(legacy)) { store(account, legacy); return true; }
+        if (RE.test(legacy)) { store(account, legacy); stamp(account); return true; }
         if (account.staffId !== undefined) { delete account.staffId; }
-        if (!account.staffIdHash) { issue(account, accounts); return true; }
-        return false;
+        if (!account.staffIdHash) { issue(account, accounts, 'System'); return true; }
+        return stamp(account); // existing ID from before rotation metadata -> version 1
+    }
+    function stamp(account) {
+        if (account.staffIdVersion) return false;
+        account.staffIdVersion = 1;
+        account.staffIdCreatedAt = Number(account.createdAt) || Date.now();
+        account.staffIdLastRotatedBy = account.staffIdLastRotatedBy || 'System (initial)';
+        return true;
     }
 
-    return { RE, normalize, matches, findAccount, mask, issue, migrate, reveal };
+    return { RE, normalize, matches, findAccount, mask, issue, migrate, reveal, meta };
 };
