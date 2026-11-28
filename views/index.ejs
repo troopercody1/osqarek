@@ -471,52 +471,152 @@
 
         <!-- ═══════════════ RISK MANAGER ═══════════════ -->
         <div id="risk-manager" class="tab-content<%= (locals.activeTab || 'dashboard') === 'risk-manager' ? ' active' : '' %>">
+            <style>
+                .rk-lvl { display:inline-block; font:600 .72rem var(--body); padding:3px 10px; border-radius:99px; letter-spacing:.02em; }
+                .rk-critical { background:rgba(255,107,138,.2); color:#ff6b8a; border:1px solid rgba(255,107,138,.5); }
+                .rk-high     { background:rgba(255,162,77,.16); color:#ffa24d; border:1px solid rgba(255,162,77,.4); }
+                .rk-medium   { background:rgba(255,200,87,.14); color:var(--gold); border:1px solid rgba(255,200,87,.35); }
+                .rk-bar { height:5px; border-radius:99px; background:var(--line-soft); margin-top:6px; width:96px; overflow:hidden; }
+                .rk-bar > i { display:block; height:100%; border-radius:99px; }
+                .rk-bar .rk-critical-f { background:#ff6b8a; } .rk-bar .rk-high-f { background:#ffa24d; } .rk-bar .rk-medium-f { background:var(--gold); }
+                .rk-chip { display:inline-block; font:500 .76rem var(--body); background:#120f2e; border:1px solid var(--line-soft); color:var(--text); padding:2px 8px; border-radius:6px; margin:0 5px 5px 0; }
+                .rk-chip b { color:var(--gold); font-weight:600; margin-left:4px; }
+                .rk-tools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:4px 0 6px; }
+                .rk-tools input[type=search] { flex:1; min-width:180px; max-width:320px; }
+                .rk-filter { background:#0f0d27; border:1px solid var(--line); color:var(--muted); padding:7px 13px; border-radius:var(--r-md); font:600 .82rem var(--body); cursor:pointer; }
+                .rk-filter.on { background:var(--accent-soft); color:var(--bright); border-color:var(--accent-hi); }
+                .rk-user { display:flex; align-items:center; gap:10px; min-width:170px; }
+                .rk-user img { width:34px; height:34px; border-radius:50%; background:var(--raised); flex:none; }
+                .rk-user small, .rk-meta { color:var(--muted); font-size:.78rem; display:block; }
+                .rk-act { display:flex; flex-direction:column; gap:6px; min-width:190px; }
+                .rk-act form { display:flex; gap:6px; margin:0; } .rk-act input[type=text] { flex:1; min-width:0; padding:6px 9px; font-size:.82rem; }
+                .rk-act .btn-submit { margin:0; padding:6px 13px; font-size:.82rem; }
+                .rk-ghost { background:transparent !important; border:1px solid var(--line) !important; color:var(--text) !important; }
+                .rk-link { color:var(--accent-hi); font-size:.8rem; text-decoration:none; } .rk-link:hover { text-decoration:underline; }
+                .rk-empty { text-align:center; color:var(--muted); padding:28px 12px !important; }
+            </style>
+
+            <% if (!locals.risk) { %>
+            <div class="panel"><h2>Member Risk Assessment</h2><p style="color:var(--muted)">The bot isn't connected to the server yet, so there is nobody to assess. Try again in a moment.</p></div>
+            <% } else { %>
+            <div class="fx-stat">
+                <div><b style="color:#ff6b8a"><%= risk.counts.critical %></b><span>Critical (70+)</span></div>
+                <div><b style="color:#ffa24d"><%= risk.counts.high %></b><span>High (50-69)</span></div>
+                <div><b style="color:var(--gold)"><%= risk.counts.medium %></b><span>Medium (30-49)</span></div>
+                <div><b style="color:var(--ok)"><%= risk.counts.low %></b><span>Low, not listed</span></div>
+            </div>
+
             <div class="panel">
-                <h2>Member Risk Assessment</h2>
+                <h2>Needs a decision <span style="color:var(--muted);font-weight:500;font-size:.9rem;">· <%= risk.flagged %> flagged of <%= risk.total %> members</span></h2>
+                <p style="color:var(--muted); font-size:.85rem; margin-top:-8px;">
+                    Scores add up signals like account age, how recently they joined, join bursts, no avatar or roles, an active timeout and prior cases (max 100). Staff and bots are skipped.
+                    <b>Dismiss</b> takes someone off the list (add a note if you like); you can bring them back from <em>Reviewed</em> below.
+                </p>
+                <div class="rk-tools">
+                    <button type="button" class="rk-filter on" data-rk="all">All</button>
+                    <button type="button" class="rk-filter" data-rk="critical">Critical</button>
+                    <button type="button" class="rk-filter" data-rk="high">High</button>
+                    <button type="button" class="rk-filter" data-rk="medium">Medium</button>
+                    <input type="search" id="rk-search" placeholder="Search name, ID or reason…" autocomplete="off">
+                    <span id="rk-shown" style="color:var(--muted);font-size:.82rem;"></span>
+                </div>
                 <table>
                     <thead>
-                        <tr>
-                            <th>Member Tag</th>
-                            <th>Risk Score</th>
-                            <th>Reason</th>
-                            <th>Action</th>
-                        </tr>
+                        <tr><th>Member</th><th>Risk</th><th>Why</th><th>Age / joined</th><th>Action</th></tr>
                     </thead>
-                    <tbody>
-                        <% if (members && members.length > 0) { %>
-                            <% members.forEach(member => { %>
-                                <% 
-                                    let risk = 10;
-                                    let reasons = [];
-                                    if (member.joinedTimestamp > (Date.now() - 604800000)) { risk += 40; reasons.push("Joined < 7d"); }
-                                    const discordEpoch = 1420070400000;
-                                    const userId = BigInt(member.id);
-                                    const creationTimestamp = Number((userId >> 22n) + BigInt(discordEpoch));
-                                    const accountAgeYears = (Date.now() - creationTimestamp) / (1000 * 60 * 60 * 24 * 365);
-                                    if (accountAgeYears < 1) { risk += 35; reasons.push("Acct < 1yr"); }
-                                    if (!member.user.avatar) { risk += 15; reasons.push("No Avatar"); }
-                                %>
-                                <tr>
-                                    <td><%= member.user.tag %></td>
-                                    <td>
-                                        <span style="color: <%= risk >= 60 ? '#ff6b8a' : '#5fe3a1' %>;">
-                                            <%= risk %>/100 (<%= risk >= 60 ? 'High' : 'Low' %>)
-                                        </span>
-                                    </td>
-                                    <td><%= reasons.length > 0 ? reasons.join(', ') : "Verified Account" %></td>
-                                    <td>
-                                        <form action="/review-risk/<%= member.id %>" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                                            <button type="submit" class="btn-submit">Review</button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            <% }) %>
-                        <% } else { %>
-                            <tr><td colspan="4">No members found or intent not enabled.</td></tr>
-                        <% } %>
+                    <tbody id="rk-body">
+                        <% risk.rows.forEach(function (r) { %>
+                        <tr data-level="<%= r.level %>" data-q="<%= (r.tag + ' ' + r.id + ' ' + r.reasons.map(function (x) { return x.label; }).join(' ')).toLowerCase() %>">
+                            <td>
+                                <div class="rk-user">
+                                    <% if (r.avatar) { %><img src="<%= r.avatar %>" alt="" loading="lazy"><% } else { %><img alt=""><% } %>
+                                    <div><%= r.tag %><small><%= r.id %></small></div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="rk-lvl rk-<%= r.level %>"><%= r.levelLabel %> · <%= r.score %></span>
+                                <div class="rk-bar"><i class="rk-<%= r.level %>-f" style="width:<%= r.score %>%"></i></div>
+                            </td>
+                            <td>
+                                <% r.reasons.forEach(function (x) { %><span class="rk-chip"><%= x.label %><b>+<%= x.points %></b></span><% }) %>
+                            </td>
+                            <td class="rk-meta" style="white-space:nowrap;">
+                                Account <%= r.accountAge %><br>Joined <%= r.joined %> ago
+                                <% if (r.priorCases) { %><br><%= r.priorCases %> prior case<%= r.priorCases === 1 ? '' : 's' %><% } %>
+                            </td>
+                            <td>
+                                <div class="rk-act">
+                                    <form action="/review-risk/<%= r.id %>" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                        <input type="text" name="note" maxlength="200" placeholder="Note (optional)" autocomplete="off">
+                                        <button type="submit" class="btn-submit">Dismiss</button>
+                                    </form>
+                                    <a class="rk-link" href="/admin/user/<%= r.id %>">View case history →</a>
+                                </div>
+                            </td>
+                        </tr>
+                        <% }) %>
+                        <tr id="rk-none" <%= risk.rows.length ? 'style="display:none"' : '' %>>
+                            <td colspan="5" class="rk-empty"><%= risk.rows.length ? 'Nobody matches that filter.' : 'Nobody is flagged right now. 🎉' %></td>
+                        </tr>
                     </tbody>
                 </table>
+                <% if (risk.hidden > 0) { %>
+                <p style="color:var(--muted);font-size:.82rem;margin-top:12px;">Showing the <%= risk.rows.length %> highest-scoring members; <%= risk.hidden %> lower-scoring flagged members are not listed. Dismiss some to see more.</p>
+                <% } %>
             </div>
+
+            <div class="panel">
+                <h2>Reviewed <span style="color:var(--muted);font-weight:500;font-size:.9rem;">· <%= risk.reviewed.length %> dismissed</span></h2>
+                <% if (risk.reviewed.length === 0) { %>
+                <p style="color:var(--muted);font-size:.88rem;">Nobody has been dismissed yet.</p>
+                <% } else { %>
+                <table>
+                    <thead><tr><th>Member</th><th>Dismissed</th><th>Note</th><th></th></tr></thead>
+                    <tbody>
+                        <% risk.reviewed.forEach(function (r) { %>
+                        <tr>
+                            <td><%= r.tag || 'Unknown member' %><span class="rk-meta"><%= r.id %><%= r.inServer ? '' : ' · left the server' %></span></td>
+                            <td class="rk-meta" style="white-space:nowrap;"><%= r.at ? new Date(r.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Before tracking began' %><%= r.by ? ' · ' + r.by : '' %></td>
+                            <td><%= r.note || '—' %></td>
+                            <td>
+                                <form action="/review-risk/<%= r.id %>/restore" method="POST" style="margin:0;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                    <button type="submit" class="btn-submit rk-ghost" style="margin:0;padding:6px 13px;font-size:.82rem;">Restore</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+                <% } %>
+            </div>
+
+            <script>
+            (function () {
+                var body = document.getElementById('rk-body'); if (!body) return;
+                var rows = Array.prototype.slice.call(body.querySelectorAll('tr[data-level]'));
+                var none = document.getElementById('rk-none'), shown = document.getElementById('rk-shown');
+                var search = document.getElementById('rk-search'), level = 'all';
+                function apply() {
+                    var q = (search.value || '').trim().toLowerCase(), n = 0;
+                    rows.forEach(function (tr) {
+                        var ok = (level === 'all' || tr.dataset.level === level) && (!q || tr.dataset.q.indexOf(q) !== -1);
+                        tr.style.display = ok ? '' : 'none'; if (ok) n++;
+                    });
+                    if (rows.length) { none.style.display = n ? 'none' : ''; }
+                    shown.textContent = rows.length ? 'Showing ' + n + ' of ' + rows.length : '';
+                }
+                Array.prototype.forEach.call(document.querySelectorAll('.rk-filter'), function (b) {
+                    b.addEventListener('click', function () {
+                        level = b.dataset.rk;
+                        Array.prototype.forEach.call(document.querySelectorAll('.rk-filter'), function (x) { x.classList.toggle('on', x === b); });
+                        apply();
+                    });
+                });
+                search.addEventListener('input', apply);
+                apply();
+            })();
+            </script>
+            <% } %>
         </div>
 
         <!-- ═══════════════ BANNED WORDS ═══════════════ -->
