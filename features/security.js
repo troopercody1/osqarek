@@ -32,7 +32,9 @@
 //     The username is public (it is only used to log in). The Staff ID (format 12345-ABCDEF-1234, assigned in
 //     index.js when the login is ranked in the dashboard) is PRIVATE and is the recovery secret: it is required
 //     to request an unlock code (/auth/unlock) and to open a SEC- request, and on its own it lists a login's
-//     SEC- requests ("Find my requests"). Only dashboard owners can see Staff IDs (Settings -> Staff Access).
+//     SEC- requests ("Find my requests"). It is stored encrypted (+ a hash for checking). Dashboard owners see the full
+//     ID in Settings -> Staff Access and on SEC- tickets; the ticket's own user only sees it masked (•••••-••••••-1234)
+//     because their private ticket link must never reveal the recovery secret. Owners can reissue an ID.
 //     Owners can also delete SEC- requests.
 //
 // Who is the "bot support team"? The Bot Owner (botowner.js) plus every Discord ID in
@@ -113,13 +115,14 @@ const findAccount = (username) => {
     if (!u) return null;
     return c.getAdminUsers().find((a) => a.username === u) || null;
 };
-const STAFF_ID_RE = /^\d{5}-[A-Z]{6}-\d{4}$/;
+// Staff IDs are stored encrypted + hashed (features/staffid.js). Typed IDs are checked against the hash.
+const idTools = () => ctxOrNull()?.staffIdTools || null;
 const normStaffId = (v) => String(v || '').trim().toUpperCase().replace(/\s+/g, '');
+const staffIdOk = (account, value) => { const t = idTools(); return !!(t && account && t.matches(account, value)); };
+const maskedStaffId = (account) => { const t = idTools(); return t && account ? t.mask(account) : 'not issued'; };
 const findByStaffId = (value) => {
-    const c = ctxOrNull();
-    const id = normStaffId(value);
-    if (!c?.getAdminUsers || !STAFF_ID_RE.test(id)) return null;
-    return c.getAdminUsers().find((a) => a.staffId === id) || null;
+    const c = ctxOrNull(); const t = idTools();
+    return c?.getAdminUsers && t ? t.findAccount(c.getAdminUsers(), value) : null;
 };
 const persist = async () => { const c = ctxOrNull(); if (c) await c.safeSave(); };
 
@@ -524,7 +527,7 @@ function register(ctx) {
         const staffId = normStaffId(req.body.staffId).slice(0, 32);
         let account = findAccount(username);
         // The Staff ID is the private secret: without the matching one nothing happens (same answer as an unknown account).
-        if (account && (!STAFF_ID_RE.test(staffId) || account.staffId !== staffId)) { addStrikeSoft(normIp(req.ip)); account = null; }
+        if (account && !staffIdOk(account, staffId)) { addStrikeSoft(normIp(req.ip)); account = null; }
         req.session.unlockFor = null;
         req.session.unlockUsername = username; // pre-fills the "Contact support" form
         if (account && sec(account).locked && sec(account).supportHold) {
@@ -574,7 +577,7 @@ function registerSupportPages(ctx) {
         return !!req.session?.secKeys && keyMatches(ticket, req.session.secKeys[ticket.id]);
     };
     const accountOf = (ticket) => ctx.getAdminUsers().find((a) => a.id === ticket.accountId) || null;
-    const threadView = (req, ticket, extra = {}) => { const account = accountOf(ticket); return { ...base(req), mode: 'thread', ticket, account, locked: account ? sec(account).locked : false, ...extra }; };
+    const threadView = (req, ticket, extra = {}) => { const account = accountOf(ticket); return { ...base(req), mode: 'thread', ticket, account, staffIdMasked: maskedStaffId(account), locked: account ? sec(account).locked : false, ...extra }; };
 
     app.get('/support/security', (req, res) => render(res, { ...base(req), mode: 'form' }));
 
@@ -587,7 +590,7 @@ function registerSupportPages(ctx) {
         if (body.length < 10) return form('Please describe the problem in a bit more detail.');
         const staffId = normStaffId(req.body.staffId).slice(0, 32);
         const account = findAccount(username);
-        if (!account || !STAFF_ID_RE.test(staffId) || account.staffId !== staffId) { addStrikeSoft(normIp(req.ip)); return form('The username and Staff ID do not match a staff login.'); }
+        if (!account || !staffIdOk(account, staffId)) { addStrikeSoft(normIp(req.ip)); return form('The username and Staff ID do not match a staff login.'); }
         if (!sec(account).locked) return form('That login is not locked. This form is only for locked staff logins.');
 
         const existing = openTicketFor(account.id);
@@ -623,7 +626,7 @@ function registerSupportPages(ctx) {
         // The Staff ID unlocks every request of this login for this browser session (no private link needed).
         req.session.secKeys = req.session.secKeys || {};
         for (const t of mine) req.session.secKeys[t.id] = t.key;
-        render(res, { ...base(req), mode: 'list', account, tickets: mine, staffId });
+        render(res, { ...base(req), mode: 'list', account, tickets: mine, staffId: '', staffIdMasked: maskedStaffId(account) });
     });
 
     app.get('/support/security/:id', (req, res) => {
@@ -704,7 +707,7 @@ function registerOwnerPage(ctx) {
     // ----- messages with locked / other staff logins -----
     const staffName = (req) => req.session.user.username;
     const ticketPage = (req, res, ticket, account, extra = {}) => res.render('security-ticket', {
-        user: req.session.user, selfId: req.session.staffId, ticket, account, accountState: account ? sec(account) : {}, STATUS_LABEL, memberUrl: ticket ? memberLink(ticket) : null,
+        user: req.session.user, selfId: req.session.staffId, ticket, account, staffIdMasked: maskedStaffId(account), staffIdFull: (idTools() && account) ? idTools().reveal(account) : null, accountState: account ? sec(account) : {}, STATUS_LABEL, memberUrl: ticket ? memberLink(ticket) : null,
         limits: { max: TICKET_MSG_MAX }, msg: String(req.query.msg || '').slice(0, 200) || null, err: String(req.query.err || '').slice(0, 200) || null, ...extra,
     });
     const ticketOr404 = (req, res) => {

@@ -52,7 +52,7 @@
 <% if (mode === 'list') { %>
     <div class="crumb"><a href="/support">Help Center</a> &rsaquo; Locked login &rsaquo; Your requests</div>
     <h1>Your security requests</h1>
-    <p class="sub">Staff ID <b style="color:#f3f1ff"><%= staffId %></b> &middot; login <b style="color:#f3f1ff"><%= account.username %></b></p>
+    <p class="sub">Staff ID <b style="color:#f3f1ff"><%= staffIdMasked %></b> &middot; login <b style="color:#f3f1ff"><%= account.username %></b></p>
     <div class="card" style="padding:0;">
         <% tickets.forEach(function (t) { %>
         <a href="/support/security/<%= t.id %>" style="display:flex;gap:12px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);color:inherit;text-decoration:none;">
@@ -99,6 +99,7 @@
     <div class="meta">
         <span class="pill st-<%= ticket.status %>"><%= STATUS_LABEL[ticket.status] %></span>
         <span>Login: <b style="color:#f3f1ff"><%= ticket.username %></b></span>
+        <span>Staff ID: <b style="color:#f3f1ff"><%= staffIdMasked %></b></span>
         <span>Opened <%= new Date(ticket.createdAt).toLocaleString('en-GB') %></span>
         <span>Last activity <%= new Date(ticket.updatedAt).toLocaleString('en-GB') %></span>
     </div>

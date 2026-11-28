@@ -58,7 +58,7 @@
     <h1><%= ticket.id %> &middot; <%= ticket.username %></h1>
     <div class="meta">
         <span class="pill st-<%= ticket.status %>"><%= STATUS_LABEL[ticket.status] %></span>
-        <% if (account) { %><span class="pill <%= accountState.locked ? 'st-lock' : 'st-solved' %>"><%= accountState.locked ? (accountState.supportHold ? 'Suspended' : 'Locked') : 'Active' %></span><span><%= account.rank %></span><% } else { %><span>(login no longer exists)</span><% } %>
+        <% if (account) { %><span>Staff ID <code style="color:#f3f1ff;"><%= staffIdFull || staffIdMasked %></code></span><span class="pill <%= accountState.locked ? 'st-lock' : 'st-solved' %>"><%= accountState.locked ? (accountState.supportHold ? 'Suspended' : 'Locked') : 'Active' %></span><span><%= account.rank %></span><% } else { %><span>(login no longer exists)</span><% } %>
         <span>Opened <%= new Date(ticket.createdAt).toLocaleString('en-GB') %> by <%= ticket.createdBy === 'member' ? 'the member' : 'staff' %></span>
         <span>IP <%= ticket.ip %></span>
     </div>
