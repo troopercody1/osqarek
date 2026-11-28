@@ -8,7 +8,9 @@
 //  2. OTP UNLOCK
 //     /auth/unlock on the website -> enter username -> a 6-digit code is DM'd to the account's Discord
 //     -> enter it -> account unlocked (you still have to log in with your password afterwards).
-//     Codes are stored hashed, expire after 10 min, allow 5 tries, 60s resend cooldown, 3 sends/hour.
+//     Codes are stored hashed, expire after 10 min, 60s resend cooldown, 3 sends/hour. Only 3 wrong
+//     codes are allowed: after that code-unlock is disabled for that account and the owner has to
+//     contact the bot support team (they unlock it with /security unlock or /settings/security).
 //     Turn it off with SECURITY_OTP_UNLOCK=false (then only the support team can unlock).
 //
 //  3. ANTI-ABUSE
@@ -37,7 +39,7 @@ const MAX_FAILED = Math.floor(num('SECURITY_MAX_FAILED_LOGINS', 3));
 const FAIL_WINDOW_MS = num('SECURITY_FAIL_WINDOW_HOURS', 24) * 3600000;
 const OTP_ENABLED = String(process.env.SECURITY_OTP_UNLOCK || 'true').toLowerCase() !== 'false';
 const OTP_TTL_MS = 10 * 60000;
-const OTP_MAX_TRIES = 5;
+const OTP_MAX_TRIES = 3; // wrong codes allowed in total; after that code-unlock is off for the account until support unlocks it
 const OTP_RESEND_MS = 60000;
 const OTP_MAX_SENDS_PER_HOUR = 3;
 
@@ -58,6 +60,7 @@ const CMD_MAX = 8;
 const CMD_COOLDOWNS = [60000, 5 * 60000, 30 * 60000];
 const CMD_STRIKE_DECAY_MS = 3600000;
 
+const OTP_BLOCKED_MESSAGE = 'Too many wrong codes. Unlocking with a code is disabled for this account — please contact the bot support team.';
 const LOCKED_MESSAGE = 'This account is locked. Contact the bot support team, or unlock it with a code sent to your Discord.';
 
 // ---------- helpers ----------
@@ -289,6 +292,8 @@ async function unlockAccount(account, { by, method }) {
     s.locked = false;
     s.failed = 0;
     s.otp = null;
+    s.otpBlocked = false; // support/OTP unlock re-enables code-unlock
+    s.otpSends = [];
     s.unlockedAt = now();
     s.unlockedBy = by;
     event(`Staff login "${account.username}" unlocked by ${by} (${method}).`);
@@ -345,11 +350,12 @@ function onLoginSuccess(req, account) {
 // ---------- OTP unlock ----------
 const otpHash = (accountId, code) => crypto.createHmac('sha256', process.env.SESSION_SECRET || 'fallback-secret').update(`${accountId}:${code}`).digest('hex');
 
-// result.ok false + reason: 'disabled' | 'not_locked' | 'no_discord' | 'cooldown' | 'limit' | 'dm_failed'
+// result.ok false + reason: 'disabled' | 'not_locked' | 'otp_blocked' | 'no_discord' | 'cooldown' | 'limit' | 'dm_failed'
 async function sendUnlockOtp(account, ip) {
     if (!OTP_ENABLED) return { ok: false, reason: 'disabled' };
     const s = sec(account);
     if (!s.locked) return { ok: false, reason: 'not_locked' };
+    if (s.otpBlocked) return { ok: false, reason: 'otp_blocked' };
     if (!account.discordId) return { ok: false, reason: 'no_discord' };
     const t = now();
     if (s.otp && t - (s.otp.sentAt || 0) < OTP_RESEND_MS) return { ok: false, reason: 'cooldown' };
@@ -386,7 +392,20 @@ async function verifyUnlockOtp(account, code) {
         await unlockAccount(account, { by: 'the account owner', method: 'Discord one-time code' });
         return { ok: true };
     }
-    if (s.otp.tries >= OTP_MAX_TRIES) { s.otp = null; await persist(); return { ok: false, reason: 'too_many' }; }
+    if (s.otp.tries >= OTP_MAX_TRIES) {
+        s.otp = null;
+        s.otpBlocked = true;
+        s.otpBlockedAt = t;
+        event(`Code-unlock disabled for "${account.username}" after ${OTP_MAX_TRIES} wrong codes.`);
+        logToModLog('⚠️ Unlock Codes Exhausted', `Dashboard login **${account.username}** entered ${OTP_MAX_TRIES} wrong unlock codes. Code-unlock is disabled; the support team must unlock it.`, 0xFEE75C);
+        await persist();
+        await dmUser(account.discordId, { embeds: [brandEmbed({
+            title: '⚠️ Unlock code attempts used up',
+            description: `${OTP_MAX_TRIES} wrong unlock codes were entered for **${account.username}**. Unlocking with a code is now disabled for this account, so you need to **contact the bot support team** to get it unlocked.\nIf that wasn't you, tell them.`,
+            color: 0xFEE75C,
+        })] });
+        return { ok: false, reason: 'too_many' };
+    }
     await persist();
     return { ok: false, reason: 'invalid' };
 }
@@ -401,12 +420,17 @@ function register(ctx) {
         page(res, {});
     });
 
+    registerOwnerPage(ctx);
+
     // Step 1: username -> DM a code. The answer never reveals whether the account exists / is locked.
     app.post('/auth/unlock/request', async (req, res) => {
         if (!OTP_ENABLED) return page(res, { error: 'Unlocking with a Discord code is turned off. Please contact the bot support team.' });
         const username = String(req.body.username || '').trim().slice(0, 64);
         const account = findAccount(username);
         req.session.unlockFor = null;
+        if (account && sec(account).locked && sec(account).otpBlocked) {
+            return page(res, { error: OTP_BLOCKED_MESSAGE });
+        }
         if (account && sec(account).locked && account.discordId) {
             req.session.unlockFor = account.id;
             try { await sendUnlockOtp(account, req.ip); } catch (err) { console.error('❌ [security] OTP send failed:', err.message); }
@@ -431,10 +455,65 @@ function register(ctx) {
             return res.redirect('/auth/admin?msg=' + encodeURIComponent('Account unlocked. You can log in now.'));
         }
         addStrikeSoft(normIp(req.ip));
-        if (result.reason === 'too_many') { delete req.session.unlockFor; return page(res, { error: 'Too many wrong codes. Request a new code to try again.' }); }
+        if (result.reason === 'too_many') { delete req.session.unlockFor; return page(res, { error: OTP_BLOCKED_MESSAGE }); }
         return fail('Invalid or expired code.');
     });
 }
+// ---------- /settings/security (dashboard owners only) ----------
+const isOwnerSession = (req) => req.session?.user?.id === 'admin' && req.session.isHeadAdmin === true && req.session.user.rank === 'owner';
+function registerOwnerPage(ctx) {
+    const { app } = ctx;
+    const guard = (req, res, next) => {
+        if (!req.session?.user) return res.redirect('/login');
+        if (!isOwnerSession(req)) return res.status(403).send('Only dashboard owners can open this page.');
+        next();
+    };
+    const back = (res, key, text) => res.redirect('/settings/security?' + key + '=' + encodeURIComponent(text));
+    const target = (req) => ctx.getAdminUsers().find((a) => a.id === String(req.body.id || ''));
+
+    app.get('/settings/security', guard, (req, res) => {
+        const t = now();
+        const accounts = ctx.getAdminUsers().map((a) => {
+            const x = sec(a);
+            return {
+                id: a.id, username: a.username, rank: a.rank, discordId: a.discordId || null, isSelf: a.id === req.session.staffId,
+                locked: x.locked, failed: x.failed, maxFailed: MAX_FAILED, lockedAt: x.lockedAt || null, lockedBy: x.lockedBy || null,
+                lockedReason: x.lockedReason || null, otpBlocked: !!x.otpBlocked, lastFailedAt: x.lastFailedAt || null, lastFailedIp: x.lastFailedIp || null,
+            };
+        }).sort((a, b) => Number(b.locked) - Number(a.locked) || a.username.localeCompare(b.username));
+        const bs = blockStore() || {};
+        const blocks = Object.entries(bs).filter(([, b]) => b.until > t).map(([ip, b]) => ({ ip, reason: b.reason, until: b.until })).sort((a, b) => b.until - a.until);
+        res.render('security', {
+            user: req.session.user, accounts, blocks, otpEnabled: OTP_ENABLED,
+            msg: String(req.query.msg || '').slice(0, 200) || null, err: String(req.query.err || '').slice(0, 200) || null,
+        });
+    });
+    app.post('/settings/security/unlock', guard, async (req, res) => {
+        const a = target(req);
+        if (!a) return back(res, 'err', 'Account not found.');
+        if (!sec(a).locked) return back(res, 'msg', `${a.username} isn't locked.`);
+        await unlockAccount(a, { by: `${req.session.user.username} (owner, dashboard)`, method: 'dashboard' });
+        back(res, 'msg', `Unlocked ${a.username}.`);
+    });
+    app.post('/settings/security/lock', guard, async (req, res) => {
+        const a = target(req);
+        if (!a) return back(res, 'err', 'Account not found.');
+        if (a.id === req.session.staffId) return back(res, 'err', "You can't lock your own account.");
+        if (sec(a).locked) return back(res, 'msg', `${a.username} is already locked.`);
+        await lockAccount(a, { reason: `Locked by ${req.session.user.username} (owner)`, by: `${req.session.user.username} (owner, dashboard)` });
+        back(res, 'msg', `Locked ${a.username}.`);
+    });
+    app.post('/settings/security/unblock', guard, async (req, res) => {
+        const ip = normIp(String(req.body.ip || '').slice(0, 64));
+        const bs = blockStore() || {};
+        delete bs[ip]; memBlocks.delete(ip); strikes.delete(ip); loginFails.delete(ip);
+        for (const k of [...hits.keys()]) if (k.endsWith(`:${ip}`)) hits.delete(k);
+        event(`IP ${maskIp(ip)} unblocked by ${req.session.user.username} (dashboard).`);
+        await persist();
+        back(res, 'msg', `Unblocked ${ip}.`);
+    });
+}
+
 // A wrong OTP counts as a failed login for the IP (so guessing codes also gets the IP blocked).
 function addStrikeSoft(ip) {
     if (!ip || ip === 'unknown') return;
@@ -452,6 +531,7 @@ function describe(a) {
     return `**${a.username}** (${a.rank}) — ${s.locked ? '🔒 **locked**' : '🔓 active'}\n` +
         `Discord: ${maskedDiscord(a)}\nFailed attempts: ${s.failed}/${MAX_FAILED}` +
         (s.lastFailedAt ? ` (last ${ts(s.lastFailedAt)}, IP ${s.lastFailedIp || 'unknown'})` : '') +
+        (s.locked && s.otpBlocked ? '\n⚠️ Code-unlock disabled (3 wrong codes) — support must unlock' : '') +
         (s.locked ? `\nLocked ${ts(s.lockedAt)} by ${s.lockedBy || 'System'} — ${s.lockedReason || 'no reason'}` : '') +
         (s.unlockedAt ? `\nLast unlocked ${ts(s.unlockedAt)} by ${s.unlockedBy || 'unknown'}` : '');
 }
