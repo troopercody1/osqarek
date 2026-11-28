@@ -545,8 +545,8 @@
     <% if (typeof staffAccounts !== 'undefined') { %>
     <div class="section" id="staff">
         <div class="section-label">Staff Access</div>
-        <% if (user && user.rank === 'owner') { %>
-        <form action="/settings/staff/reissue-all-ids" method="POST" style="margin-bottom:12px;" onsubmit="return confirm('Reissue Staff IDs for ALL staff logins? Every old Staff ID stops working immediately and each person is DMed their new one.')"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit" class="btn">Reissue ALL Staff IDs</button> <span style="color:#6f6a9c;font-size:12px;">Old IDs stop working; each person is DMed their new ID. Nothing is shown here.</span></form>
+        <% if (typeof botOwnerLogin !== 'undefined' && botOwnerLogin) { %>
+        <form action="/settings/staff/reissue-all-ids" method="POST" style="margin-bottom:12px;" onsubmit="return confirm('Reissue Staff IDs for ALL staff logins? Every old Staff ID stops working immediately and each person is DMed their new one.')"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit" class="btn">Reissue ALL Staff IDs</button> <span style="color:#6f6a9c;font-size:12px;">Bot Owner only. Old IDs stop working; each person is DMed their new ID. Nothing is shown here.</span></form>
         <% } %>
 
         <% if (typeof staffError !== 'undefined' && staffError) { %>
@@ -579,7 +579,8 @@
                     </div>
                     <% if (a.staffIdMasked) { %><div class="row-desc">Staff ID: <code style="color:#a58bff;"><%= a.staffIdMasked %></code>
                         <% if (a.staffIdMeta && a.staffIdMeta.issued) { %><span style="color:#6f6a9c;">· Version <%= a.staffIdMeta.version %> · Created <%= a.staffIdMeta.createdAt ? new Date(a.staffIdMeta.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'unknown' %> · Last rotated: <%= a.staffIdMeta.lastRotatedBy || 'unknown' %></span><% } %>
-                        <% if (a.staffIdMeta && a.staffIdMeta.issued) { %><form action="/settings/staff/reveal-id" method="POST" style="display:inline;" onsubmit="return confirm('Reveal the full Staff ID for <%= a.username %>? This is logged.')"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="id" value="<%= a.id %>"><button type="submit" class="btn" style="padding:2px 8px;font-size:11px;">Reveal (logged)</button></form><% } %></div><% } %>
+                        <% if (a.staffIdMeta && a.staffIdMeta.issued) { %><form action="/settings/staff/reveal-id" method="POST" style="display:inline;" onsubmit="return confirm('Reveal the full Staff ID for <%= a.username %>? This is logged.')"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="id" value="<%= a.id %>"><button type="submit" class="btn" style="padding:2px 8px;font-size:11px;">Reveal (logged)</button></form><% } %>
+                        <% if (typeof botOwnerLogin !== 'undefined' && botOwnerLogin && a.staffIdMeta && a.staffIdMeta.issued) { %><form action="/settings/staff/set-id-version" method="POST" style="display:inline;" onsubmit="return confirm('Change the Staff ID version for <%= a.username %>? This is logged.')"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="id" value="<%= a.id %>"><input type="number" name="version" min="1" max="9999" value="<%= a.staffIdMeta.version %>" style="width:64px;padding:2px 6px;font-size:11px;"><button type="submit" class="btn" style="padding:2px 8px;font-size:11px;">Set version</button></form><% } %></div><% } %>
                 </div>
                 <div class="row-end">
                     <% if (a.rank === 'owner') { %>

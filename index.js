@@ -1331,7 +1331,7 @@ app.get('/settings', (req, res) => {
             canEdit: canEditStaff(actor, u), canRevoke: canRevokeStaff(actor, u)
         }));
         const staffAssignable = assignableRanks(actor.rank);
-        res.render('settings', { staffAccounts, staffAssignable, rankLabel: RANK_LABEL, staffFlash, staffError: String(req.query.staffErr || '').slice(0, 200) || null, user: req.session.user, settings: db.settings || {}, bannedWords: db.bannedWords || [], msg: req.query.msg || null, coOwnerApplicationCount: (db.coOwnerApplications || []).length, modApplicationCount: (db.modApplications || []).length, mailConfigured: mailbox.isConfigured(), mailUser: (process.env.MAIL_USER || '').trim(), supportOpenCount: supportThreads.countOpen(db.supportRequests), supportTotalCount: (db.supportRequests || []).length });
+        res.render('settings', { staffAccounts, staffAssignable, botOwnerLogin: isBotOwnerLogin(req), rankLabel: RANK_LABEL, staffFlash, staffError: String(req.query.staffErr || '').slice(0, 200) || null, user: req.session.user, settings: db.settings || {}, bannedWords: db.bannedWords || [], msg: req.query.msg || null, coOwnerApplicationCount: (db.coOwnerApplications || []).length, modApplicationCount: (db.modApplications || []).length, mailConfigured: mailbox.isConfigured(), mailUser: (process.env.MAIL_USER || '').trim(), supportOpenCount: supportThreads.countOpen(db.supportRequests), supportTotalCount: (db.supportRequests || []).length });
     } else res.status(403).send("<h1>403 Forbidden</h1><p>Access denied.</p>");
 });
 
@@ -2092,6 +2092,12 @@ app.post('/settings/reset', async (req, res) => {
 const staffBack = (res, { err = null, msg = null } = {}) =>
     res.redirect('/settings?' + (err ? 'staffErr=' + encodeURIComponent(err) : 'msg=' + encodeURIComponent(msg || 'Done')) + '#staff');
 const currentStaff = (req) => getAdminUsers().find(u => u.id === req.session?.staffId) || null;
+// The dashboard login whose linked Discord ID is the Bot Owner (botowner.js). Only this login may reissue ALL Staff IDs
+// or edit a Staff ID's version.
+const isBotOwnerLogin = (req) => {
+    const a = currentStaff(req);
+    return !!(a && a.rank === 'owner' && isOwnerRank(req.session.user) && require('./botowner').isBotOwner(a.discordId));
+};
 
 app.post('/settings/staff/add', async (req, res) => {
     const actor = currentStaff(req);
@@ -2266,12 +2272,11 @@ app.post('/settings/staff/reveal-id', async (req, res) => {
     return staffBack(res, { msg: `Staff ID revealed for "${target.username}"` });
 });
 
-// Reissue ALL (owners only): wipes every login's Staff ID (old ones stop working at once), issues new ones and DMs each
+// Reissue ALL (Bot Owner's login only): wipes every login's Staff ID (old ones stop working at once), issues new ones and DMs each
 // person their own. Nothing is shown on screen, so the acting owner never sees anyone else's new ID.
 let _reissueAllRunning = false;
 app.post('/settings/staff/reissue-all-ids', async (req, res) => {
-    const actor = currentStaff(req);
-    if (!actor || actor.rank !== 'owner' || !isOwnerRank(req.session.user)) return res.status(403).send("Forbidden");
+    if (!isBotOwnerLogin(req)) return res.status(403).send("Forbidden"); // Bot Owner's login only
     if (_reissueAllRunning) return staffBack(res, { err: 'A bulk Staff ID reissue is already running.' });
     _reissueAllRunning = true;
     try {
@@ -2293,6 +2298,22 @@ app.post('/settings/staff/reissue-all-ids', async (req, res) => {
         if (failed) dmPendingStaffIds().catch(() => {});
         return staffBack(res, { msg: `Reissued ${fresh.length} Staff IDs. DMed ${sent}${failed ? `, ${failed} DM(s) failed (retrying automatically)` : ''}${noDm ? `, ${noDm} have no Discord linked` : ''}.` });
     } finally { _reissueAllRunning = false; }
+});
+
+// Edit the version number of one login's Staff ID (Bot Owner's login only). Logged; the ID itself is untouched.
+app.post('/settings/staff/set-id-version', async (req, res) => {
+    if (!isBotOwnerLogin(req)) return res.status(403).send("Forbidden");
+    const target = getAdminUsers().find(u => u.id === String(req.body.id || ''));
+    if (!target || !target.staffIdHash) return staffBack(res, { err: 'That login has no Staff ID.' });
+    const v = Number(req.body.version);
+    if (!Number.isInteger(v) || v < 1 || v > 9999) return staffBack(res, { err: 'Version must be a whole number from 1 to 9999.' });
+    const old = Number(target.staffIdVersion) || 1;
+    target.staffIdVersion = v;
+    const who = req.session.user.username;
+    require('./features/util').recordEvent(db, 'security', `${who} changed Staff ID version for ${target.username}: ${old} -> ${v}`);
+    console.log(`🪪 [staff] ${who} set the Staff ID version of "${target.username}" ${old} -> ${v}.`);
+    try { await db.save(); } catch (err) { return staffBack(res, { err: 'Could not save. Please try again.' }); }
+    return staffBack(res, { msg: `Staff ID version for "${target.username}" is now ${v}.` });
 });
 
 // Reissue (owners only): replaces a Staff ID with a new one (use it when an ID leaked, or when an old hash-only ID can't be read).
