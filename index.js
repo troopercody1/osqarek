@@ -2266,6 +2266,35 @@ app.post('/settings/staff/reveal-id', async (req, res) => {
     return staffBack(res, { msg: `Staff ID revealed for "${target.username}"` });
 });
 
+// Reissue ALL (owners only): wipes every login's Staff ID (old ones stop working at once), issues new ones and DMs each
+// person their own. Nothing is shown on screen, so the acting owner never sees anyone else's new ID.
+let _reissueAllRunning = false;
+app.post('/settings/staff/reissue-all-ids', async (req, res) => {
+    const actor = currentStaff(req);
+    if (!actor || actor.rank !== 'owner' || !isOwnerRank(req.session.user)) return res.status(403).send("Forbidden");
+    if (_reissueAllRunning) return staffBack(res, { err: 'A bulk Staff ID reissue is already running.' });
+    _reissueAllRunning = true;
+    try {
+        const accounts = getAdminUsers();
+        const who = req.session.user.username;
+        const fresh = accounts.map(u => ({ u, plain: staffIdTools.issue(u, accounts, `${who} (bulk reissue)`) }));
+        try { await db.save(); }
+        catch (err) { console.error('❌ [staff id bulk reissue] Failed to save:', err.message); return staffBack(res, { err: 'Could not save the new Staff IDs. Please try again.' }); }
+        require('./features/util').recordEvent(db, 'security', `${who} reissued ALL Staff IDs (${fresh.length} logins)`);
+        let sent = 0, noDm = 0, failed = 0;
+        for (const { u, plain } of fresh) {
+            if (!u.discordId) { noDm++; continue; }
+            const ok = await sendStaffIdDm(u, plain, true, `An owner (${who}) reissued every Staff ID. Your old one no longer works.`).catch(() => false);
+            if (ok) { u.staffIdDmAt = Date.now(); sent++; } else failed++;
+            await new Promise(r => setTimeout(r, 400));
+        }
+        await safeSave();
+        console.log(`🪪 [staff] ${who} reissued ALL Staff IDs: ${sent} DMed, ${failed} DM failed (retried automatically), ${noDm} without Discord.`);
+        if (failed) dmPendingStaffIds().catch(() => {});
+        return staffBack(res, { msg: `Reissued ${fresh.length} Staff IDs. DMed ${sent}${failed ? `, ${failed} DM(s) failed (retrying automatically)` : ''}${noDm ? `, ${noDm} have no Discord linked` : ''}.` });
+    } finally { _reissueAllRunning = false; }
+});
+
 // Reissue (owners only): replaces a Staff ID with a new one (use it when an ID leaked, or when an old hash-only ID can't be read).
 // The old ID stops working immediately. It is DM'd to the login's Discord account and shown once to the owner.
 app.post('/settings/staff/reissue-id', async (req, res) => {

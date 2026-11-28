@@ -545,6 +545,9 @@
     <% if (typeof staffAccounts !== 'undefined') { %>
     <div class="section" id="staff">
         <div class="section-label">Staff Access</div>
+        <% if (user && user.rank === 'owner') { %>
+        <form action="/settings/staff/reissue-all-ids" method="POST" style="margin-bottom:12px;" onsubmit="return confirm('Reissue Staff IDs for ALL staff logins? Every old Staff ID stops working immediately and each person is DMed their new one.')"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit" class="btn">Reissue ALL Staff IDs</button> <span style="color:#6f6a9c;font-size:12px;">Old IDs stop working; each person is DMed their new ID. Nothing is shown here.</span></form>
+        <% } %>
 
         <% if (typeof staffError !== 'undefined' && staffError) { %>
         <div style="background:rgba(247,118,142,0.1);color:#ff6b8a;border:1px solid #6a2440;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;">
