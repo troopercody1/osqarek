@@ -21,6 +21,7 @@ const FEATURES = {
             { key: 'raidModeMinutes', type: 'int', min: 1, max: 1440, default: 10, label: 'Raid mode length (minutes)', desc: 'Raid mode ends this long after the last suspicious join.' },
             { key: 'youngAccountDays', type: 'int', min: 0, max: 365, default: 30, label: 'Only act on accounts younger than (days)', desc: 'During raid mode, older accounts are only flagged. 0 = act on every join.' },
             { key: 'actOnTriggerJoins', type: 'bool', default: true, label: 'Also act on the joins that triggered it', desc: 'Apply the action to the members who tripped the threshold, not just later joins.' },
+            { key: 'lockRoles', type: 'bool', default: true, label: 'Strip role message perms during raid mode', desc: 'Backs up every role\'s Send Messages / thread permissions, removes them, and restores them exactly when raid mode ends. Needs Manage Roles; roles above the bot can\'t be changed.' },
             { key: 'pauseInvites', type: 'bool', default: false, label: 'Pause invites during raid mode', desc: 'Needs Manage Server. Invites are re-enabled when raid mode ends.' },
             { key: 'alertChannel', type: 'channel', default: '', label: 'Alert channel', desc: 'Falls back to the mod log channel.' },
             { key: 'pingRole', type: 'role', default: '', label: 'Role to ping on alert', desc: 'Optional.' },

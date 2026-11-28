@@ -517,6 +517,129 @@
     </div>
 
     <!-- ══════════════════════════════════════
+         STAFF ACCESS
+    ══════════════════════════════════════ -->
+    <% if (typeof staffAccounts !== 'undefined') { %>
+    <div class="section" id="staff">
+        <div class="section-label">Staff Access</div>
+
+        <% if (typeof staffError !== 'undefined' && staffError) { %>
+        <div style="background:rgba(247,118,142,0.1);color:#ff6b8a;border:1px solid #6a2440;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;">
+            ⚠️ <%= staffError %>
+        </div>
+        <% } %>
+
+        <% if (typeof staffFlash !== 'undefined' && staffFlash) { %>
+        <div style="background:#171337;border:1px solid #5865f2;padding:14px 16px;border-radius:10px;font-size:13px;margin-bottom:12px;line-height:1.6;">
+            <div style="color:#f3f1ff;font-weight:600;margin-bottom:6px;"><%= staffFlash.title %></div>
+            Username: <code style="color:#a58bff;"><%= staffFlash.username %></code><br>
+            Password: <code style="color:#a58bff;"><%= staffFlash.password %></code>
+            <div style="color:#8f8abf;font-size:12px;margin-top:8px;">
+                <%= staffFlash.dmOk ? '📬 The bot DMed them these details.' : (staffFlash.noDm ? '⚠️ This login has no Discord ID linked, so nothing was DMed — share these details privately.' : '⚠️ The bot could not DM them (DMs closed) — share these details privately.') %>
+                This is only shown once.
+            </div>
+        </div>
+        <% } %>
+
+        <div class="card">
+            <% staffAccounts.forEach(function (a) { %>
+            <div class="row">
+                <div class="row-icon" style="background:#1e1a45;"><span style="color:#d6d2f5;"><%= a.rank === 'owner' ? '👑' : (a.rank === 'admin' ? '🛡️' : '👤') %></span></div>
+                <div class="row-body">
+                    <div class="row-title"><%= a.username %><%= a.isSelf ? ' (you)' : '' %></div>
+                    <div class="row-desc">
+                        <%= a.discordId ? ((a.discordTag ? a.discordTag + ' · ' : '') + a.discordId) : 'No Discord account linked' %><%= a.pending ? ' · must set a new password at next login' : '' %>
+                    </div>
+                </div>
+                <div class="row-end">
+                    <% if (a.rank === 'owner') { %>
+                    <span class="badge badge-info" title="Ownership can't be revoked">Owner · protected</span>
+                    <% } else if (a.rank === 'admin') { %>
+                    <span class="badge badge-info">Admin</span>
+                    <% } else { %>
+                    <span class="badge badge-live">Mod</span>
+                    <% } %>
+                    <% if (a.canEdit) { %>
+                    <button type="button" class="btn" onclick="toggleDrawer('staff-edit-<%= a.id %>','staff-edit-chevron-<%= a.id %>')">Edit</button>
+                    <span id="staff-edit-chevron-<%= a.id %>" style="display:none;"></span>
+                    <% } %>
+                    <% if (a.canRevoke) { %>
+                    <form action="/settings/staff/revoke" method="POST" style="display:contents;"
+                          onsubmit="return confirm('Revoke <%= a.username %>? They will be signed out immediately and the bot will DM them.')"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <input type="hidden" name="id" value="<%= a.id %>">
+                        <button type="submit" class="btn btn-danger">Revoke</button>
+                    </form>
+                    <% } %>
+                </div>
+            </div>
+            <% if (a.canEdit) { %>
+            <div class="drawer" id="staff-edit-<%= a.id %>">
+                <form action="/settings/staff/edit" method="POST" style="display:contents;" autocomplete="off"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="hidden" name="id" value="<%= a.id %>">
+                    <label>Username</label>
+                    <input type="text" name="username" value="<%= a.username %>" minlength="3" maxlength="24" required autocomplete="off">
+                    <label>Discord user ID <span style="color:#6f6a9c;">(blank unlinks the login from Discord)</span></label>
+                    <input type="text" name="discordId" value="<%= a.discordId || '' %>" placeholder="17-20 digit ID (Developer Mode → Copy User ID)" inputmode="numeric" pattern="\d{17,20}" autocomplete="off">
+                    <label>New password <span style="color:#6f6a9c;">(leave blank to keep the current one)</span></label>
+                    <input type="text" name="newPassword" placeholder="Exactly 6 numbers" inputmode="numeric" pattern="\d{6}" maxlength="6" autocomplete="off">
+                    <label style="display:flex;align-items:center;gap:8px;margin-top:14px;color:#d6d2f5;font-size:13px;cursor:pointer;">
+                        <input type="checkbox" name="requireReset" style="width:auto;margin:0;" <%= a.pending ? 'checked' : '' %>>
+                        Require a password reset on next login
+                    </label>
+                    <div class="row-desc" style="margin-top:10px;">Changing a password signs that login out everywhere. If the login has a Discord ID, the bot DMs them what changed.</div>
+                    <div class="row-actions">
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                        <button type="button" class="btn" onclick="toggleDrawer('staff-edit-<%= a.id %>','staff-edit-chevron-<%= a.id %>')">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            <% } %>
+            <% }) %>
+
+            <% if (staffAssignable.length) { %>
+            <!-- Add staff -->
+            <div class="row">
+                <div class="row-icon" style="background:#1e1a45;"><span style="color:#d6d2f5;">&#10133;</span></div>
+                <div class="row-body">
+                    <div class="row-title">Add staff login</div>
+                    <div class="row-desc">Tied to a Discord user ID — the bot DMs them their login</div>
+                </div>
+                <div class="row-end">
+                    <span class="chevron" id="staff-chevron" onclick="toggleDrawer('staff-drawer','staff-chevron')">&#8964;</span>
+                </div>
+            </div>
+            <div class="drawer" id="staff-drawer">
+                <form action="/settings/staff/add" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <label>Username</label>
+                    <input type="text" name="username" placeholder="e.g. jamie" minlength="3" maxlength="24" pattern="[A-Za-z0-9_.\-]{3,24}" required autocomplete="off">
+                    <label>Discord user ID</label>
+                    <input type="text" name="discordId" placeholder="17-20 digit ID (Developer Mode → Copy User ID)" inputmode="numeric" pattern="\d{17,20}" required autocomplete="off">
+                    <label>Rank</label>
+                    <select name="rank">
+                        <% staffAssignable.slice().reverse().forEach(function (r) { %>
+                        <option value="<%= r %>" <%= r === 'mod' ? 'selected' : '' %>><%= rankLabel[r] %></option>
+                        <% }) %>
+                    </select>
+                    <div class="row-desc" style="margin-top:10px;">
+                        A random 6-digit temporary password is generated. They set their own on first login.
+                        <% if (staffAssignable.length > 1) { %>
+                        Owners can add owners, admins and mods (ownership can never be revoked). Admins can add mods. Mods only get the dashboard, not Settings.
+                        <% } else { %>
+                        As an admin you can add mods. Mods only get the dashboard, not Settings.
+                        <% } %>
+                    </div>
+                    <div class="row-actions">
+                        <button type="submit" class="btn btn-primary">Create &amp; DM</button>
+                        <button type="button" class="btn" onclick="toggleDrawer('staff-drawer','staff-chevron')">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            <% } %>
+        </div>
+    </div>
+    <% } %>
+
+    <!-- ══════════════════════════════════════
          NOTIFICATIONS
     ══════════════════════════════════════ -->
     <div class="section">

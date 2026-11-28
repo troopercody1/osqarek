@@ -13,24 +13,82 @@ const coOwnerAnswerKey = require('./views/handlers/co-owner-answers.json');
 // single shared ADMIN_PASS. These live in the same database as everything
 // else (db.adminUsers — saved to Redis/database.json via safeSave(), same
 // as settings/cases/bannedWords), not a separate file.
-// Shape: [{ username, password, rank: "admin" | "mod", passwordChanged }]
-// "rank": "admin" can access /settings and the co-owner application review
-// pages; "rank": "mod" (or anything else) can only use the normal dashboard.
+// Shape: [{ id, username, password, rank: "owner" | "admin" | "mod", passwordChanged, discordId, ... }]
+// Ranks (highest first):
+//   owner - full /settings access. Can add owners, admins and mods, edit admins/mods and remove admins/mods.
+//           Ownership can never be revoked from the dashboard (not even by another owner).
+//   admin - full /settings access, but in Staff Access can only add and edit mods.
+//   mod   - normal dashboard only (/config etc.), no /settings.
 // "passwordChanged": false (or missing) forces that account to pick a new
 // password the next time it logs in.
 const DEFAULT_ADMIN_USERS = [
-    { username: 'me', password: '123456', rank: 'admin', passwordChanged: false }
+    { username: 'me', password: '123456', rank: 'owner', passwordChanged: false }
 ];
+const STAFF_RANKS = ['owner', 'admin', 'mod'];
+const RANK_LABEL = { owner: 'Owner', admin: 'Admin', mod: 'Mod' };
+const normalizeRank = (r) => (STAFF_RANKS.includes(r) ? r : 'mod');
 // Returns db.adminUsers, self-healing (like db.bannedWords does) by seeding
-// the default account if the list is ever missing or emptied out.
+// the default account if the list is ever missing or emptied out. Also:
+//  - one-time migration: before owner/admin/mod existed, "admin" was the top, un-revocable rank, so
+//    existing "admin" logins become "owner" (db.staffRanksV2 marks that this has run);
+//  - gives every login a stable `id` so usernames can be edited without breaking sessions.
 function getAdminUsers() {
     if (!Array.isArray(db.adminUsers) || db.adminUsers.length === 0) {
         db.adminUsers = DEFAULT_ADMIN_USERS.map(u => ({ ...u }));
+        db.staffRanksV2 = true;
     }
+    if (!db.staffRanksV2) {
+        db.adminUsers.forEach(u => { if (u.rank === 'admin') u.rank = 'owner'; });
+        db.staffRanksV2 = true;
+    }
+    db.adminUsers.forEach(u => {
+        if (!u.id) u.id = crypto.randomBytes(8).toString('hex');
+        u.rank = normalizeRank(u.rank);
+    });
     return db.adminUsers;
 }
+// True for owner + admin: anyone who may open /settings (and the pages gated with it).
 function isAdminRank(sessionUser) {
-    return sessionUser?.id === 'admin' && sessionUser?.rank === 'admin';
+    return sessionUser?.id === 'admin' && (sessionUser?.rank === 'owner' || sessionUser?.rank === 'admin');
+}
+function isOwnerRank(sessionUser) {
+    return sessionUser?.id === 'admin' && sessionUser?.rank === 'owner';
+}
+// What a staff login of rank `actorRank` may do in Settings -> Staff Access.
+function assignableRanks(actorRank) {
+    if (actorRank === 'owner') return ['owner', 'admin', 'mod'];
+    if (actorRank === 'admin') return ['mod'];
+    return [];
+}
+function canRevokeStaff(actor, target) {
+    return actor?.rank === 'owner' && target.rank !== 'owner'; // ownership is never revocable
+}
+function canEditStaff(actor, target) {
+    if (!actor) return false;
+    if (actor.id === target.id) return true;
+    if (actor.rank === 'owner') return target.rank !== 'owner'; // owners can't edit other owners
+    if (actor.rank === 'admin') return target.rank === 'mod';
+    return false;
+}
+
+// --- Staff credentials (managed from /settings → Staff Access) ---
+// Each staff login is a db.adminUsers entry:
+//   { username, password, rank, passwordChanged, discordId, discordTag, createdBy, createdAt }
+// `discordId` is the Discord user the credential belongs to; the bot DMs that user when the login is
+// added, edited or revoked. Owner logins can't be revoked from the dashboard (the revoke route refuses
+// them), so nobody can lock the owners out.
+const STAFF_USERNAME_RE = /^[A-Za-z0-9_.-]{3,24}$/;
+const DISCORD_ID_RE = /^\d{17,20}$/;
+// Sends a DM from the bot. Returns false (never throws) if the user has DMs closed / can't be found.
+async function dmStaffMember(discordId, payload) {
+    try {
+        const user = await client.users.fetch(discordId);
+        await user.send(payload);
+        return true;
+    } catch (err) {
+        console.error(`⚠️ [staff] Could not DM ${discordId}:`, err.message);
+        return false;
+    }
 }
 
 // Dashboard mailbox (IMAP read + SMTP reply) and the status-alert email helper.
@@ -329,6 +387,25 @@ app.use((req, res, next) => {
     if (wantsJson) return res.status(403).json({ error: 'Invalid or missing CSRF token. Reload the page and try again.' });
     return res.status(403).send('Invalid or missing CSRF token. Go back, reload the page, and try again.');
 });
+// A revoked staff login must stop working at once, not when its session cookie expires: any session that
+// came from a local staff login is checked against db.adminUsers on every request.
+app.use((req, res, next) => {
+    const sess = req.session;
+    if (sess?.user?.id === 'admin' && sess.isHeadAdmin) {
+        const account = getAdminUsers().find(u => sess.staffId ? u.id === sess.staffId : u.username === sess.user.username);
+        if (!account) return sess.destroy(() => res.redirect('/login?msg=Your+access+has+been+revoked'));
+        // Someone else changed this login's password: end the old session.
+        if (sess.staffEpoch !== undefined && (account.sessionEpoch || 0) !== sess.staffEpoch) {
+            return sess.destroy(() => res.redirect('/login?msg=Your+login+was+changed.+Please+sign+in+again'));
+        }
+        // Keep the session in step with the account (username edits, rank).
+        sess.staffId = account.id;
+        if (sess.staffEpoch === undefined) sess.staffEpoch = account.sessionEpoch || 0;
+        sess.user.username = account.username;
+        sess.user.rank = account.rank;
+    }
+    next();
+});
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
@@ -404,6 +481,9 @@ app.use((req, res, next) => {
         maintenanceWhitelist.push('/settings/discord-webhook');
         maintenanceWhitelist.push('/settings/flush-sessions');
         maintenanceWhitelist.push('/settings/reset');
+        maintenanceWhitelist.push('/settings/staff/add');
+        maintenanceWhitelist.push('/settings/staff/revoke');
+        maintenanceWhitelist.push('/settings/staff/edit');
     }
     const isMailPath = isAdminRank(req.session?.user) && (req.path === '/settings/mail' || req.path.startsWith('/settings/mail/'));
 
@@ -1077,15 +1157,17 @@ app.post('/auth/verify-admin', (req, res) => {
         crypto.timingSafeEqual(Buffer.from(submittedPassword), Buffer.from(expectedPassword));
 
     if (valid) {
-        const rank = account.rank === 'admin' ? 'admin' : 'mod';
+        const rank = normalizeRank(account.rank);
         req.session.user = { id: 'admin', username: account.username, rank, avatar: null };
         req.session.isHeadAdmin = true;
+        req.session.staffId = account.id;
+        req.session.staffEpoch = account.sessionEpoch || 0;
         req.session.mustChangePassword = account.passwordChanged !== true;
 
         if (req.session.mustChangePassword) {
             return res.redirect('/auth/change-password');
         }
-        res.redirect(rank === 'admin' ? '/settings' : '/config');
+        res.redirect(isAdminRank(req.session.user) ? '/settings' : '/config');
     } else {
         res.redirect('/auth/admin?error=Invalid+Username+or+Password');
     }
@@ -1131,12 +1213,22 @@ app.post('/auth/change-password', async (req, res) => {
     }
 
     req.session.mustChangePassword = false;
-    res.redirect(req.session.user.rank === 'admin' ? '/settings?msg=Password+updated' : '/config?msg=Password+updated');
+    res.redirect(isAdminRank(req.session.user) ? '/settings?msg=Password+updated' : '/config?msg=Password+updated');
 });
 
 app.get('/settings', (req, res) => {
     if (isAdminRank(req.session.user)) {
-        res.render('settings', { user: req.session.user, settings: db.settings || {}, bannedWords: db.bannedWords || [], msg: req.query.msg || null, coOwnerApplicationCount: (db.coOwnerApplications || []).length, modApplicationCount: (db.modApplications || []).length, mailConfigured: mailbox.isConfigured(), mailUser: (process.env.MAIL_USER || '').trim(), supportOpenCount: supportThreads.countOpen(db.supportRequests), supportTotalCount: (db.supportRequests || []).length });
+        const staffFlash = req.session.staffFlash || null; // shown once, then cleared
+        delete req.session.staffFlash;
+        const accounts = getAdminUsers();
+        const actor = accounts.find(u => u.id === req.session.staffId) || { id: null, rank: req.session.user.rank };
+        const staffAccounts = accounts.map(u => ({
+            id: u.id, username: u.username, rank: u.rank, discordId: u.discordId || null, discordTag: u.discordTag || null,
+            pending: u.passwordChanged !== true, isSelf: u.id === actor.id,
+            canEdit: canEditStaff(actor, u), canRevoke: canRevokeStaff(actor, u)
+        }));
+        const staffAssignable = assignableRanks(actor.rank);
+        res.render('settings', { staffAccounts, staffAssignable, rankLabel: RANK_LABEL, staffFlash, staffError: String(req.query.staffErr || '').slice(0, 200) || null, user: req.session.user, settings: db.settings || {}, bannedWords: db.bannedWords || [], msg: req.query.msg || null, coOwnerApplicationCount: (db.coOwnerApplications || []).length, modApplicationCount: (db.modApplications || []).length, mailConfigured: mailbox.isConfigured(), mailUser: (process.env.MAIL_USER || '').trim(), supportOpenCount: supportThreads.countOpen(db.supportRequests), supportTotalCount: (db.supportRequests || []).length });
     } else res.status(403).send("<h1>403 Forbidden</h1><p>Access denied.</p>");
 });
 
@@ -1853,6 +1945,206 @@ app.post('/settings/reset', async (req, res) => {
     db.settings = {};
     await db.save();
     res.redirect('/settings?msg=Settings+reset+to+defaults');
+});
+
+// --- STAFF CREDENTIALS (Settings → Staff Access) ---
+// Who can do what (see canEditStaff / canRevokeStaff / assignableRanks near the top of this file):
+//   Owner: add owners/admins/mods, edit admins/mods (and themselves), remove admins/mods. Ownership is never revocable.
+//   Admin: add mods, edit mods (and themselves). Can't remove anyone.
+//   Mod:   no access to this page.
+// Add: creates a login of the chosen rank tied to a Discord user ID with a random 6-digit temporary password
+// (they must change it on first login) and DMs them. Edit: username, Discord ID, password, "require reset on
+// next login". Revoke: deletes the login, ends its live sessions (see the session check middleware) and DMs them.
+const staffBack = (res, { err = null, msg = null } = {}) =>
+    res.redirect('/settings?' + (err ? 'staffErr=' + encodeURIComponent(err) : 'msg=' + encodeURIComponent(msg || 'Done')) + '#staff');
+const currentStaff = (req) => getAdminUsers().find(u => u.id === req.session?.staffId) || null;
+
+app.post('/settings/staff/add', async (req, res) => {
+    const actor = currentStaff(req);
+    const allowedRanks = isAdminRank(req.session.user) && actor ? assignableRanks(actor.rank) : [];
+    if (allowedRanks.length === 0) return res.status(403).send("Forbidden");
+    const username = String(req.body.username || '').trim();
+    const discordId = String(req.body.discordId || '').trim();
+    const rank = String(req.body.rank || 'mod').trim();
+
+    if (!allowedRanks.includes(rank)) return staffBack(res, { err: "You don't have permission to create that rank." });
+    if (!STAFF_USERNAME_RE.test(username)) return staffBack(res, { err: 'Username must be 3-24 characters: letters, numbers, dot, dash or underscore.' });
+    if (!DISCORD_ID_RE.test(discordId)) return staffBack(res, { err: 'Enter a valid Discord user ID (17-20 digits).' });
+
+    const accounts = getAdminUsers();
+    if (accounts.some(u => u.username.toLowerCase() === username.toLowerCase())) return staffBack(res, { err: 'That username is already taken.' });
+    if (accounts.some(u => u.discordId === discordId)) return staffBack(res, { err: 'That Discord user already has a login.' });
+
+    let discordUser;
+    try { discordUser = await client.users.fetch(discordId); }
+    catch { return staffBack(res, { err: "Couldn't find a Discord user with that ID." }); }
+    if (discordUser.bot) return staffBack(res, { err: 'Bots can\'t be given a staff login.' });
+
+    const tempPassword = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+    const account = {
+        id: crypto.randomBytes(8).toString('hex'),
+        username, password: tempPassword, rank, passwordChanged: false,
+        discordId, discordTag: discordUser.tag || discordUser.username,
+        createdBy: req.session.user.username, createdAt: Date.now()
+    };
+    accounts.push(account);
+    try { await db.save(); }
+    catch (err) {
+        accounts.splice(accounts.indexOf(account), 1);
+        console.error('❌ [staff add] Failed to save:', err.message);
+        return staffBack(res, { err: 'Could not save the new login. Please try again.' });
+    }
+
+    const dmOk = await dmStaffMember(discordId, {
+        embeds: [new EmbedBuilder()
+            .setColor(0x5865F2)
+            .setTitle(`🛡️ You've been added as ${RANK_LABEL[rank]}`)
+            .setDescription(`You now have a **${RANK_LABEL[rank]}** login for the **${client?.user?.username || 'bot'}** dashboard.`)
+            .addFields(
+                { name: 'Login page', value: `${PUBLIC_BASE_URL}/auth/admin` },
+                { name: 'Username', value: `\`${username}\``, inline: true },
+                { name: 'Temporary password', value: `||${tempPassword}||`, inline: true },
+                { name: 'First login', value: 'You\'ll be asked to choose your own 6-digit password. Don\'t share these details.' }
+            )
+            .setFooter({ text: `Added by ${req.session.user.username}` })
+            .setTimestamp()],
+        allowedMentions: { parse: [] }
+    });
+    // The temp password is shown to the admin ONCE (kept out of the URL) in case the DM couldn't be delivered.
+    req.session.staffFlash = { title: `New ${RANK_LABEL[rank]} login for ${account.discordTag}`, username, password: tempPassword, dmOk };
+    console.log(`🛡️ [staff] ${req.session.user.username} added ${rank} login "${username}" (${discordId}); DM ${dmOk ? 'sent' : 'FAILED'}.`);
+    return staffBack(res, { msg: `${RANK_LABEL[rank]} login "${username}" created${dmOk ? ' and DM sent' : ' (could not DM them - share the details below)'}` });
+});
+
+app.post('/settings/staff/edit', async (req, res) => {
+    const actor = currentStaff(req);
+    if (!actor || !isAdminRank(req.session.user)) return res.status(403).send("Forbidden");
+    const accounts = getAdminUsers();
+    const target = accounts.find(u => u.id === String(req.body.id || ''));
+    if (!target) return staffBack(res, { err: 'That login no longer exists.' });
+    if (!canEditStaff(actor, target)) return staffBack(res, { err: "You don't have permission to edit that login." });
+
+    const username = String(req.body.username ?? '').trim();
+    const discordId = String(req.body.discordId ?? '').trim();
+    const newPassword = String(req.body.newPassword ?? '');
+    const requireReset = req.body.requireReset === 'on';
+
+    const usernameChanged = username !== target.username;
+    const discordChanged = discordId !== (target.discordId || '');
+    const passwordChanged = newPassword !== '';
+    const resetChanged = requireReset && target.passwordChanged === true;
+
+    // Usernames are only validated when they change (older logins such as "me" predate the pattern).
+    if (usernameChanged) {
+        if (!STAFF_USERNAME_RE.test(username)) return staffBack(res, { err: 'Username must be 3-24 characters: letters, numbers, dot, dash or underscore.' });
+        if (accounts.some(u => u.id !== target.id && u.username.toLowerCase() === username.toLowerCase())) return staffBack(res, { err: 'That username is already taken.' });
+    }
+    let discordTag = target.discordTag || null;
+    if (discordChanged) {
+        if (discordId === '') {
+            discordTag = null; // blank removes the link
+        } else {
+            if (!DISCORD_ID_RE.test(discordId)) return staffBack(res, { err: 'Enter a valid Discord user ID (17-20 digits), or leave it blank to unlink.' });
+            if (accounts.some(u => u.id !== target.id && u.discordId === discordId)) return staffBack(res, { err: 'That Discord user already has a login.' });
+            let discordUser;
+            try { discordUser = await client.users.fetch(discordId); }
+            catch { return staffBack(res, { err: "Couldn't find a Discord user with that ID." }); }
+            if (discordUser.bot) return staffBack(res, { err: 'Bots can\'t be given a staff login.' });
+            discordTag = discordUser.tag || discordUser.username;
+        }
+    }
+    if (passwordChanged && !/^\d{6}$/.test(newPassword)) return staffBack(res, { err: 'Password must be exactly 6 numbers.' });
+
+    if (!usernameChanged && !discordChanged && !passwordChanged && !resetChanged) {
+        return staffBack(res, { msg: `No changes made to "${target.username}"` });
+    }
+
+    const KEYS = ['username', 'password', 'passwordChanged', 'discordId', 'discordTag', 'sessionEpoch'];
+    const before = Object.fromEntries(KEYS.map(k => [k, target[k]]));
+    const oldUsername = target.username;
+    if (usernameChanged) target.username = username;
+    if (discordChanged) { target.discordId = discordId || undefined; target.discordTag = discordTag || undefined; }
+    if (passwordChanged) {
+        target.password = newPassword;
+        target.sessionEpoch = (target.sessionEpoch || 0) + 1; // signs out the old sessions of that login
+    }
+    if (requireReset) target.passwordChanged = false; // they must pick their own password at next login
+    try { await db.save(); }
+    catch (err) {
+        KEYS.forEach(k => { target[k] = before[k]; });
+        console.error('❌ [staff edit] Failed to save:', err.message);
+        return staffBack(res, { err: 'Could not save the changes. Please try again.' });
+    }
+    // Editing your own login must not sign you out.
+    if (target.id === actor.id && passwordChanged) req.session.staffEpoch = target.sessionEpoch;
+
+    const changes = [];
+    if (usernameChanged) changes.push(`username → ${username}`);
+    if (discordChanged) changes.push(discordId ? 'Discord ID updated' : 'Discord ID unlinked');
+    if (passwordChanged) changes.push('password changed');
+    if (requireReset) changes.push('must reset password at next login');
+
+    // DM the login's owner (not when someone edits their own login).
+    let dmOk = null;
+    if (target.id !== actor.id && target.discordId) {
+        const fields = [];
+        if (usernameChanged) fields.push({ name: 'New username', value: `\`${username}\``, inline: true });
+        if (passwordChanged) fields.push({ name: 'New password', value: `||${newPassword}||`, inline: true });
+        if (requireReset) fields.push({ name: 'Next login', value: 'You\'ll be asked to choose your own 6-digit password.' });
+        if (discordChanged) fields.push({ name: 'Discord link', value: 'This staff login is now linked to your Discord account.' });
+        dmOk = await dmStaffMember(target.discordId, {
+            embeds: [new EmbedBuilder()
+                .setColor(0xFEE75C)
+                .setTitle('🛡️ Your staff login was updated')
+                .setDescription(`Your **${RANK_LABEL[target.rank]}** login for the **${client?.user?.username || 'bot'}** dashboard was changed.`)
+                .addFields(fields.length ? fields : [{ name: 'Changes', value: changes.join('\n') }])
+                .addFields({ name: 'Login page', value: `${PUBLIC_BASE_URL}/auth/admin` })
+                .setFooter({ text: `Updated by ${req.session.user.username}` })
+                .setTimestamp()],
+            allowedMentions: { parse: [] }
+        });
+    }
+    if (passwordChanged && target.id !== actor.id) {
+        // Shown once, kept out of the URL, in case the DM couldn't be delivered.
+        req.session.staffFlash = { title: `Password changed for ${target.discordTag || target.username}`, username: target.username, password: newPassword, dmOk: dmOk === true, noDm: dmOk === null };
+    }
+    console.log(`🛡️ [staff] ${req.session.user.username} edited login "${oldUsername}" (${changes.join(', ')}); DM ${dmOk === null ? 'n/a' : dmOk ? 'sent' : 'FAILED'}.`);
+    return staffBack(res, { msg: `Updated "${target.username}": ${changes.join(', ')}${dmOk === true ? ' · DM sent' : dmOk === false ? ' · could not DM them' : ''}` });
+});
+
+app.post('/settings/staff/revoke', async (req, res) => {
+    const actor = currentStaff(req);
+    if (!actor || !isAdminRank(req.session.user)) return res.status(403).send("Forbidden");
+    const accounts = getAdminUsers();
+    const index = accounts.findIndex(u => u.id === String(req.body.id || ''));
+    if (index === -1) return staffBack(res, { err: 'That login no longer exists.' });
+    const account = accounts[index];
+    if (account.rank === 'owner') return staffBack(res, { err: 'Ownership can\'t be revoked.' });
+    if (!canRevokeStaff(actor, account)) return staffBack(res, { err: 'Only owners can remove staff logins.' });
+
+    accounts.splice(index, 1);
+    try { await db.save(); }
+    catch (err) {
+        accounts.splice(index, 0, account);
+        console.error('❌ [staff revoke] Failed to save:', err.message);
+        return staffBack(res, { err: 'Could not save the change. Please try again.' });
+    }
+
+    const username = account.username;
+    let dmOk = null;
+    if (account.discordId) {
+        dmOk = await dmStaffMember(account.discordId, {
+            embeds: [new EmbedBuilder()
+                .setColor(0xED4245)
+                .setTitle('🛡️ Your staff access was revoked')
+                .setDescription(`Your staff login for the **${client?.user?.username || 'bot'}** dashboard has been removed. You can no longer sign in with it.`)
+                .setFooter({ text: `Revoked by ${req.session.user.username}` })
+                .setTimestamp()],
+            allowedMentions: { parse: [] }
+        });
+    }
+    console.log(`🛡️ [staff] ${req.session.user.username} revoked ${account.rank} login "${username}"; DM ${dmOk === null ? 'n/a (no Discord ID)' : dmOk ? 'sent' : 'FAILED'}.`);
+    return staffBack(res, { msg: `Revoked "${username}"${dmOk === true ? ' and DM sent' : dmOk === false ? ' (could not DM them)' : ''}` });
 });
 
 

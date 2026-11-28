@@ -5,10 +5,13 @@
 //   /drill end                       – ends a running drill early
 //   /mod lockdown scope:Server       – really locks / unlocks every text channel for @everyone (every role's saved perms are restored)
 //   /mod lockdown scope:Channel      – really locks / unlocks one channel (the `channel` option, default: the current one)
+// Drills and server lockdowns ALSO back up and strip every role's message permissions (features/rolelock.js) and
+// restore them exactly when they end. Single-channel lockdowns don't touch roles.
 // Everything is implemented as core functions so the slash commands and the dashboard share the same code.
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const context = require('./context');
 const actions = require('./actions');
+const rolelock = require('./rolelock');
 const { store, brandEmbed, recordEvent, truncate, ts, formatDuration } = require('./util');
 
 const DEFAULT_DRILL_MINUTES = 5;
@@ -82,7 +85,7 @@ function data() {
 
 function status() {
     const d = data();
-    return { server: d.server, channels: d.channels, last: d.last, busy };
+    return { server: d.server, channels: d.channels, last: d.last, busy, roles: rolelock.status() };
 }
 
 const mention = (ch) => `<#${ch.id}>`;
@@ -244,11 +247,12 @@ async function startDrill({ guild, kind, minutes, actor, dm = null }) {
         d.server = { active: true, since: Date.now(), by: actor.tag, reason: label, saved: {}, drill: { kind, endsAt, minutes: mins, messages } };
         await context.get().safeSave();
         const lock = await lockAll(guild, d.server.saved, auditReason);
+        const roles = await rolelock.acquire(guild, 'drill', { reason: auditReason });
 
         const sent = Object.keys(messages).length;
-        d.last = { type: 'drill', kind, label, at: Date.now(), by: actor.tag, endsAt, sent, total: targets.length, locked: lock.locked, failed: [...postFailed, ...lock.failed].slice(0, 20), text: drillText(kind, endsAt), ended: false };
+        d.last = { type: 'drill', kind, label, at: Date.now(), by: actor.tag, endsAt, sent, total: targets.length, locked: lock.locked, rolesStripped: roles.stripped, failed: [...postFailed, ...lock.failed, ...roles.failed].slice(0, 20), text: drillText(kind, endsAt), ended: false };
         recordEvent(db, 'drill', `${label} started by ${actor.tag} — posted to ${sent}/${targets.length} channels, locked ${lock.locked}, ends in ${mins}m`);
-        logAction(guild, `🧪 ${label} started`, `**Run by:** ${actor.tag}\n**Posted to:** ${sent}/${targets.length} channels\n**Channels locked:** ${lock.locked}\n**Ends:** ${ts(endsAt)} — server unlocks and drill messages are deleted automatically`, DRILLS[kind].color);
+        logAction(guild, `🧪 ${label} started`, `**Run by:** ${actor.tag}\n**Posted to:** ${sent}/${targets.length} channels\n**Channels locked:** ${lock.locked}\n**Roles stripped of message perms:** ${roles.ok ? roles.stripped : 'failed'}\n**Ends:** ${ts(endsAt)} — server unlocks, role perms are restored and drill messages are deleted automatically`, DRILLS[kind].color);
         context.bus.emit('drill:start', { kind });
         await context.get().safeSave();
 
@@ -258,7 +262,8 @@ async function startDrill({ guild, kind, minutes, actor, dm = null }) {
 
         const lines = [
             `🧪 **${label} running.** Posted to **${sent}/${targets.length}** channels and locked **${lock.locked}** channels.`,
-            `⏱️ Ends ${ts(endsAt)} — the server unlocks and the drill messages are deleted automatically (or run \`/drill end\`).`,
+            roles.msg,
+            `⏱️ Ends ${ts(endsAt)} — the server unlocks, role permissions are restored and the drill messages are deleted automatically (or run \`/drill end\`).`,
             postFailed.length || lock.failed.length ? `⚠️ Problems: ${truncate([...postFailed, ...lock.failed].join(', '), 700)}` : '',
             dm ? (dmOk ? '📬 I also DMed you a copy of the message.' : '⚠️ I couldn\'t DM you a copy (DMs closed).') : '',
         ].filter(Boolean);
@@ -281,6 +286,7 @@ async function endDrill({ guild, by = 'timer' }) {
 
         // 1. Unlock everything.
         const un = await unlockAll(guild, d.server.saved, auditReason);
+        const roles = await rolelock.release(guild, 'drill', { reason: auditReason });
 
         // 2. Delete the drill messages.
         let deleted = 0;
@@ -294,9 +300,9 @@ async function endDrill({ guild, by = 'timer' }) {
         d.server = { active: false };
         if (d.last && d.last.type === 'drill') { d.last.ended = true; d.last.endedAt = Date.now(); d.last.endedBy = by; d.last.deleted = deleted; }
         recordEvent(db, 'drill', `${label} ended (${by}) — unlocked ${un.restored} channels, deleted ${deleted} messages`);
-        logAction(guild, `✅ ${label} ended`, `**Ended by:** ${by}\n**Channels unlocked:** ${un.restored}\n**Drill messages deleted:** ${deleted}`, 0x2ECC71);
+        logAction(guild, `✅ ${label} ended`, `**Ended by:** ${by}\n**Channels unlocked:** ${un.restored}\n**Roles restored:** ${roles.restored}${roles.stillHeld ? ' (still held by another lock)' : ''}\n**Drill messages deleted:** ${deleted}`, 0x2ECC71);
         await context.get().safeSave();
-        return { ok: true, msg: `✅ **${label} ended.** Unlocked **${un.restored}** channels and deleted **${deleted}** drill messages.${un.failed.length ? `\n⚠️ Couldn't restore: ${truncate(un.failed.join(', '), 700)}` : ''}` };
+        return { ok: true, msg: `✅ **${label} ended.** Unlocked **${un.restored}** channels and deleted **${deleted}** drill messages.${un.failed.length ? `\n⚠️ Couldn't restore: ${truncate(un.failed.join(', '), 700)}` : ''}${roles.msg ? `\n${roles.msg}` : ''}` };
     } finally {
         busy = false;
     }
@@ -326,14 +332,16 @@ async function lockServer({ guild, actor, reason }) {
         d.server = { active: true, since: Date.now(), by: actor, reason: reason || null, saved: {} };
         await context.get().safeSave();
         const r = await lockAll(guild, d.server.saved, auditReason);
-        recordEvent(db, 'lockdown', `Server locked down by ${actor} (${r.locked} channels)${reason ? ` — ${reason}` : ''}`);
-        logAction(guild, '🔒 Server Lockdown', `**Moderator:** ${actor}\n**Channels locked:** ${r.locked}${r.skipped ? ` (+${r.skipped} were already locked)` : ''}${reason ? `\n**Reason:** ${reason}` : ''}`, 0xE74C3C);
+        const roles = await rolelock.acquire(guild, 'lockdown', { reason: auditReason });
+        recordEvent(db, 'lockdown', `Server locked down by ${actor} (${r.locked} channels, ${roles.stripped} roles stripped)${reason ? ` — ${reason}` : ''}`);
+        logAction(guild, '🔒 Server Lockdown', `**Moderator:** ${actor}\n**Channels locked:** ${r.locked}${r.skipped ? ` (+${r.skipped} were already locked)` : ''}\n**Roles stripped of message perms:** ${roles.ok ? roles.stripped : 'failed'}${reason ? `\n**Reason:** ${reason}` : ''}`, 0xE74C3C);
         context.bus.emit('lockdown:start', { scope: 'server' });
-        d.last = { type: 'lockdown', label: 'Server lockdown', at: Date.now(), by: actor, locked: r.locked, failed: r.failed.slice(0, 20), ended: false };
+        d.last = { type: 'lockdown', label: 'Server lockdown', at: Date.now(), by: actor, locked: r.locked, rolesStripped: roles.stripped, failed: [...r.failed, ...roles.failed].slice(0, 20), ended: false };
         await context.get().safeSave();
         return { ok: true, msg: [
             `🔒 **Server locked down.** ${r.locked} channel${r.locked === 1 ? '' : 's'} locked for @everyone${r.skipped ? `, ${r.skipped} were already locked` : ''}.`,
             r.failed.length ? `⚠️ Couldn't lock: ${truncate(r.failed.join(', '), 900)}` : '',
+            roles.msg,
             'Roles with their own "Send Messages" allow on a channel can still talk there. Unlock with `/mod lockdown scope:Server status:False`.',
         ].filter(Boolean).join('\n') };
     } finally {
@@ -350,14 +358,16 @@ async function unlockServer({ guild, actor }) {
     busy = true;
     try {
         const un = await unlockAll(guild, d.server.saved, truncate(`Server unlocked by ${actor}`, 400));
+        const roles = await rolelock.release(guild, 'lockdown', { reason: truncate(`Server unlocked by ${actor}`, 400) });
         d.server = { active: false };
         if (d.last && d.last.type === 'lockdown') { d.last.ended = true; d.last.endedAt = Date.now(); d.last.endedBy = actor; }
         recordEvent(db, 'lockdown', `Server unlocked by ${actor} (${un.restored} channels)`);
-        logAction(guild, '🔓 Server Unlock', `**Moderator:** ${actor}\n**Channels restored:** ${un.restored}`, 0x2ECC71);
+        logAction(guild, '🔓 Server Unlock', `**Moderator:** ${actor}\n**Channels restored:** ${un.restored}\n**Roles restored:** ${roles.restored}${roles.stillHeld ? ' (still held by another lock)' : ''}`, 0x2ECC71);
         await context.get().safeSave();
         return { ok: true, msg: [
             `🔓 **Server unlocked.** ${un.restored} channel${un.restored === 1 ? '' : 's'} restored to their exact previous permissions (all roles).`,
             un.failed.length ? `⚠️ Couldn't restore: ${truncate(un.failed.join(', '), 900)}` : '',
+            roles.msg,
         ].filter(Boolean).join('\n') };
     } finally {
         busy = false;

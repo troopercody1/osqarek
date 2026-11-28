@@ -1,7 +1,10 @@
 // Raid protection: sliding-window join-burst detection + raid mode.
+// While raid mode is on (and the "lockRoles" setting is on) every role's message permissions are backed up and
+// stripped (features/rolelock.js), then restored exactly when raid mode ends.
 const { PermissionFlagsBits } = require('discord.js');
 const context = require('./context');
 const actions = require('./actions');
+const rolelock = require('./rolelock');
 const { getConfig } = require('./config');
 const { store, brandEmbed, recordEvent, formatDuration, ts, truncate } = require('./util');
 
@@ -108,6 +111,12 @@ async function startRaidMode(guild, { manual = false, minutes = null, startedBy 
 
     d.state = { active: true, since: now, until: now + lengthMs, manual, incidentId: incident.id, invitesPaused: false };
     if (cfg.pauseInvites) await pauseInvites(guild, d);
+    // Strip role message perms in the background — a big role list takes a while and the alert / actions on raiders must not wait for it.
+    if (cfg.lockRoles) {
+        rolelock.acquire(guild, 'raid', { reason: `Raid mode started${manual ? ` by ${startedBy || 'staff'}` : ' (automatic)'}` })
+            .then(async (r) => { incident.rolesStripped = r.stripped; if (r.failed.length) incident.roleFailures = truncate(r.failed.join(', '), 300); await context.get().safeSave(); })
+            .catch((err) => console.error('❌ Raid: could not strip role permissions:', err.message));
+    }
 
     const sample = trigger.slice(0, 10).map((j) => {
         const u = guild.members.cache.get(j.id)?.user;
@@ -124,6 +133,7 @@ async function startRaidMode(guild, { manual = false, minutes = null, startedBy 
             { name: 'Action on new joins', value: cfg.action === 'alert' ? 'Alert only' : `${cfg.action}${cfg.action === 'timeout' ? ` (${cfg.timeoutMinutes}m)` : ''}${cfg.youngAccountDays > 0 ? ` — accounts under ${cfg.youngAccountDays}d` : ''}`, inline: true },
             { name: 'Ends', value: ts(d.state.until), inline: true },
             { name: 'Invites', value: d.state.invitesPaused ? 'Paused' : 'Unchanged', inline: true },
+            { name: 'Role message perms', value: cfg.lockRoles ? 'Being stripped — restored when raid mode ends' : 'Unchanged', inline: true },
             ...(sample ? [{ name: 'Recent joiners', value: sample }] : []),
         ],
     });
@@ -152,6 +162,8 @@ async function endRaidMode(guild, { by = 'timer' } = {}) {
     await resumeInvites(guild, d);
     d.state = { active: false };
     joins.length = 0;
+    // Always release (even if the setting was switched off mid-raid) so roles can never stay stripped. No-op if raid never took the lock.
+    const roles = await rolelock.release(guild, 'raid', { reason: `Raid mode ended (${by})` }).catch((err) => { console.error('❌ Raid: could not restore role permissions:', err.message); return null; });
 
     if (incident) {
         const embed = brandEmbed({
@@ -163,6 +175,7 @@ async function endRaidMode(guild, { by = 'timer' } = {}) {
                 { name: `${cfg.action === 'alert' ? 'Alerted' : 'Actioned'}`, value: String(incident.actioned), inline: true },
                 { name: 'Flagged only (old accounts)', value: String(incident.flaggedOnly || 0), inline: true },
                 ...(incident.failed ? [{ name: 'Failed', value: `${incident.failed}${incident.lastError ? ` — ${incident.lastError}` : ''}`, inline: true }] : []),
+                ...(roles && (roles.restored || roles.failed.length || roles.stillHeld) ? [{ name: 'Role message perms', value: truncate(roles.msg.replace(/\*\*/g, ''), 900) }] : []),
             ],
         });
         await actions.notify(guild, cfg.alertChannel, { embed });
