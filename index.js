@@ -1,4 +1,5 @@
 process.env.TZ = 'Europe/London';
+const crypto = require('crypto');
 const defaultBannedWords = require('./default-banned-words.js');
 const { commandNames: DEPLOYED_COMMAND_NAMES } = require('./commands');
 const commandHandlers = require('./commands').handlers;
@@ -14,7 +15,7 @@ const coOwnerAnswerKey = require('./views/handlers/co-owner-answers.json');
 // single shared ADMIN_PASS. These live in the same database as everything
 // else (db.adminUsers — saved to Redis/database.json via safeSave(), same
 // as settings/cases/bannedWords), not a separate file.
-// Shape: [{ id, username, password, rank: "owner" | "admin" | "mod", passwordChanged, discordId, ... }]
+// Shape: [{ id, username, password (scrypt hash, never plain text), rank: "owner" | "admin" | "mod", passwordChanged, discordId, ... }]
 // Ranks (highest first):
 //   owner - full /settings access. Can add owners, admins and mods, edit admins/mods and remove admins/mods.
 //           Ownership can never be revoked from the dashboard (not even by another owner).
@@ -28,6 +29,34 @@ const DEFAULT_ADMIN_USERS = [
 const STAFF_RANKS = ['owner', 'admin', 'mod'];
 const RANK_LABEL = { owner: 'Owner', admin: 'Admin', mod: 'Mod' };
 const normalizeRank = (r) => (STAFF_RANKS.includes(r) ? r : 'mod');
+
+// --- Password hashing ---
+// Staff passwords are never stored in plain text: each is kept as "scrypt$<salt hex>$<hash hex>"
+// (Node's built-in scrypt with a random 16-byte salt per password, no extra dependency). Logins compare
+// in constant time. Any plain-text password left over from older versions is hashed automatically by
+// getAdminUsers() (below), so no manual migration is needed.
+const SCRYPT_PREFIX = 'scrypt$';
+const scryptAsync = require('util').promisify(crypto.scrypt);
+const isHashedPassword = (v) => typeof v === 'string' && v.startsWith(SCRYPT_PREFIX);
+function hashPasswordSync(plain) {
+    const salt = crypto.randomBytes(16);
+    return SCRYPT_PREFIX + salt.toString('hex') + '$' + crypto.scryptSync(String(plain), salt, 64).toString('hex');
+}
+async function hashPassword(plain) {
+    const salt = crypto.randomBytes(16);
+    return SCRYPT_PREFIX + salt.toString('hex') + '$' + (await scryptAsync(String(plain), salt, 64)).toString('hex');
+}
+// Never throws; false for a wrong password or a malformed/legacy stored value.
+async function verifyPassword(plain, stored) {
+    if (!isHashedPassword(stored)) return false;
+    const [, saltHex, hashHex] = stored.split('$');
+    if (!saltHex || !hashHex) return false;
+    const expected = Buffer.from(hashHex, 'hex');
+    const actual = await scryptAsync(String(plain), Buffer.from(saltHex, 'hex'), expected.length);
+    return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+}
+// Checked against when the username doesn't exist, so a bad username takes as long as a bad password.
+const DUMMY_PASSWORD_HASH = hashPasswordSync(crypto.randomBytes(8).toString('hex'));
 // Returns db.adminUsers, self-healing (like db.bannedWords does) by seeding
 // the default account if the list is ever missing or emptied out. Also:
 //  - one-time migration: before owner/admin/mod existed, "admin" was the top, un-revocable rank, so
@@ -42,10 +71,18 @@ function getAdminUsers() {
         db.adminUsers.forEach(u => { if (u.rank === 'admin') u.rank = 'owner'; });
         db.staffRanksV2 = true;
     }
+    let hashedLegacy = false;
     db.adminUsers.forEach(u => {
         if (!u.id) u.id = crypto.randomBytes(8).toString('hex');
         u.rank = normalizeRank(u.rank);
+        if (!isHashedPassword(u.password)) { // plain text from an older version (or the seeded default)
+            u.password = hashPasswordSync(u.password == null ? crypto.randomBytes(8).toString('hex') : u.password);
+            hashedLegacy = true;
+        }
     });
+    // Persist right away so the plain text doesn't linger in the database until some unrelated save.
+    // Only once the bot is connected (the real database is loaded by then), never on the empty startup placeholder.
+    if (hashedLegacy && client?.readyAt) Promise.resolve().then(() => safeSave());
     return db.adminUsers;
 }
 // True for owner + admin: anyone who may open /settings (and the pages gated with it).
@@ -138,7 +175,7 @@ if (typeof dns.setDefaultResultOrder === 'function') {
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
+// (crypto is required at the top of the file)
 const express = require('express');
 const dayjs = require('dayjs');
 const relativeTime = require('dayjs/plugin/relativeTime');
@@ -1142,20 +1179,18 @@ app.post('/verify/submit', async (req, res) => {
     }
 });
 
-app.post('/auth/verify-admin', (req, res) => {
+app.post('/auth/verify-admin', async (req, res) => {
     const adminUsers = getAdminUsers();
 
     const submittedUsername = String(req.body.username || '').trim();
-    const submittedPassword = req.body.password || '';
+    const submittedPassword = String(req.body.password || '');
 
     const account = adminUsers.find(u => u.username === submittedUsername);
-    // Constant-time-ish password comparison to avoid trivial timing leaks.
-    // Compares against a same-length dummy buffer when there's no matching
-    // account, so a bad username doesn't short-circuit noticeably faster.
-    const expectedPassword = account ? account.password : '\0'.repeat(submittedPassword.length);
-    const valid = !!account &&
-        submittedPassword.length === expectedPassword.length &&
-        crypto.timingSafeEqual(Buffer.from(submittedPassword), Buffer.from(expectedPassword));
+    // Always runs one scrypt comparison (against a dummy hash when the username is unknown) so a bad
+    // username doesn't answer noticeably faster than a bad password.
+    let valid = false;
+    try { valid = await verifyPassword(submittedPassword, account ? account.password : DUMMY_PASSWORD_HASH) && !!account; }
+    catch (err) { console.error('❌ [verify-admin] Password check failed:', err.message); }
 
     if (valid) {
         const rank = normalizeRank(account.rank);
@@ -1196,15 +1231,15 @@ app.post('/auth/change-password', async (req, res) => {
     }
 
     const adminUsers = getAdminUsers();
-    const account = adminUsers.find(u => u.username === req.session.user.username);
+    const account = adminUsers.find(u => req.session.staffId ? u.id === req.session.staffId : u.username === req.session.user.username);
     if (!account) {
         return res.redirect('/auth/change-password?error=' + encodeURIComponent('Account not found. Please log in again.'));
     }
-    if (newPassword === account.password) {
+    if (await verifyPassword(newPassword, account.password)) {
         return res.redirect('/auth/change-password?error=' + encodeURIComponent('New password cannot be the same as your current password.'));
     }
 
-    account.password = newPassword;
+    account.password = await hashPassword(newPassword);
     account.passwordChanged = true;
     try {
         await safeSave();
@@ -2015,7 +2050,7 @@ app.post('/settings/staff/add', async (req, res) => {
     const tempPassword = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
     const account = {
         id: crypto.randomBytes(8).toString('hex'),
-        username, password: tempPassword, rank, passwordChanged: false,
+        username, password: await hashPassword(tempPassword), rank, passwordChanged: false,
         discordId, discordTag: discordUser.tag || discordUser.username,
         createdBy: req.session.user.username, createdAt: Date.now()
     };
@@ -2097,7 +2132,7 @@ app.post('/settings/staff/edit', async (req, res) => {
     if (usernameChanged) target.username = username;
     if (discordChanged) { target.discordId = discordId || undefined; target.discordTag = discordTag || undefined; }
     if (passwordChanged) {
-        target.password = newPassword;
+        target.password = await hashPassword(newPassword);
         target.sessionEpoch = (target.sessionEpoch || 0) + 1; // signs out the old sessions of that login
     }
     if (requireReset) target.passwordChanged = false; // they must pick their own password at next login
