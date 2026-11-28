@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Help Center — Locked account</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg:#0f0d27; --card:#171337; --line:#2a2561; --txt:#d6d2f5; --dim:#8f8abf; --hero:#a58bff; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Figtree', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--txt); min-height: 100vh; }
+        a { color: var(--hero); text-decoration: none; } a:hover { color: #8ecbff; }
+        h1, h2, h3 { font-family: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif; letter-spacing: -.01em; color: #f3f1ff; }
+        .bar { border-bottom: 1px solid var(--line); background: var(--card); } .bar-in { max-width: 860px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+        .brand { font-weight: 700; color: #f3f1ff; } .brand span { color: var(--dim); font-weight: 500; }
+        .wrap { max-width: 860px; margin: 0 auto; padding: 28px 20px 60px; }
+        .crumb { font-size: 13px; color: var(--dim); margin-bottom: 10px; }
+        h1 { font-size: 26px; margin-bottom: 6px; } .sub { color: var(--dim); font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
+        .flash { padding: 10px 14px; border-radius: 8px; font-size: 13.5px; margin-bottom: 16px; border: 1px solid; }
+        .flash.ok { background: rgba(158,206,106,.1); color: #5fe3a1; border-color: #5fe3a1; } .flash.bad { background: rgba(255,107,138,.1); color: #ff6b8a; border-color: #ff6b8a; }
+        .flash.warn { background: rgba(224,175,104,.08); color: #ffc857; border-color: #5a4a28; }
+        .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+        label { display: block; font-size: 12.5px; color: var(--dim); margin: 12px 0 6px; }
+        input[type=text], textarea, select { width: 100%; background: var(--bg); border: 1px solid var(--line); color: #f3f1ff; padding: 10px 12px; border-radius: 8px; font: inherit; font-size: 14px; }
+        textarea { min-height: 130px; resize: vertical; line-height: 1.5; } input:focus, textarea:focus, select:focus { outline: none; border-color: var(--hero); }
+        .btn { display: inline-block; font: inherit; font-size: 13.5px; font-weight: 600; padding: 9px 16px; border-radius: 8px; border: 1px solid transparent; background: #7c4dff; color: #fff; cursor: pointer; }
+        .btn:hover { background: #6a3df0; color: #fff; } .btn.alt { background: var(--card); border-color: var(--line); color: #f3f1ff; } .btn.alt:hover { background: #1e1a45; }
+        .btn.good { background: #0f2c22; color: #5fe3a1; border-color: #2c4a2c; } .btn.bad { background: rgba(255,107,138,.1); color: #ff6b8a; border-color: #5a2a38; }
+        .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+        .pill { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 99px; white-space: nowrap; }
+        .st-open { background: #211a52; color: #a58bff; } .st-awaiting { background: #33290f; color: #ffc857; } .st-solved { background: #0f2c22; color: #5fe3a1; } .st-lock { background: rgba(255,107,138,.12); color: #ff6b8a; }
+        .post { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; } .post.staff { background: #1c1e2e; }
+        .who { font-size: 13.5px; font-weight: 700; color: #f3f1ff; display: flex; gap: 8px; align-items: center; } .tag { font-size: 10px; padding: 1px 7px; border-radius: 99px; background: #211a52; color: var(--hero); font-weight: 600; }
+        .when { font-size: 11.5px; color: var(--dim); margin: 2px 0 8px; } .body { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.6; color: #f3f1ff; }
+        .event { text-align: center; font-size: 12px; color: var(--dim); padding: 8px; }
+        .hint { font-size: 12px; color: var(--dim); margin-top: 10px; line-height: 1.5; } .hp { position: absolute; left: -9999px; height: 0; overflow: hidden; }
+        .copy { width: 100%; font-family: monospace; font-size: 12px; }
+        .meta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; font-size: 13px; color: var(--dim); }
+        :focus-visible { outline: 2px solid #ffc857; outline-offset: 2px; }
+    </style>
+</head>
+<body>
+<header class="bar"><div class="bar-in">
+    <a class="brand" href="/support"><%= botName %> <span>Help Center</span></a>
+    <span style="flex:1"></span>
+    <a href="/auth/admin">&larr; Back to login</a>
+</div></header>
+
+<div class="wrap">
+<% if (mode === 'form') { %>
+    <div class="crumb"><a href="/support">Help Center</a> &rsaquo; Staff account &rsaquo; Locked login</div>
+    <h1>Locked dashboard account</h1>
+    <p class="sub">Use this form if your staff login is locked and you can't unlock it with a code. Opening a request <b>suspends the account until a dashboard owner unlocks it</b>, and unlocking with a code is switched off meanwhile. Your request gets a reference like <b>SEC-XXXXXX</b>.</p>
+
+    <% if (error) { %><div class="flash bad"><%= error %></div><% } %>
+
+    <form class="card" action="/support/security" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="hp" aria-hidden="true"><label>Website</label><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
+        <label for="u">Staff username</label>
+        <input type="text" id="u" name="username" value="<%= username %>" required maxlength="64" autocomplete="off" autocapitalize="off">
+        <label for="m">What happened?</label>
+        <textarea id="m" name="message" required minlength="10" maxlength="<%= limits.max %>" placeholder="e.g. I forgot my password / I never got my code / this wasn't me."><%= body %></textarea>
+        <p class="hint">Never include your password or login codes. Staff will never ask for them.</p>
+        <div class="actions"><button class="btn" type="submit">Open support request</button></div>
+    </form>
+<% } else { %>
+    <div class="crumb"><a href="/support">Help Center</a> &rsaquo; Locked login &rsaquo; <%= ticket.id %></div>
+    <h1>Support request <%= ticket.id %></h1>
+    <div class="meta">
+        <span class="pill st-<%= ticket.status %>"><%= STATUS_LABEL[ticket.status] %></span>
+        <span>Login: <b style="color:#f3f1ff"><%= ticket.username %></b></span>
+        <span>Opened <%= new Date(ticket.createdAt).toLocaleString('en-GB') %></span>
+        <span>Last activity <%= new Date(ticket.updatedAt).toLocaleString('en-GB') %></span>
+    </div>
+
+    <% if (isNew) { %>
+    <div class="flash ok">Request opened. <b>Save this page's link</b> — it is the only way to read replies<%= (account && account.discordId) ? ' (we also sent it to your Discord DMs)' : ' (no Discord is linked to this login, so we could not DM it)' %>. Don't share it.</div>
+    <% } %>
+    <% if (msg) { %><div class="flash ok"><%= msg %></div><% } %>
+    <% if (error) { %><div class="flash bad"><%= error %></div><% } %>
+
+    <% if (account && locked) { %>
+    <div class="flash warn">&#128274; Your account is <b>suspended</b>. A dashboard owner has to unlock it. After that, log in with your current password and you will be asked to set a new one.</div>
+    <% } else if (account && ticket.createdBy === 'member') { %>
+    <div class="flash ok">&#128275; Your account was unlocked. Log in with your current password, then set a new password when asked. <a href="/auth/admin">Go to login</a></div>
+    <% } %>
+
+    <% ticket.messages.forEach(function (m) { %>
+        <% if (m.from === 'event') { %>
+            <div class="event"><%= m.body %> &middot; <%= new Date(m.at).toLocaleString('en-GB') %></div>
+        <% } else if (m.from === 'staff') { %>
+            <div class="post staff"><div class="who">&#128172; <%= botName %> Support <span class="tag">Staff</span></div><div class="when"><%= new Date(m.at).toLocaleString('en-GB') %></div><div class="body"><%= m.body %></div></div>
+        <% } else { %>
+            <div class="post"><div class="who"><%= ticket.username %> <span class="tag">You</span></div><div class="when"><%= new Date(m.at).toLocaleString('en-GB') %></div><div class="body"><%= m.body %></div></div>
+        <% } %>
+    <% }) %>
+
+    <form class="card" action="/support/security/<%= ticket.id %>/reply" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="key" value="<%= ticket.key %>">
+        <h3 style="font-size:16px;margin-bottom:6px;"><%= ticket.status === 'solved' ? 'Need more help?' : 'Add a reply' %></h3>
+        <% if (ticket.status === 'solved') { %><p class="hint" style="margin:0 0 8px;">This request is solved. Replying reopens it.</p><% } %>
+        <textarea name="body" required maxlength="<%= limits.max %>" placeholder="Write your reply…"></textarea>
+        <p class="hint">Never include passwords or login codes.</p>
+        <div class="actions"><button class="btn" type="submit"><%= ticket.status === 'solved' ? 'Reply and reopen' : 'Send reply' %></button></div>
+    </form>
+<% } %>
+</div>
+</body>
+</html>
