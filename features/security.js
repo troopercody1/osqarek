@@ -545,7 +545,11 @@ function closeTicketsFor(account, text) {
     }
 }
 // Dashboard owners with a Discord ID + the bot support team.
+// Off by default: new SEC- requests and replies are posted to the mod log (no DMs to every owner/support member).
+// Set SECURITY_TICKET_DM_OWNERS=true to bring the old DM-everyone behaviour back.
+const DM_OWNERS_ON_TICKETS = String(process.env.SECURITY_TICKET_DM_OWNERS || 'false').toLowerCase() === 'true';
 async function notifyOwners(payload) {
+    if (!DM_OWNERS_ON_TICKETS) return;
     const c = ctxOrNull();
     const ids = new Set(supportIds());
     for (const a of (c?.getAdminUsers?.() || [])) if (a.rank === 'owner' && a.discordId) ids.add(String(a.discordId));
@@ -696,6 +700,7 @@ function registerSupportPages(ctx) {
         addTicketMessage(ticket, 'member', ticket.username, body);
         ticket.status = 'open';
         await persist();
+        logToModLog('💬 Security Request Reply', `**${ticket.username}** replied on **${ticket.id}**.\n${staffLink(ticket)}`, 0x5865F2);
         notifyOwners(ticketEmbed(`💬 ${ticket.id}: new message`, `**${ticket.username}** replied:\n\n> ${truncate(body, 600)}\n\n${staffLink(ticket)}`)).catch(() => { });
         res.redirect(`/support/security/${ticket.id}?sent=1`);
     });
