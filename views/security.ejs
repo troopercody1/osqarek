@@ -72,7 +72,7 @@
 <div class="page">
     <a href="/settings" class="back">&larr; Settings</a>
     <h1>Account security</h1>
-    <p class="page-sub">Owners only. A login locks after 3 failed password attempts and stays locked until it is unlocked here, with <code>/security unlock</code> in Discord, or (if enabled) with a code DM'd to its owner.</p>
+    <p class="page-sub">Owners only. A login locks after 3 failed password attempts and stays locked until it is unlocked here, with <code>/security unlock</code> in Discord, or (if enabled) with a code DM'd to its owner. A locked member who opens a support request (SEC-) is suspended until an owner unlocks them here.</p>
 
     <% if (msg) { %><div class="flash ok"><%= msg %></div><% } %>
     <% if (err) { %><div class="flash bad"><%= err %></div><% } %>
@@ -94,8 +94,10 @@
                 </div>
                 <% } %>
             </div>
+            <% if (a.openTicket) { %><a class="btn" href="/settings/security/ticket/<%= a.openTicket %>"><%= a.openTicket %></a><% } %>
+            <a class="btn" href="/settings/security/contact/<%= a.id %>"><%= a.openTicket ? 'Messages' : (a.ticketCount ? 'Messages (' + a.ticketCount + ')' : 'Message') %></a>
             <% if (a.locked) { %>
-                <span class="pill pill-lock">Locked</span>
+                <span class="pill pill-lock"><%= a.supportHold ? 'Suspended' : 'Locked' %></span>
                 <% if (a.otpBlocked) { %><span class="pill pill-warn" title="3 wrong codes were entered">Code unlock off</span><% } %>
                 <form action="/settings/security/unlock" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="id" value="<%= a.id %>"><button class="btn btn-solve" type="submit">Unlock</button></form>
             <% } else { %>
@@ -106,6 +108,21 @@
             <% } %>
         </div>
         <% }) %>
+    </div>
+
+    <h2>Support requests (SEC-)</h2>
+    <div class="card">
+        <% if (!tickets.length) { %>
+        <div class="empty">No support requests yet. Locked staff open these from the unlock page's "Contact support" button.</div>
+        <% } else { tickets.forEach(function (t) { %>
+        <a class="acct" href="/settings/security/ticket/<%= t.id %>" style="color:inherit; text-decoration:none;">
+            <div class="row-main">
+                <div class="row-subj"><b><%= t.id %></b> &middot; <%= t.username %></div>
+                <div class="row-sub"><%= t.messages.filter(function (m) { return m.from !== 'event'; }).length %> message(s) &middot; last activity <%= new Date(t.updatedAt).toLocaleString('en-GB') %></div>
+            </div>
+            <span class="pill <%= t.status === 'solved' ? 'pill-ok' : (t.status === 'awaiting' ? 'pill-warn' : 'pill-lock') %>"><%= STATUS_LABEL[t.status] %></span>
+        </a>
+        <% }) } %>
     </div>
 
     <h2>Blocked IPs</h2>
