@@ -3,6 +3,7 @@ const defaultBannedWords = require('./default-banned-words.js');
 const { commandNames: DEPLOYED_COMMAND_NAMES } = require('./commands');
 const commandHandlers = require('./commands').handlers;
 const confessionChannel = require('./commands/confessions/channel');
+const riskManager = require('./features/risk');
 const { deployCommands } = require('./deploy-commands.js');
 const { extractUserIds, isTempChannelBlocked, buildTempChannelOverwrites } = require('./commands/tempChannelUtils');
 // Answer key used to auto-grade the multiple-choice section of the
@@ -1324,11 +1325,19 @@ const DASHBOARD_TABS = {
 
 async function renderDashboard(req, res, activeTab, overrides = {}) {
     const guild = client?.guilds?.cache.get(GUILD_ID);
-    let members = [], emojis = [];
+    let members = [], emojis = [], risk = null;
     if (guild) {
         const fetched = await getCachedMembers(guild); // cached ~60s, avoids re-fetching full member list on every page load
         members = Array.from(fetched.values()).filter(m => !(db.reviewedUsers || []).includes(m.id));
         emojis = guild.emojis.cache.map(e => ({ id: e.id, name: e.name, toString: e.toString() }));
+        if (activeTab === 'risk-manager') { // scoring every member is only worth doing when that tab is open
+            risk = {
+                ...riskManager.assessMembers(fetched.values(), {
+                    cases: db.cases, reviewed: db.reviewedUsers, isStaff: (m) => isStaffMember(m, guild)
+                }),
+                reviewed: riskManager.reviewedList(db.reviewedUsers, db.riskReviews, (id) => fetched.get(id)),
+            };
+        }
     }
     const uptimeSec = Math.floor(process.uptime());
     const hh = Math.floor(uptimeSec / 3600);
@@ -1344,7 +1353,7 @@ async function renderDashboard(req, res, activeTab, overrides = {}) {
             ping: `${Math.round(client?.ws?.ping || 0)}ms`,
             uptime: uptimeStr,
         },
-        members, emojis,
+        members, emojis, risk,
         cases: db.cases || [],
         settings: db.settings || {},
         reactionRoles: db.reactionRoles || [],
@@ -1649,7 +1658,30 @@ app.get('/co-owner-application-status/:userId', (req, res) => {
 });
 
 app.post('/update-settings', checkAuth, async (req, res) => { db.settings = { prefix: req.body.prefix, welcomeChannel: req.body.welcomeChannel, goodbyeChannel: req.body.goodbyeChannel }; await safeSave(); res.redirect('/config'); });
-app.post('/review-risk/:userId', checkAuth, async (req, res) => { if (!db.reviewedUsers) db.reviewedUsers = []; if (!db.reviewedUsers.includes(req.params.userId)) { db.reviewedUsers.push(req.params.userId); await safeSave(); } res.redirect('/risk-manager'); });
+// Risk manager: dismiss ("mark reviewed") a member so they drop off the list, with an optional note, and restore them later.
+// Who dismissed them and when is kept in db.riskReviews; the id list db.reviewedUsers is what the scorer filters on.
+const RISK_ID_RE = /^\d{17,20}$/;
+app.post('/review-risk/:userId', checkAuth, async (req, res) => {
+    const userId = String(req.params.userId || '');
+    if (!RISK_ID_RE.test(userId)) return res.redirect('/risk-manager');
+    if (!Array.isArray(db.reviewedUsers)) db.reviewedUsers = [];
+    if (!db.riskReviews || typeof db.riskReviews !== 'object') db.riskReviews = {};
+    if (!db.reviewedUsers.includes(userId)) db.reviewedUsers.push(userId);
+    db.riskReviews[userId] = {
+        at: Date.now(),
+        by: String(req.session.user?.username || req.session.user?.tag || 'staff').slice(0, 40),
+        note: String(req.body?.note || '').trim().slice(0, 200)
+    };
+    await safeSave();
+    res.redirect('/risk-manager');
+});
+app.post('/review-risk/:userId/restore', checkAuth, async (req, res) => {
+    const userId = String(req.params.userId || '');
+    db.reviewedUsers = (db.reviewedUsers || []).filter(id => id !== userId);
+    if (db.riskReviews) delete db.riskReviews[userId];
+    await safeSave();
+    res.redirect('/risk-manager');
+});
 app.post('/banned-words/add', checkAuth, async (req, res) => { if (!db.bannedWords) db.bannedWords = []; if (!db.bannedWords.includes(req.body.word)) { db.bannedWords.push(req.body.word); await safeSave(); } res.redirect('/banned-words'); });
 app.post('/banned-words/remove', checkAuth, async (req, res) => { if (!db.bannedWords) db.bannedWords = []; db.bannedWords = db.bannedWords.filter(w => w !== req.body.word); await safeSave(); res.redirect('/banned-words'); });
 app.post("/create-case", checkAuth, async (req, res) => {
