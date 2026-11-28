@@ -7,7 +7,8 @@
 //
 //  2. OTP UNLOCK
 //     /auth/unlock on the website -> enter username -> a 6-digit code is DM'd to the account's Discord
-//     -> enter it -> account unlocked (you still have to log in with your password afterwards).
+//     -> enter it -> account unlocked. However an account is unlocked (OTP, /security unlock or the
+//     dashboard), the staff member must set a NEW password at their next login.
 //     Codes are stored hashed, expire after 10 min, 60s resend cooldown, 3 sends/hour. Only 3 wrong
 //     codes are allowed: after that code-unlock is disabled for that account and the owner has to
 //     contact the bot support team (they unlock it with /security unlock or /settings/security).
@@ -294,6 +295,11 @@ async function unlockAccount(account, { by, method }) {
     s.otp = null;
     s.otpBlocked = false; // support/OTP unlock re-enables code-unlock
     s.otpSends = [];
+    // Force a new password: the existing login flow sends any account with passwordChanged !== true to
+    // /auth/change-password before it can do anything else (and the new one must differ from the old).
+    account.passwordChanged = false;
+    // End any session still open on this login (they were issued before the lock).
+    account.sessionEpoch = (account.sessionEpoch || 0) + 1;
     s.unlockedAt = now();
     s.unlockedBy = by;
     event(`Staff login "${account.username}" unlocked by ${by} (${method}).`);
@@ -301,7 +307,7 @@ async function unlockAccount(account, { by, method }) {
     await persist();
     await dmUser(account.discordId, { embeds: [brandEmbed({
         title: '🔓 Your dashboard account was unlocked',
-        description: `The staff login **${account.username}** was unlocked (${method}). You can log in again.\nIf you didn't ask for this, contact the bot support team.`,
+        description: `The staff login **${account.username}** was unlocked (${method}). You can log in again, but you'll have to **set a new password** first.\nIf you didn't ask for this, contact the bot support team.`,
         color: 0x57F287,
     })] });
 }
@@ -452,7 +458,7 @@ function register(ctx) {
         try { result = await verifyUnlockOtp(account, code); } catch (err) { console.error('❌ [security] OTP verify failed:', err.message); return fail('Something went wrong. Please try again.'); }
         if (result.ok) {
             delete req.session.unlockFor;
-            return res.redirect('/auth/admin?msg=' + encodeURIComponent('Account unlocked. You can log in now.'));
+            return res.redirect('/auth/admin?msg=' + encodeURIComponent('Account unlocked. Log in with your current password, then you will be asked to set a new one.'));
         }
         addStrikeSoft(normIp(req.ip));
         if (result.reason === 'too_many') { delete req.session.unlockFor; return page(res, { error: OTP_BLOCKED_MESSAGE }); }
