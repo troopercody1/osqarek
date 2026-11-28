@@ -23,6 +23,7 @@ const modules = {
     tickets: require('./tickets'),
     family: require('./family'),
     featurecmd: require('./featurecmd'),
+    security: require('./security'), // staff login lockout, Discord OTP unlock, anti-abuse, /security
 };
 const helpcenter = require('./helpcenter'); // dashboard-only (no slash commands)
 
@@ -57,6 +58,7 @@ function init(ctx) {
     client.on('guildMemberUpdate', safe('update', (o, n) => impersonation.onMemberUpdate(o, n)));
     client.on('messageCreate', safe('message', async (m) => { analytics.onMessage(m); modules.tickets.onMessage(m); }));
     modules.tickets.init(); // Help Center → ticket channel direction
+    modules.security.init(ctx); // /auth/unlock routes (OTP unlock for locked staff logins)
     // Reaction roles (configured on the dashboard only)
     client.on('messageReactionAdd', safe('rr+', (reaction, user) => modules.reactionroles.onReaction(reaction, user, true)));
     client.on('messageReactionRemove', safe('rr-', (reaction, user) => modules.reactionroles.onReaction(reaction, user, false)));
@@ -93,7 +95,7 @@ function init(ctx) {
         if (busy || !client.isReady()) return;
         busy = true;
         try {
-            for (const [label, fn] of [['raid', raid.tick], ['lockdown', modules.lockdown.tick], ['timed', modules.timed.tick], ['giveaways', modules.giveaways.tick], ['polls', modules.polls.tick], ['evasion', evasion.tick], ['analytics', analytics.tick], ['voice', modules.voice.tick], ['seasonal', modules.seasonal.tick], ['ecodrops', modules.ecodrops.tick], ['serverstats', modules.serverstats.tick], ['tickets', modules.tickets.tick]]) {
+            for (const [label, fn] of [['raid', raid.tick], ['lockdown', modules.lockdown.tick], ['timed', modules.timed.tick], ['giveaways', modules.giveaways.tick], ['polls', modules.polls.tick], ['evasion', evasion.tick], ['analytics', analytics.tick], ['voice', modules.voice.tick], ['seasonal', modules.seasonal.tick], ['ecodrops', modules.ecodrops.tick], ['serverstats', modules.serverstats.tick], ['tickets', modules.tickets.tick], ['security', modules.security.tick]]) {
                 try { await fn(); } catch (err) { console.error(`❌ [features:${label}] tick failed:`, err.message); }
             }
         } finally { busy = false; }
