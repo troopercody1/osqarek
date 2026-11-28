@@ -528,6 +528,10 @@ app.use((req, res, next) => {
         maintenanceWhitelist.push('/settings/staff/add');
         maintenanceWhitelist.push('/settings/staff/revoke');
         maintenanceWhitelist.push('/settings/staff/edit');
+        maintenanceWhitelist.push('/settings/security');
+        maintenanceWhitelist.push('/settings/security/unlock');
+        maintenanceWhitelist.push('/settings/security/lock');
+        maintenanceWhitelist.push('/settings/security/unblock');
     }
     const isMailPath = isAdminRank(req.session?.user) && (req.path === '/settings/mail' || req.path.startsWith('/settings/mail/'));
 
