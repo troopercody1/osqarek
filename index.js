@@ -211,6 +211,9 @@ async function postWithRateLimitRetry(url, body, options, { maxRetries = 2 } = {
 // --- INITIALIZATION ---
 const app = express();
 app.set('trust proxy', 1);
+// Anti-abuse: per-IP rate limits + temporary IP blocks. Must run before everything else (features/security.js).
+const security = require('./features/security');
+app.use(security.middleware);
 
 // Redis Init
 let redis;
@@ -485,6 +488,9 @@ app.use((req, res, next) => {
         '/auth/callback',
         '/auth/admin',
         '/auth/verify-admin',
+        '/auth/unlock',
+        '/auth/unlock/request',
+        '/auth/unlock/verify',
         '/auth/change-password',
         '/logout',
         '/terms',
@@ -1186,6 +1192,12 @@ app.post('/auth/verify-admin', async (req, res) => {
     const submittedPassword = String(req.body.password || '');
 
     const account = adminUsers.find(u => u.username === submittedUsername);
+
+    // Security: a locked account can't log in (even with the right password) until support or the
+    // owner's Discord OTP unlocks it. See features/security.js.
+    const lockedMessage = security.preLogin(req, account);
+    if (lockedMessage) return res.redirect('/auth/admin?error=' + encodeURIComponent(lockedMessage));
+
     // Always runs one scrypt comparison (against a dummy hash when the username is unknown) so a bad
     // username doesn't answer noticeably faster than a bad password.
     let valid = false;
@@ -1193,6 +1205,7 @@ app.post('/auth/verify-admin', async (req, res) => {
     catch (err) { console.error('❌ [verify-admin] Password check failed:', err.message); }
 
     if (valid) {
+        security.onLoginSuccess(req, account);
         const rank = normalizeRank(account.rank);
         req.session.user = { id: 'admin', username: account.username, rank, avatar: null };
         req.session.isHeadAdmin = true;
@@ -1205,7 +1218,9 @@ app.post('/auth/verify-admin', async (req, res) => {
         }
         res.redirect(isAdminRank(req.session.user) ? '/settings' : '/config');
     } else {
-        res.redirect('/auth/admin?error=Invalid+Username+or+Password');
+        // Counts the failure; the 3rd one locks the account and DMs its owner.
+        const failMessage = await security.onLoginFailure(req, submittedUsername, account);
+        res.redirect('/auth/admin?error=' + encodeURIComponent(failMessage));
     }
 });
 
@@ -3393,7 +3408,7 @@ client.on('guildMemberAdd', async (member) => {
 });
 
 // Staff-only feature commands reply privately (their output includes user/mod data).
-const FEATURE_EPHEMERAL_COMMANDS = new Set(['raid', 'evasion', 'impersonation', 'timed', 'case-search', 'audit', 'analytics', 'feature', 'giveaway', 'serverstats', 'ticket']);
+const FEATURE_EPHEMERAL_COMMANDS = new Set(['raid', 'evasion', 'impersonation', 'timed', 'case-search', 'audit', 'analytics', 'feature', 'giveaway', 'serverstats', 'ticket', 'security']);
 const features = require('./features');
 
 // --- COMMAND HANDLER ---
@@ -3405,6 +3420,9 @@ client.on('interactionCreate', async (interaction) => {
             flags: MessageFlags.Ephemeral
         }).catch(() => { });
     }
+
+    // 1b. ANTI-ABUSE: slash-command spam gets an escalating cooldown (features/security.js)
+    if (security.checkInteraction(interaction)) return;
 
     // Line 425: Master Deferral Logic
     if (interaction.isChatInputCommand()) {
@@ -7593,6 +7611,7 @@ features.init({
     safeSave, logAction, createEmbed,
     STAFF_ROLE_IDS, isStaffMember, getCachedMembers,
     checkAuth, renderDashboard, isAdminRank, baseUrl: PUBLIC_BASE_URL,
+    getAdminUsers, // used by features/security.js (staff login lockout + OTP unlock)
 });
 
 // --- BOT STARTUP ---
