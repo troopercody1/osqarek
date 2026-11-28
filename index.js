@@ -137,7 +137,7 @@ async function dmStaffMember(discordId, payload) {
 }
 
 // DMs a staff member their (plain) Staff ID. Returns true when delivered.
-async function sendStaffIdDm(u, plainId, reissued = false) {
+async function sendStaffIdDm(u, plainId, reissued = false, note = null) {
     return dmStaffMember(u.discordId, {
         embeds: [new EmbedBuilder()
             .setColor(0x5865F2)
@@ -145,7 +145,8 @@ async function sendStaffIdDm(u, plainId, reissued = false) {
             .setDescription(`Your staff login **${u.username}** (${RANK_LABEL[u.rank] || u.rank}) for the **${client?.user?.username || 'bot'}** dashboard ${reissued ? 'has a **new** Staff ID. Any earlier one no longer works.' : 'now has a Staff ID.'}`)
             .addFields(
                 { name: 'Staff ID', value: `||\`${plainId}\`||`, inline: true },
-                { name: 'What it is', value: 'This is your **private recovery code**. Your username is only for logging in; you need this Staff ID (with your username) to unlock your account or open a security support request. **Never share it with anyone, including staff.** Staff can\'t look it up again: if you lose it, an owner has to reissue it.' }
+                ...(note ? [{ name: 'Why', value: String(note).slice(0, 500) }] : []),
+                { name: 'What it is', value: 'This is your **private recovery code**. Your username is only for logging in; you need this Staff ID (with your username) to unlock your account or open a security support request. **Never share it with anyone, including staff.** Support staff can\'t see it: if you lose it, an owner has to reissue it.' }
             )
             .setTimestamp()],
         allowedMentions: { parse: [] }
@@ -164,7 +165,7 @@ async function dmPendingStaffIds() {
         for (const u of accounts) {
             if (!u.discordId || u.staffIdDmAt) continue;
             let plain = staffIdTools.reveal(u);
-            if (!plain) { plain = staffIdTools.issue(u, accounts); changed = true; }
+            if (!plain) { plain = staffIdTools.issue(u, accounts, 'System (re-issued, unreadable)'); changed = true; }
             if (await sendStaffIdDm(u, plain)) { u.staffIdDmAt = Date.now(); changed = true; }
         }
         if (changed) await safeSave();
@@ -1322,9 +1323,10 @@ app.get('/settings', (req, res) => {
         const actor = accounts.find(u => u.id === req.session.staffId) || { id: null, rank: req.session.user.rank };
         const staffAccounts = accounts.map(u => ({
             id: u.id, username: u.username, rank: u.rank, discordId: u.discordId || null, discordTag: u.discordTag || null,
-            // Only dashboard owners get the Staff ID (full when it can be decrypted, otherwise masked).
-            staffId: actor.rank === 'owner' ? staffIdTools.reveal(u) : null,
+            // The full Staff ID is never put in this page: owners press "Reveal" (POST, logged). The list only
+            // carries the masked form + rotation metadata (version / created / last rotated by).
             staffIdMasked: actor.rank === 'owner' ? staffIdTools.mask(u) : null,
+            staffIdMeta: actor.rank === 'owner' ? staffIdTools.meta(u) : null,
             pending: u.passwordChanged !== true, isSelf: u.id === actor.id,
             canEdit: canEditStaff(actor, u), canRevoke: canRevokeStaff(actor, u)
         }));
@@ -2119,7 +2121,7 @@ app.post('/settings/staff/add', async (req, res) => {
         discordId, discordTag: discordUser.tag || discordUser.username,
         createdBy: req.session.user.username, createdAt: Date.now()
     };
-    const newStaffId = staffIdTools.issue(account, accounts); // assigned automatically when they are ranked; saved encrypted + hashed
+    const newStaffId = staffIdTools.issue(account, accounts, `${req.session.user.username} (account created)`); // assigned automatically when they are ranked; saved encrypted + hashed
     accounts.push(account);
     try { await db.save(); }
     catch (err) {
@@ -2248,6 +2250,22 @@ app.post('/settings/staff/edit', async (req, res) => {
     return staffBack(res, { msg: `Updated "${target.username}": ${changes.join(', ')}${dmOk === true ? ' · DM sent' : dmOk === false ? ' · could not DM them' : ''}` });
 });
 
+// Reveal (owners only): shows one full Staff ID once (flash), and logs who looked. Staff ID is part of the recovery chain.
+app.post('/settings/staff/reveal-id', async (req, res) => {
+    const actor = currentStaff(req);
+    if (!actor || actor.rank !== 'owner' || !isOwnerRank(req.session.user)) return res.status(403).send("Forbidden");
+    const target = getAdminUsers().find(u => u.id === String(req.body.id || ''));
+    if (!target) return staffBack(res, { err: 'That login no longer exists.' });
+    const plain = staffIdTools.reveal(target);
+    const who = req.session.user.username;
+    require('./features/util').recordEvent(db, 'security', `${who} revealed Staff ID for ${target.username}`);
+    console.log(`🪪 [staff] ${who} revealed the Staff ID of "${target.username}".`);
+    await safeSave();
+    if (!plain) return staffBack(res, { err: `Staff ID for "${target.username}" can't be decrypted. Press New Staff ID.` });
+    req.session.staffFlash = { title: `Staff ID for ${target.discordTag || target.username} (reveal logged)`, username: target.username, staffId: plain, dmOk: true, revealOnly: true };
+    return staffBack(res, { msg: `Staff ID revealed for "${target.username}"` });
+});
+
 // Reissue (owners only): replaces a Staff ID with a new one (use it when an ID leaked, or when an old hash-only ID can't be read).
 // The old ID stops working immediately. It is DM'd to the login's Discord account and shown once to the owner.
 app.post('/settings/staff/reissue-id', async (req, res) => {
@@ -2257,7 +2275,7 @@ app.post('/settings/staff/reissue-id', async (req, res) => {
     const target = accounts.find(u => u.id === String(req.body.id || ''));
     if (!target) return staffBack(res, { err: 'That login no longer exists.' });
     if (!canEditStaff(actor, target)) return staffBack(res, { err: "You don't have permission to reissue that login's Staff ID." });
-    const plain = staffIdTools.issue(target, accounts);
+    const plain = staffIdTools.issue(target, accounts, `${req.session.user.username} (owner)`);
     try { await db.save(); }
     catch (err) { console.error('❌ [staff id reissue] Failed to save:', err.message); return staffBack(res, { err: 'Could not save the new Staff ID. Please try again.' }); }
     let dmOk = null;
@@ -7689,6 +7707,7 @@ features.init({
     safeSave, logAction, createEmbed,
     STAFF_ROLE_IDS, isStaffMember, getCachedMembers,
     checkAuth, renderDashboard, isAdminRank, baseUrl: PUBLIC_BASE_URL,
+    sendStaffIdDm, // used by features/security.js (DMs the new Staff ID after a recovery unlock)
     getAdminUsers, // used by features/security.js (staff login lockout + OTP unlock)
     staffIdTools,  // encrypted/hashed Staff ID checks for features/security.js
 });

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Security ticket</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg:#0f0d27; --card:#171337; --line:#2a2561; --txt:#d6d2f5; --dim:#8f8abf; --hero:#a58bff; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Figtree', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--txt); min-height: 100vh; }
+        a { color: var(--hero); text-decoration: none; } a:hover { color: #8ecbff; }
+        h1, h2, h3 { font-family: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif; letter-spacing: -.01em; color: #f3f1ff; }
+        .bar { border-bottom: 1px solid var(--line); background: var(--card); } .bar-in { max-width: 860px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+        .brand { font-weight: 700; color: #f3f1ff; } .brand span { color: var(--dim); font-weight: 500; }
+        .wrap { max-width: 860px; margin: 0 auto; padding: 28px 20px 60px; }
+        .crumb { font-size: 13px; color: var(--dim); margin-bottom: 10px; }
+        h1 { font-size: 26px; margin-bottom: 6px; } .sub { color: var(--dim); font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
+        .flash { padding: 10px 14px; border-radius: 8px; font-size: 13.5px; margin-bottom: 16px; border: 1px solid; }
+        .flash.ok { background: rgba(158,206,106,.1); color: #5fe3a1; border-color: #5fe3a1; } .flash.bad { background: rgba(255,107,138,.1); color: #ff6b8a; border-color: #ff6b8a; }
+        .flash.warn { background: rgba(224,175,104,.08); color: #ffc857; border-color: #5a4a28; }
+        .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+        label { display: block; font-size: 12.5px; color: var(--dim); margin: 12px 0 6px; }
+        input[type=text], textarea, select { width: 100%; background: var(--bg); border: 1px solid var(--line); color: #f3f1ff; padding: 10px 12px; border-radius: 8px; font: inherit; font-size: 14px; }
+        textarea { min-height: 130px; resize: vertical; line-height: 1.5; } input:focus, textarea:focus, select:focus { outline: none; border-color: var(--hero); }
+        .btn { display: inline-block; font: inherit; font-size: 13.5px; font-weight: 600; padding: 9px 16px; border-radius: 8px; border: 1px solid transparent; background: #7c4dff; color: #fff; cursor: pointer; }
+        .btn:hover { background: #6a3df0; color: #fff; } .btn.alt { background: var(--card); border-color: var(--line); color: #f3f1ff; } .btn.alt:hover { background: #1e1a45; }
+        .btn.good { background: #0f2c22; color: #5fe3a1; border-color: #2c4a2c; } .btn.bad { background: rgba(255,107,138,.1); color: #ff6b8a; border-color: #5a2a38; }
+        .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+        .pill { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 99px; white-space: nowrap; }
+        .st-open { background: #211a52; color: #a58bff; } .st-awaiting { background: #33290f; color: #ffc857; } .st-solved { background: #0f2c22; color: #5fe3a1; } .st-lock { background: rgba(255,107,138,.12); color: #ff6b8a; }
+        .post { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; } .post.staff { background: #1c1e2e; }
+        .who { font-size: 13.5px; font-weight: 700; color: #f3f1ff; display: flex; gap: 8px; align-items: center; } .tag { font-size: 10px; padding: 1px 7px; border-radius: 99px; background: #211a52; color: var(--hero); font-weight: 600; }
+        .when { font-size: 11.5px; color: var(--dim); margin: 2px 0 8px; } .body { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.6; color: #f3f1ff; }
+        .event { text-align: center; font-size: 12px; color: var(--dim); padding: 8px; }
+        .hint { font-size: 12px; color: var(--dim); margin-top: 10px; line-height: 1.5; } .hp { position: absolute; left: -9999px; height: 0; overflow: hidden; }
+        .copy { width: 100%; font-family: monospace; font-size: 12px; }
+        .meta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; font-size: 13px; color: var(--dim); }
+        :focus-visible { outline: 2px solid #ffc857; outline-offset: 2px; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <a href="/settings/security" class="crumb" style="display:inline-block;margin-bottom:16px;">&larr; Account security</a>
+
+<% if (!ticket) { %>
+    <h1>Message <%= account.username %></h1>
+    <p class="sub">Starts a private conversation with this staff login (<%= account.rank %>). <%= account.discordId ? 'They are DM\'d a private link to read and answer.' : 'They have no Discord ID saved, so you will have to give them the link yourself.' %> This does not lock the account.</p>
+    <% if (err) { %><div class="flash bad"><%= err %></div><% } %>
+    <form class="card" action="/settings/security/contact/<%= account.id %>" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <label for="b">Message</label>
+        <textarea id="b" name="body" required maxlength="<%= limits.max %>"></textarea>
+        <div class="actions"><button class="btn" type="submit">Send message</button></div>
+    </form>
+<% } else { %>
+    <h1><%= ticket.id %> &middot; <%= ticket.username %></h1>
+    <div class="meta">
+        <span class="pill st-<%= ticket.status %>"><%= STATUS_LABEL[ticket.status] %></span>
+        <% if (account) { %><span>Staff ID <code style="color:#f3f1ff;"><%= staffIdFull || staffIdMasked %></code><% if (staffIdMeta && staffIdMeta.issued) { %> &middot; Version <%= staffIdMeta.version %> &middot; Created <%= staffIdMeta.createdAt ? new Date(staffIdMeta.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'unknown' %> &middot; Last rotated: <%= staffIdMeta.lastRotatedBy || 'unknown' %><% } %></span><span class="pill <%= accountState.locked ? 'st-lock' : 'st-solved' %>"><%= accountState.locked ? (accountState.supportHold ? 'Suspended' : 'Locked') : 'Active' %></span><span><%= account.rank %></span><% } else { %><span>(login no longer exists)</span><% } %>
+        <span>Opened <%= new Date(ticket.createdAt).toLocaleString('en-GB') %> by <%= ticket.createdBy === 'member' ? 'the member' : 'staff' %></span>
+        <span>IP <%= ticket.ip %></span>
+    </div>
+    <% if (msg) { %><div class="flash ok"><%= msg %></div><% } %>
+    <% if (err) { %><div class="flash bad"><%= err %></div><% } %>
+
+    <% if (account && !staffIdFull && staffIdMeta && staffIdMeta.issued) { %>
+    <form action="/settings/security/ticket/<%= ticket.id %>/reveal-id" method="POST" onsubmit="return confirm('Reveal the full Staff ID? This is logged.')" style="margin-bottom:10px;"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn alt" type="submit">Reveal Staff ID (owner only, logged)</button></form>
+    <% } %>
+    <% if (account) { %>
+    <div class="card" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <div style="flex:1; min-width:220px; font-size:13px;">
+            <% if (accountState.locked) { %>Account is <b>locked</b><%= accountState.supportHold ? ' and suspended for this request' : '' %>. Unlocking ends any open session, forces a new password at next login, rotates the Staff ID (new one DM'd) and then closes open requests for it.<% } else { %>Account is <b>active</b>.<% } %>
+        </div>
+        <% if (accountState.locked) { %>
+        <form action="/settings/security/unlock" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="id" value="<%= account.id %>"><input type="hidden" name="back" value="/settings/security/ticket/<%= ticket.id %>"><button class="btn good" type="submit">Unlock account</button></form>
+        <% } else if (account.id !== selfId ) { %>
+        <form action="/settings/security/lock" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="id" value="<%= account.id %>"><input type="hidden" name="back" value="/settings/security/ticket/<%= ticket.id %>"><button class="btn bad" type="submit">Lock account</button></form>
+        <% } %>
+    </div>
+    <% } %>
+
+    <% ticket.messages.forEach(function (m) { %>
+        <% if (m.from === 'event') { %>
+            <div class="event"><%= m.body %> &middot; <%= new Date(m.at).toLocaleString('en-GB') %></div>
+        <% } else if (m.from === 'staff') { %>
+            <div class="post staff"><div class="who"><%= m.name %> <span class="tag">Staff</span></div><div class="when"><%= new Date(m.at).toLocaleString('en-GB') %></div><div class="body"><%= m.body %></div></div>
+        <% } else { %>
+            <div class="post"><div class="who"><%= ticket.username %> <span class="tag">Member</span></div><div class="when"><%= new Date(m.at).toLocaleString('en-GB') %></div><div class="body"><%= m.body %></div></div>
+        <% } %>
+    <% }) %>
+
+    <form class="card" action="/settings/security/ticket/<%= ticket.id %>/reply" method="POST"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <h3 style="font-size:16px;margin-bottom:6px;">Reply</h3>
+        <textarea name="body" maxlength="<%= limits.max %>" placeholder="Write a reply… (shown to the member as Support Team)"></textarea>
+        <div class="actions">
+            <button class="btn" type="submit" name="action" value="reply">Send reply</button>
+            <button class="btn alt" type="submit" name="action" value="solve">Send &amp; mark solved</button>
+            <% if (ticket.status !== 'solved') { %><span class="hint" style="margin:0;">Leave the box empty and press “Send &amp; mark solved” to just close it.</span><% } %>
+            <% if (ticket.status === 'solved') { %><button class="btn alt" type="submit" name="action" value="reopen">Reopen</button><% } %>
+        </div>
+    </form>
+
+    <form class="card" action="/settings/security/ticket/<%= ticket.id %>/delete" method="POST" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;" onsubmit="return confirm('Permanently delete <%= ticket.id %> and its whole conversation? This cannot be undone.');"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div style="flex:1;min-width:220px;font-size:13px;color:var(--dim);">Owners can permanently delete this request and its conversation.<%= (accountState && accountState.supportHold === ticket.id) ? ' It is what holds the account suspended; deleting it releases that hold (the account stays locked until unlocked).' : '' %></div>
+        <button class="btn bad" type="submit">Delete request</button>
+    </form>
+
+    <div class="card">
+        <label style="margin-top:0;">Member's private link (give it to them if they have no Discord DMs)</label>
+        <input type="text" class="copy" readonly value="<%= memberUrl %>" onclick="this.select()">
+    </div>
+<% } %>
+</div>
+</body>
+</html>

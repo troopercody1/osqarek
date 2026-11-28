@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Master Settings</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Figtree', 'Segoe UI', system-ui, sans-serif; background-color: #0f0d27; color: #d6d2f5; padding: 40px 20px; }
+        .page { max-width: 640px; margin: 0 auto; }
+
+        a.back { color: #a58bff; text-decoration: none; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 24px; }
+        a.back:hover { color: #a9c5ff; }
+
+        h1 { color: #a58bff; font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+        .page-sub { font-size: 13px; color: #8f8abf; margin-bottom: 28px; }
+
+        /* Stat grid */
+        .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 28px; }
+        .stat { background: #171337; border: 1px solid #2a2561; border-radius: 10px; padding: 14px 16px; }
+        .stat-label { font-size: 11px; color: #8f8abf; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-value { font-size: 20px; font-weight: 600; color: #f3f1ff; }
+        .stat-delta { font-size: 11px; color: #5fe3a1; margin-top: 3px; }
+
+        /* Section */
+        .section { margin-bottom: 24px; }
+        .section-label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: #8f8abf; margin-bottom: 10px; padding-left: 2px; }
+
+        /* Card */
+        .card { background: #171337; border: 1px solid #2a2561; border-radius: 12px; overflow: hidden; }
+        .card.danger-card { border-color: #6a2440; }
+
+        /* Row */
+        .row { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #2a2561; }
+        .row:last-child { border-bottom: none; }
+        .row.clickable { cursor: pointer; }
+        .row.clickable:hover { background: #1e1a45; }
+
+        .row-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; }
+        .row-body { flex: 1; min-width: 0; }
+        .row-title { font-size: 14px; font-weight: 500; color: #f3f1ff; }
+        .row-desc { font-size: 12px; color: #8f8abf; margin-top: 2px; }
+        .row-end { flex-shrink: 0; display: flex; align-items: center; gap: 10px; }
+
+        /* Badge */
+        .badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 99px; }
+        .badge-live    { background: #0f2c22; color: #5fe3a1; }
+        .badge-maint   { background: #33290f; color: #ffc857; }
+        .badge-info    { background: #211a52; color: #a58bff; }
+        .badge-danger  { background: #34152a; color: #ff6b8a; }
+
+        /* Toggle */
+        .toggle { width: 40px; height: 22px; background: #2a2561; border: none; border-radius: 99px; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; outline: none; }
+        .toggle.on { background: #5fe3a1; }
+        .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #0f0d27; transition: left 0.2s; }
+        .toggle.on::after { left: 21px; }
+
+        /* Expandable drawer */
+        .drawer { display: none; padding: 16px 18px; background: #13131a; border-top: 1px solid #2a2561; }
+        .drawer label { font-size: 12px; color: #8f8abf; display: block; margin-bottom: 6px; margin-top: 14px; }
+        .drawer label:first-child { margin-top: 0; }
+        .drawer input, .drawer select { background: #171337; border: 1px solid #2a2561; color: #f3f1ff; padding: 8px 10px; border-radius: 6px; width: 100%; font-family: 'Figtree', 'Segoe UI', system-ui, sans-serif; font-size: 13px; }
+        .drawer input:focus, .drawer select:focus { outline: none; border-color: #a58bff; }
+        .drawer .row-actions { display: flex; gap: 8px; margin-top: 14px; }
+
+        /* Chevron */
+        .chevron { font-size: 13px; color: #8f8abf; transition: transform 0.2s; cursor: pointer; display: inline-block; }
+        .chevron.open { transform: rotate(180deg); }
+
+        /* Buttons */
+        .btn { font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 6px; border: 1px solid #2a2561; background: #171337; color: #f3f1ff; cursor: pointer; font-family: 'Figtree', 'Segoe UI', system-ui, sans-serif; transition: background 0.15s; white-space: nowrap; }
+        .btn:hover { background: #252636; }
+        .btn-primary { background: #5865f2; color: #fff; border-color: transparent; }
+        .btn-primary:hover { background: #4752c4; }
+        .btn-danger  { background: #34152a; color: #ff6b8a; border-color: #6a2440; }
+        .btn-danger:hover { background: #3d2020; }
+
+        /* Select inline */
+        select.inline { width: auto; min-width: 140px; font-size: 12px; padding: 6px 8px; background: #171337; border: 1px solid #2a2561; color: #f3f1ff; border-radius: 6px; cursor: pointer; font-family: 'Figtree', 'Segoe UI', system-ui, sans-serif; }
+        select.inline:focus { outline: none; border-color: #a58bff; }
+
+        /* Forms that POST to server */
+        form.server-form { display: contents; }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <a href="/config" class="back">&#8592; Back to Dashboard</a>
+    <h1>Website Settings</h1>
+    <p class="page-sub">Manage your site configuration, access, and operations.</p>
+
+    <% if (typeof msg !== 'undefined' && msg) { %>
+    <div style="background:rgba(158,206,106,0.1);color:#5fe3a1;border:1px solid #5fe3a1;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:20px;">
+        ✅ <%= decodeURIComponent(msg).replace(/\+/g,' ') %>
+    </div>
+    <% } %>
+
+    <!-- ── Stat strip ── -->
+    <div class="stat-grid">
+        <div class="stat">
+            <div class="stat-label">Uptime</div>
+            <div class="stat-value">99.9%</div>
+            <div class="stat-delta">↑ Last 30 days</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Status</div>
+            <div class="stat-value" style="font-size:14px; margin-top:4px;" id="site-status-badge">
+                <span class="badge <%= settings.maintenanceMode ? 'badge-maint' : 'badge-live' %>">
+                    <%= settings.maintenanceMode ? 'Maintenance' : 'Live' %>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         BOT PRESENCE
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Bot Presence</div>
+        <div class="card">
+
+            <!-- Current presence -->
+            <div class="row">
+                <div class="row-icon" style="background:<%= settings.botPresenceEnabled ? '#0f2c22' : '#1e1a45' %>;">
+                    <span style="color:<%= settings.botPresenceEnabled ? '#5fe3a1' : '#d6d2f5' %>;">&#127917;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Custom status &amp; activity</div>
+                    <div class="row-desc">
+                        <% if (settings.botPresenceEnabled) { %>
+                            <%= settings.botPresenceActivityType || 'Playing' %> <%= settings.botPresenceText || '' %> &middot; <%= settings.botPresenceStatus || 'online' %>
+                        <% } else { %>
+                            Using default rotating status
+                        <% } %>
+                    </div>
+                </div>
+                <div class="row-end">
+                    <span class="badge <%= settings.botPresenceEnabled ? 'badge-live' : 'badge-info' %>">
+                        <%= settings.botPresenceEnabled ? 'Custom' : 'Rotating' %>
+                    </span>
+                    <span class="chevron" id="presence-chevron" onclick="toggleDrawer('presence-drawer','presence-chevron')">&#8964;</span>
+                </div>
+            </div>
+
+            <!-- Drawer -->
+            <div class="drawer" id="presence-drawer">
+                <form action="/settings/bot-presence" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <label>Status</label>
+                    <select name="botPresenceStatus">
+                        <option value="online"    <%= (settings.botPresenceStatus || 'online') === 'online'    ? 'selected' : '' %>>&#128994; Online</option>
+                        <option value="idle"      <%= settings.botPresenceStatus === 'idle'      ? 'selected' : '' %>>&#128993; Idle</option>
+                        <option value="dnd"       <%= settings.botPresenceStatus === 'dnd'       ? 'selected' : '' %>>&#128308; Do Not Disturb</option>
+                        <option value="invisible" <%= settings.botPresenceStatus === 'invisible' ? 'selected' : '' %>>&#9898; Invisible</option>
+                    </select>
+
+                    <label>Activity type</label>
+                    <select name="botPresenceActivityType">
+                        <option value="Playing"   <%= (settings.botPresenceActivityType || 'Playing') === 'Playing'   ? 'selected' : '' %>>Playing</option>
+                        <option value="Watching"  <%= settings.botPresenceActivityType === 'Watching'  ? 'selected' : '' %>>Watching</option>
+                        <option value="Listening" <%= settings.botPresenceActivityType === 'Listening' ? 'selected' : '' %>>Listening to</option>
+                        <option value="Competing" <%= settings.botPresenceActivityType === 'Competing' ? 'selected' : '' %>>Competing in</option>
+                    </select>
+
+                    <label>Activity text</label>
+                    <input type="text" name="botPresenceText"
+                           placeholder="e.g. with the Universe"
+                           maxlength="128"
+                           value="<%= settings.botPresenceText || '' %>">
+
+                    <div class="row-actions">
+                        <button type="submit" class="btn btn-primary">Apply</button>
+                        <button type="button" class="btn" onclick="toggleDrawer('presence-drawer','presence-chevron')">Cancel</button>
+                    </div>
+                </form>
+                <% if (settings.botPresenceEnabled) { %>
+                <form action="/settings/bot-presence/reset" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <div class="row-actions">
+                        <button type="submit" class="btn">Revert to rotating status</button>
+                    </div>
+                </form>
+                <% } %>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         MAINTENANCE
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Maintenance</div>
+        <div class="card">
+            <div class="row">
+                <div class="row-icon" style="background:#33290f;">
+                    <span style="color:#ffc857;">&#9881;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Maintenance mode</div>
+                    <div class="row-desc" id="maint-desc">
+                        <%= settings.maintenanceMode
+                            ? 'Site is locked — visitors see maintenance page'
+                            : 'Site is currently live and accessible' %>
+                    </div>
+                </div>
+                <div class="row-end">
+                    <span class="badge <%= settings.maintenanceMode ? 'badge-maint' : 'badge-live' %>" id="maint-badge">
+                        <%= settings.maintenanceMode ? 'Maintenance' : 'Live' %>
+                    </span>
+                    <!-- Real POST toggle -->
+                    <form action="/settings/toggle-maintenance" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button type="submit"
+                                class="toggle <%= settings.maintenanceMode ? 'on' : '' %>"
+                                title="<%= settings.maintenanceMode ? 'Disable' : 'Enable' %> maintenance mode"
+                                aria-label="Toggle maintenance mode">
+                        </button>
+                    </form>
+                    <span class="chevron" id="maint-chevron" onclick="toggleDrawer('maint-drawer','maint-chevron')">&#8964;</span>
+                </div>
+            </div>
+
+            <!-- Drawer -->
+            <div class="drawer" id="maint-drawer">
+                <form action="/settings/maintenance-config" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <label>Estimated return time (ETA)</label>
+                <input type="text" name="eta"
+                       placeholder="e.g. 2 hours / 5:00 PM EST"
+                       value="<%= settings.maintenanceETA || '' %>">
+
+                <label>Maintenance message</label>
+                <input type="text" name="maintenanceMessage"
+                       placeholder="We'll be back shortly. Thanks for your patience."
+                       value="<%= settings.maintenanceMessage || '' %>">
+
+                <label>Bypass IPs (comma-separated)</label>
+                <input type="text" name="bypassIPs"
+                       placeholder="127.0.0.1, 192.168.1.0/24"
+                       value="<%= settings.bypassIPs || '' %>">
+
+                <div class="row-actions">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn" onclick="toggleDrawer('maint-drawer','maint-chevron')">Cancel</button>
+                </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         ACCESS & SECURITY
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Access &amp; Security</div>
+        <div class="card">
+
+            <!-- Rate limiting -->
+            <div class="row">
+                <div class="row-icon" style="background:#211a52;">
+                    <span style="color:#a58bff;">&#128737;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Rate limiting</div>
+                    <div class="row-desc">100 req/min per IP</div>
+                </div>
+                <div class="row-end">
+                    <span class="badge badge-info">Enabled</span>
+                    <span class="chevron" id="rate-chevron" onclick="toggleDrawer('rate-drawer','rate-chevron')">&#8964;</span>
+                </div>
+            </div>
+            <div class="drawer" id="rate-drawer">
+                <form action="/settings/rate-limit" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <label>Requests per minute per IP</label>
+                    <input type="number" name="rateLimit" value="<%= settings.rateLimit || 100 %>" min="1">
+                    <div class="row-actions">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" class="btn" onclick="toggleDrawer('rate-drawer','rate-chevron')">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Force HTTPS -->
+            <div class="row">
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#128274;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Force HTTPS</div>
+                    <div class="row-desc">Redirect all HTTP requests</div>
+                </div>
+                <div class="row-end">
+                    <form action="/settings/toggle-https" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button type="submit"
+                                class="toggle <%= settings.forceHttps ? 'on' : '' %>"
+                                aria-label="Toggle force HTTPS">
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Block bots -->
+            <div class="row">
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#129302;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Block bots</div>
+                    <div class="row-desc">Block known scrapers and crawlers</div>
+                </div>
+                <div class="row-end">
+                    <form action="/settings/toggle-bots" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button type="submit"
+                                class="toggle <%= settings.blockBots ? 'on' : '' %>"
+                                aria-label="Toggle bot blocking">
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- IP allowlist -->
+            <div class="row">
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#9989;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">IP allowlist</div>
+                    <div class="row-desc">
+                        <%= settings.ipAllowlist
+                            ? settings.ipAllowlist.split(',').filter(s=>s.trim()).length + ' address(es) configured'
+                            : 'No addresses configured' %>
+                    </div>
+                </div>
+                <div class="row-end">
+                    <span class="chevron" id="ip-chevron" onclick="toggleDrawer('ip-drawer','ip-chevron')">&#8964;</span>
+                </div>
+            </div>
+            <div class="drawer" id="ip-drawer">
+                <form action="/settings/ip-allowlist" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <label>Allowed IPs (comma-separated)</label>
+                    <input type="text" name="ipAllowlist"
+                           placeholder="127.0.0.1, 10.0.0.0/8"
+                           value="<%= settings.ipAllowlist || '' %>">
+                    <div class="row-actions">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" class="btn" onclick="toggleDrawer('ip-drawer','ip-chevron')">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         PERFORMANCE
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Performance</div>
+        <div class="card">
+
+            <!-- Cache strategy -->
+            <div class="row">
+                <div class="row-icon" style="background:#0f2c22;">
+                    <span style="color:#5fe3a1;">&#9889;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Cache strategy</div>
+                    <div class="row-desc">Controls how responses are cached</div>
+                </div>
+                <div class="row-end">
+                    <form action="/settings/cache-strategy" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <select name="cacheStrategy" class="inline" onchange="this.form.submit()">
+                            <option value="aggressive" <%= settings.cacheStrategy === 'aggressive' ? 'selected' : '' %>>Aggressive (7d)</option>
+                            <option value="balanced"   <%= (!settings.cacheStrategy || settings.cacheStrategy === 'balanced') ? 'selected' : '' %>>Balanced (1d)</option>
+                            <option value="minimal"    <%= settings.cacheStrategy === 'minimal'    ? 'selected' : '' %>>Minimal (1h)</option>
+                            <option value="none"       <%= settings.cacheStrategy === 'none'       ? 'selected' : '' %>>No cache</option>
+                        </select>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Image optimisation -->
+            <div class="row">
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#128247;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Image optimisation</div>
+                    <div class="row-desc">Auto-compress and convert to WebP</div>
+                </div>
+                <div class="row-end">
+                    <form action="/settings/toggle-image-opt" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button type="submit"
+                                class="toggle <%= settings.imageOptimisation ? 'on' : '' %>"
+                                aria-label="Toggle image optimisation">
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Purge cache -->
+            <div class="row">
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#8635;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Purge cache</div>
+                    <div class="row-desc">
+                        Last purged:
+                        <%= settings.lastCachePurge
+                            ? new Date(settings.lastCachePurge).toLocaleString()
+                            : 'Never' %>
+                    </div>
+                </div>
+                <div class="row-end">
+                    <form action="/settings/purge-cache" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button type="submit" class="btn">Purge now</button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         CO-OWNER APPLICATIONS
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Co-Owner Applications</div>
+        <div class="card">
+            <div class="row clickable" onclick="window.location.href='/co-owner-applications'">
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#ffc857;">&#128081;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Applicant submissions</div>
+                    <div class="row-desc">
+                        <%= coOwnerApplicationCount %> application<%= coOwnerApplicationCount === 1 ? '' : 's' %> submitted via /apply-co-owner
+                    </div>
+                </div>
+                <div class="row-end">
+                    <span class="badge badge-info"><%= coOwnerApplicationCount %></span>
+                    <a href="/co-owner-applications" class="btn btn-primary" onclick="event.stopPropagation();">View All</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         MODERATOR APPLICATIONS
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Moderator Applications</div>
+        <div class="card">
+            <div class="row clickable" onclick="window.location.href='/mod-applications'">
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#a58bff;">&#128737;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Applicant submissions</div>
+                    <div class="row-desc">
+                        <%= modApplicationCount %> application<%= modApplicationCount === 1 ? '' : 's' %> submitted via /mod-apps/apply
+                    </div>
+                </div>
+                <div class="row-end">
+                    <span class="badge badge-info"><%= modApplicationCount %></span>
+                    <a href="/mod-applications" class="btn btn-primary" onclick="event.stopPropagation();">View All</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         SUPPORT REQUESTS (Help Center threads)
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Support</div>
+        <div class="card">
+            <a href="/settings/support" class="row clickable" style="text-decoration:none;">
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#128172;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Support requests</div>
+                    <div class="row-desc">Reply to Help Center threads and set Open / Awaiting reply / Solved</div>
+                </div>
+                <div class="row-end">
+                    <% const _so = (typeof supportOpenCount !== 'undefined') ? supportOpenCount : 0; %>
+                    <span class="badge <%= _so > 0 ? 'badge-maint' : 'badge-live' %>"><%= _so > 0 ? _so + ' open' : 'All caught up' %></span>
+                    <span class="chevron" style="transform:rotate(-90deg);">&#8964;</span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <% if (user && user.rank === 'owner') { %>
+    <!-- ══════════════════════════════════════
+         SECURITY (owners only)
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Security</div>
+        <div class="card">
+            <a href="/settings/security" class="row clickable" style="text-decoration:none;">
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#128274;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Account security</div>
+                    <div class="row-desc">Locked staff logins, unlock / lock accounts and blocked IPs</div>
+                </div>
+                <div class="row-end">
+                    <span class="chevron" style="transform:rotate(-90deg);">&#8964;</span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <% } %>
+    <!-- ══════════════════════════════════════
+         MAILBOX
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Mailbox</div>
+        <div class="card">
+            <a href="/settings/mail" class="row clickable" style="text-decoration:none;">
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#9993;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Inbox</div>
+                    <div class="row-desc">
+                        <%= (typeof mailConfigured !== 'undefined' && mailConfigured) ? 'Read and reply as ' + mailUser : 'Not connected — set the MAIL_* environment variables' %>
+                    </div>
+                </div>
+                <div class="row-end">
+                    <span class="badge <%= (typeof mailConfigured !== 'undefined' && mailConfigured) ? 'badge-live' : 'badge-maint' %>">
+                        <%= (typeof mailConfigured !== 'undefined' && mailConfigured) ? 'Connected' : 'Setup needed' %>
+                    </span>
+                    <span class="chevron" style="transform:rotate(-90deg);">&#8964;</span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         STAFF ACCESS
+    ══════════════════════════════════════ -->
+    <% if (typeof staffAccounts !== 'undefined') { %>
+    <div class="section" id="staff">
+        <div class="section-label">Staff Access</div>
+
+        <% if (typeof staffError !== 'undefined' && staffError) { %>
+        <div style="background:rgba(247,118,142,0.1);color:#ff6b8a;border:1px solid #6a2440;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;">
+            ⚠️ <%= staffError %>
+        </div>
+        <% } %>
+
+        <% if (typeof staffFlash !== 'undefined' && staffFlash) { %>
+        <div style="background:#171337;border:1px solid #5865f2;padding:14px 16px;border-radius:10px;font-size:13px;margin-bottom:12px;line-height:1.6;">
+            <div style="color:#f3f1ff;font-weight:600;margin-bottom:6px;"><%= staffFlash.title %></div>
+            Username: <code style="color:#a58bff;"><%= staffFlash.username %></code><br>
+            <% if (staffFlash.password) { %>Password: <code style="color:#a58bff;"><%= staffFlash.password %></code><% } %>
+            <% if (staffFlash.staffId) { %><% if (staffFlash.password) { %><br><% } %>Staff ID: <code style="color:#a58bff;"><%= staffFlash.staffId %></code><% } %>
+            <div style="color:#8f8abf;font-size:12px;margin-top:8px;">
+                <%= staffFlash.revealOnly ? '👁️ This reveal was logged.' : staffFlash.dmOk ? '📬 The bot DMed them these details.' : (staffFlash.noDm ? '⚠️ This login has no Discord ID linked, so nothing was DMed — share these details privately.' : '⚠️ The bot could not DM them (DMs closed) — share these details privately.') %>
+                This is only shown once.
+            </div>
+        </div>
+        <% } %>
+
+        <div class="card">
+            <% staffAccounts.forEach(function (a) { %>
+            <div class="row">
+                <div class="row-icon" style="background:#1e1a45;"><span style="color:#d6d2f5;"><%= a.rank === 'owner' ? '👑' : (a.rank === 'admin' ? '🛡️' : '👤') %></span></div>
+                <div class="row-body">
+                    <div class="row-title"><%= a.username %><%= a.isSelf ? ' (you)' : '' %></div>
+                    <div class="row-desc">
+                        <%= a.discordId ? ((a.discordTag ? a.discordTag + ' · ' : '') + a.discordId) : 'No Discord account linked' %><%= a.pending ? ' · must set a new password at next login' : '' %>
+                    </div>
+                    <% if (a.staffIdMasked) { %><div class="row-desc">Staff ID: <code style="color:#a58bff;"><%= a.staffIdMasked %></code>
+                        <% if (a.staffIdMeta && a.staffIdMeta.issued) { %><span style="color:#6f6a9c;">· Version <%= a.staffIdMeta.version %> · Created <%= a.staffIdMeta.createdAt ? new Date(a.staffIdMeta.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'unknown' %> · Last rotated: <%= a.staffIdMeta.lastRotatedBy || 'unknown' %></span><% } %>
+                        <% if (a.staffIdMeta && a.staffIdMeta.issued) { %><form action="/settings/staff/reveal-id" method="POST" style="display:inline;" onsubmit="return confirm('Reveal the full Staff ID for <%= a.username %>? This is logged.')"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="id" value="<%= a.id %>"><button type="submit" class="btn" style="padding:2px 8px;font-size:11px;">Reveal (logged)</button></form><% } %></div><% } %>
+                </div>
+                <div class="row-end">
+                    <% if (a.rank === 'owner') { %>
+                    <span class="badge badge-info" title="Ownership can't be revoked">Owner · protected</span>
+                    <% } else if (a.rank === 'admin') { %>
+                    <span class="badge badge-info">Admin</span>
+                    <% } else { %>
+                    <span class="badge badge-live">Mod</span>
+                    <% } %>
+                    <% if (a.canEdit && a.staffIdMasked) { %>
+                    <form action="/settings/staff/reissue-id" method="POST" style="display:contents;"
+                          onsubmit="return confirm('Issue a new Staff ID for <%= a.username %>? The old one stops working immediately and the new one is DMed to them.')"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <input type="hidden" name="id" value="<%= a.id %>">
+                        <button type="submit" class="btn">New Staff ID</button>
+                    </form>
+                    <% } %>
+                    <% if (a.canEdit) { %>
+                    <button type="button" class="btn" onclick="toggleDrawer('staff-edit-<%= a.id %>','staff-edit-chevron-<%= a.id %>')">Edit</button>
+                    <span id="staff-edit-chevron-<%= a.id %>" style="display:none;"></span>
+                    <% } %>
+                    <% if (a.canRevoke) { %>
+                    <form action="/settings/staff/revoke" method="POST" style="display:contents;"
+                          onsubmit="return confirm('Revoke <%= a.username %>? They will be signed out immediately and the bot will DM them.')"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <input type="hidden" name="id" value="<%= a.id %>">
+                        <button type="submit" class="btn btn-danger">Revoke</button>
+                    </form>
+                    <% } %>
+                </div>
+            </div>
+            <% if (a.canEdit) { %>
+            <div class="drawer" id="staff-edit-<%= a.id %>">
+                <form action="/settings/staff/edit" method="POST" style="display:contents;" autocomplete="off"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="hidden" name="id" value="<%= a.id %>">
+                    <label>Username</label>
+                    <input type="text" name="username" value="<%= a.username %>" minlength="3" maxlength="24" required autocomplete="off">
+                    <label>Discord user ID <span style="color:#6f6a9c;">(blank unlinks the login from Discord)</span></label>
+                    <input type="text" name="discordId" value="<%= a.discordId || '' %>" placeholder="17-20 digit ID (Developer Mode → Copy User ID)" inputmode="numeric" pattern="\d{17,20}" autocomplete="off">
+                    <label>New password <span style="color:#6f6a9c;">(leave blank to keep the current one)</span></label>
+                    <input type="text" name="newPassword" placeholder="Exactly 6 numbers" inputmode="numeric" pattern="\d{6}" maxlength="6" autocomplete="off">
+                    <label style="display:flex;align-items:center;gap:8px;margin-top:14px;color:#d6d2f5;font-size:13px;cursor:pointer;">
+                        <input type="checkbox" name="requireReset" style="width:auto;margin:0;" <%= a.pending ? 'checked' : '' %>>
+                        Require a password reset on next login
+                    </label>
+                    <div class="row-desc" style="margin-top:10px;">Changing a password signs that login out everywhere. If the login has a Discord ID, the bot DMs them what changed.</div>
+                    <div class="row-actions">
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                        <button type="button" class="btn" onclick="toggleDrawer('staff-edit-<%= a.id %>','staff-edit-chevron-<%= a.id %>')">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            <% } %>
+            <% }) %>
+
+            <% if (staffAssignable.length) { %>
+            <!-- Add staff -->
+            <div class="row">
+                <div class="row-icon" style="background:#1e1a45;"><span style="color:#d6d2f5;">&#10133;</span></div>
+                <div class="row-body">
+                    <div class="row-title">Add staff login</div>
+                    <div class="row-desc">Tied to a Discord user ID — the bot DMs them their login</div>
+                </div>
+                <div class="row-end">
+                    <span class="chevron" id="staff-chevron" onclick="toggleDrawer('staff-drawer','staff-chevron')">&#8964;</span>
+                </div>
+            </div>
+            <div class="drawer" id="staff-drawer">
+                <form action="/settings/staff/add" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <label>Username</label>
+                    <input type="text" name="username" placeholder="e.g. jamie" minlength="3" maxlength="24" pattern="[A-Za-z0-9_.\-]{3,24}" required autocomplete="off">
+                    <label>Discord user ID</label>
+                    <input type="text" name="discordId" placeholder="17-20 digit ID (Developer Mode → Copy User ID)" inputmode="numeric" pattern="\d{17,20}" required autocomplete="off">
+                    <label>Rank</label>
+                    <select name="rank">
+                        <% staffAssignable.slice().reverse().forEach(function (r) { %>
+                        <option value="<%= r %>" <%= r === 'mod' ? 'selected' : '' %>><%= rankLabel[r] %></option>
+                        <% }) %>
+                    </select>
+                    <div class="row-desc" style="margin-top:10px;">
+                        A random 6-digit temporary password is generated. They set their own on first login.
+                        <% if (staffAssignable.length > 1) { %>
+                        Owners can add owners, admins and mods (ownership can never be revoked). Admins can add mods. Mods only get the dashboard, not Settings.
+                        <% } else { %>
+                        As an admin you can add mods. Mods only get the dashboard, not Settings.
+                        <% } %>
+                    </div>
+                    <div class="row-actions">
+                        <button type="submit" class="btn btn-primary">Create &amp; DM</button>
+                        <button type="button" class="btn" onclick="toggleDrawer('staff-drawer','staff-chevron')">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            <% } %>
+        </div>
+    </div>
+    <% } %>
+
+    <!-- ══════════════════════════════════════
+         NOTIFICATIONS
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Notifications</div>
+        <div class="card">
+
+            <!-- Downtime alerts -->
+            <div class="row">
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#128140;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Downtime alerts</div>
+                    <div class="row-desc">Email on status changes</div>
+                </div>
+                <div class="row-end">
+                    <form action="/settings/toggle-downtime-alerts" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button type="submit"
+                                class="toggle <%= settings.downtimeAlerts ? 'on' : '' %>"
+                                aria-label="Toggle downtime alerts">
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+
+            <!-- Discord webhook -->
+            <div class="row">
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#128279;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Discord webhook</div>
+                    <div class="row-desc">
+                        <%= (settings.discordWebhook || settings.slackWebhook) ? 'Configured' : 'Not configured' %>
+                    </div>
+                </div>
+                <div class="row-end">
+                    <span class="chevron" id="discord-chevron" onclick="toggleDrawer('discord-drawer','discord-chevron')">&#8964;</span>
+                </div>
+            </div>
+            <div class="drawer" id="discord-drawer">
+                <form action="/settings/discord-webhook" method="POST" style="display:contents;"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <label>Discord webhook URL</label>
+                    <input type="url" name="discordWebhook"
+                           placeholder="https://discord.com/api/webhooks/..."
+                           value="<%= settings.discordWebhook || settings.slackWebhook || '' %>">
+                    <div class="row-actions">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" class="btn" onclick="toggleDrawer('discord-drawer','discord-chevron')">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         DANGER ZONE
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Danger Zone</div>
+        <div class="card danger-card">
+
+            <!-- Flush sessions -->
+            <div class="row">
+                <div class="row-icon" style="background:#34152a;">
+                    <span style="color:#ff6b8a;">&#128465;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Flush all sessions</div>
+                    <div class="row-desc">Signs out all active users immediately</div>
+                </div>
+                <div class="row-end">
+                    <form action="/settings/flush-sessions" method="POST" style="display:contents;"
+                          onsubmit="return confirm('This will sign out all active users. Continue?')"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button type="submit" class="btn btn-danger">Flush</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Reset to defaults -->
+            <div class="row">
+                <div class="row-icon" style="background:#34152a;">
+                    <span style="color:#ff6b8a;">&#9888;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Reset to defaults</div>
+                    <div class="row-desc">Restores all settings to factory state</div>
+                </div>
+                <div class="row-end">
+                    <form action="/settings/reset" method="POST" style="display:contents;"
+                          onsubmit="return confirm('All settings will be reset to defaults. This cannot be undone. Continue?')"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button type="submit" class="btn btn-danger">Reset</button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div><!-- /page -->
+
+<script>
+    function toggleDrawer(drawerId, chevronId) {
+        var drawer  = document.getElementById(drawerId);
+        var chevron = document.getElementById(chevronId);
+        var open = drawer.style.display === 'block';
+        drawer.style.display  = open ? 'none'  : 'block';
+        chevron.classList.toggle('open', !open);
+    }
+</script>
+</body>
+</html>
