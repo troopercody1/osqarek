@@ -490,6 +490,29 @@
         </div>
     </div>
 
+    <% if (user && user.rank === 'owner') { %>
+    <!-- ══════════════════════════════════════
+         SECURITY (owners only)
+    ══════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-label">Security</div>
+        <div class="card">
+            <a href="/settings/security" class="row clickable" style="text-decoration:none;">
+                <div class="row-icon" style="background:#1e1a45;">
+                    <span style="color:#d6d2f5;">&#128274;</span>
+                </div>
+                <div class="row-body">
+                    <div class="row-title">Account security</div>
+                    <div class="row-desc">Locked staff logins, unlock / lock accounts and blocked IPs</div>
+                </div>
+                <div class="row-end">
+                    <span class="chevron" style="transform:rotate(-90deg);">&#8964;</span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <% } %>
     <!-- ══════════════════════════════════════
          MAILBOX
     ══════════════════════════════════════ -->
